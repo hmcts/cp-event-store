@@ -39,7 +39,7 @@ variables:
   - group: "cjs-common-platform"
 
 stages:
-  - template: pipelines/cjscp-framework-build.yaml@cppAzureDevOpsTemplates
+  - template: pipelines/cp-framework-build.yaml@cppAzureDevOpsTemplates
     parameters:
       sonarqube_project: ${{ variables['sonarqubeProject'] }}
       coveralls_repo_token: $(cp-event-store)

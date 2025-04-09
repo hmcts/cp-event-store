@@ -17,9 +17,6 @@ import javax.inject.Inject;
 
 public class StreamStatusErrorPersistence {
 
-    @Inject
-    private UtcClock clock;
-
     private static final String UNMARK_STREAM_AS_ERRORED_SQL = """
                     UPDATE stream_status
                     SET stream_error_id = NULL,
@@ -43,8 +40,21 @@ public class StreamStatusErrorPersistence {
             DO UPDATE
             SET stream_error_id = ?, stream_error_position = ?, updated_at = ?""";
 
+    private static final String SELECT_FOR_UPDATE_SQL = """
+            SELECT
+                stream_id
+            FROM
+                stream_status
+            WHERE stream_id = ?
+            AND source = ?
+            AND component = ?
+            FOR UPDATE
+            """;
+
     private static final long INITIAL_POSITION_ON_ERROR = 0L;
 
+    @Inject
+    private UtcClock clock;
 
     public void markStreamAsErrored(
             final UUID streamId,
@@ -96,6 +106,19 @@ public class StreamStatusErrorPersistence {
             preparedStatement.executeUpdate();
         } catch (final SQLException e) {
             throw new JdbcRepositoryException(format("Failed to unmark stream as errored in stream_status table. streamId: '%s'", streamId), e);
+        }
+    }
+
+    public void lockStreamForUpdate(final UUID streamId, final String source, final String component, final Connection connection) {
+
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_FOR_UPDATE_SQL)) {
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setString(2, source);
+            preparedStatement.setString(3, component);
+            preparedStatement.execute();
+
+        } catch (SQLException e) {
+            throw new StreamErrorHandlingException(format("Failed to lock stream for update: streamId '%s', source '%s', component '%s'", streamId, source, component), e);
         }
     }
 }

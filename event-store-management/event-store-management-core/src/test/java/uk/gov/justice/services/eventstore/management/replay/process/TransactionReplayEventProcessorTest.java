@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.sourcing.subscription.manager.EventBufferProcessor;
+import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.factories.EventBufferProcessorFactory;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import org.junit.jupiter.api.Test;

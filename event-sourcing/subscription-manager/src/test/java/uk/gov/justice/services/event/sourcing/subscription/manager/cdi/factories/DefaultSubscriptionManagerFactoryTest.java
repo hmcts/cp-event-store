@@ -1,19 +1,13 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.cdi.factories;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.getValueOfField;
 
-import uk.gov.justice.services.core.interceptor.InterceptorChainProcessor;
-import uk.gov.justice.services.core.interceptor.InterceptorChainProcessorProducer;
-import uk.gov.justice.services.event.buffer.api.EventBufferService;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingFailureHandler;
 import uk.gov.justice.services.event.sourcing.subscription.manager.DefaultSubscriptionManager;
 import uk.gov.justice.services.event.sourcing.subscription.manager.EventBufferProcessor;
-import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,16 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class DefaultSubscriptionManagerFactoryTest {
 
     @Mock
-    private InterceptorContextProvider interceptorContextProvider;
-
-    @Mock
-    private EventBufferService eventBufferService;
-
-    @Mock
-    private InterceptorChainProcessorProducer interceptorChainProcessorProducer;
-
-    @Mock
-    private StreamProcessingFailureHandler streamProcessingFailureHandler;
+    private EventBufferProcessorFactory eventBufferProcessorFactory;
 
     @InjectMocks
     private DefaultSubscriptionManagerFactory defaultSubscriptionManagerFactory;
@@ -43,21 +28,11 @@ public class DefaultSubscriptionManagerFactoryTest {
     public void shouldCreateDefaultSubscriptionManagerFactory() throws Exception {
 
         final String componentName = "componentName";
+        final EventBufferProcessor eventBufferProcessor = mock(EventBufferProcessor.class);
 
-        final InterceptorChainProcessor interceptorChainProcessor = mock(InterceptorChainProcessor.class);
-
-        when(interceptorChainProcessorProducer.produceLocalProcessor(componentName)).thenReturn(interceptorChainProcessor);
+        when(eventBufferProcessorFactory.create(componentName)).thenReturn(eventBufferProcessor);
 
         final DefaultSubscriptionManager defaultSubscriptionManager = (DefaultSubscriptionManager) defaultSubscriptionManagerFactory.create(componentName);
-        assertThat(getValueOfField(defaultSubscriptionManager, "streamProcessingFailureHandler", StreamProcessingFailureHandler.class), is(streamProcessingFailureHandler));
-
-        final EventBufferProcessor eventBufferProcessor = getValueOfField(defaultSubscriptionManager, "eventBufferProcessor", EventBufferProcessor.class);
-
-        assertThat(eventBufferProcessor, is(notNullValue()));
-
-        assertThat(getValueOfField(eventBufferProcessor, "interceptorChainProcessor", InterceptorChainProcessor.class), is(interceptorChainProcessor));
-        assertThat(getValueOfField(eventBufferProcessor, "eventBufferService", EventBufferService.class), is(eventBufferService));
-        assertThat(getValueOfField(eventBufferProcessor, "interceptorContextProvider", InterceptorContextProvider.class), is(interceptorContextProvider));
-        assertThat(getValueOfField(eventBufferProcessor, "component", String.class), is(componentName));
+        assertThat(getValueOfField(defaultSubscriptionManager, "eventBufferProcessor", EventBufferProcessor.class), is(eventBufferProcessor));
     }
 }

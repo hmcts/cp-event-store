@@ -3,6 +3,7 @@ package uk.gov.justice.services.eventstore.management.replay.process;
 import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 
 import uk.gov.justice.services.event.sourcing.subscription.manager.EventBufferProcessor;
+import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.factories.EventBufferProcessorFactory;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import javax.inject.Inject;

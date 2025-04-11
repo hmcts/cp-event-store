@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.3.xsd">
+
+    <changeSet id="stream_buffer-014" author="TechPod"
+               logicalFilePath="liquibase/event-buffer-changesets/014-add-latest-known-position-column-to-stream-status-table.changelog.xml">
+
+        <addColumn tableName="stream_status">
+            <column name="latest_known_position" type="BIGINT" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addColumn tableName="stream_status">
+            <column name="is_up_to_date" type="BOOLEAN" defaultValue="TRUE">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="stream_status" columnName="latest_known_position"/>
+            <dropColumn tableName="stream_status" columnName="is_up_to_date"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

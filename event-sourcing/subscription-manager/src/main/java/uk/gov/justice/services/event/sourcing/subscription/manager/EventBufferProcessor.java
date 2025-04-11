@@ -9,6 +9,8 @@ import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import java.util.stream.Stream;
 
+import javax.transaction.Transactional;
+
 public class EventBufferProcessor {
 
     private final InterceptorChainProcessor interceptorChainProcessor;

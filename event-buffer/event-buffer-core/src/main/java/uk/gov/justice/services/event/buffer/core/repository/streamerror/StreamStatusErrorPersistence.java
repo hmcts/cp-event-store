@@ -8,6 +8,7 @@ import uk.gov.justice.services.jdbc.persistence.JdbcRepositoryException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.ZonedDateTime;
@@ -16,9 +17,6 @@ import java.util.UUID;
 import javax.inject.Inject;
 
 public class StreamStatusErrorPersistence {
-
-    @Inject
-    private UtcClock clock;
 
     private static final String UNMARK_STREAM_AS_ERRORED_SQL = """
                     UPDATE stream_status
@@ -43,8 +41,21 @@ public class StreamStatusErrorPersistence {
             DO UPDATE
             SET stream_error_id = ?, stream_error_position = ?, updated_at = ?""";
 
+    private static final String SELECT_FOR_UPDATE_SQL = """
+            SELECT
+                position
+            FROM
+                stream_status
+            WHERE stream_id = ?
+            AND source = ?
+            AND component = ?
+            FOR UPDATE
+            """;
+
     private static final long INITIAL_POSITION_ON_ERROR = 0L;
 
+    @Inject
+    private UtcClock clock;
 
     public void markStreamAsErrored(
             final UUID streamId,
@@ -98,4 +109,30 @@ public class StreamStatusErrorPersistence {
             throw new JdbcRepositoryException(format("Failed to unmark stream as errored in stream_status table. streamId: '%s'", streamId), e);
         }
     }
+
+    public Long lockStreamForUpdate(final UUID streamId, final String source, final String component, final Connection connection) {
+
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_FOR_UPDATE_SQL)) {
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setString(2, source);
+            preparedStatement.setString(3, component);
+
+            try(final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                   return resultSet.getLong("position");
+                }
+
+                throw new StreamNotFoundException(format(
+                        "Failed to lock row in stream_status table. Stream with stream_id '%s', source '%s' and component '%s' does not exist",
+                        streamId,
+                        source,
+                        component));
+            }
+
+        } catch (final SQLException e) {
+            throw new StreamErrorHandlingException(format("Failed to lock row in stream_status table: streamId '%s', source '%s', component '%s'", streamId, source, component), e);
+        }
+    }
+
+
 }

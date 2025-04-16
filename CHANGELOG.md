@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+## [17.102.3] - 2025-04-16
+### Changed
+- Update framework to 17.102.2 for:
+  - Extended RestPoller to include custom PollInterval implementation and introduced FibonacciPollWithStartAndMax class
+
 ## [17.102.2] - 2025-03-19
 ### Removed
 - Removed error handling from BackwardsCompatibleSubscriptionManager

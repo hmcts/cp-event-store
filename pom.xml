@@ -12,7 +12,7 @@
 
     <groupId>uk.gov.justice.event-store</groupId>
     <artifactId>event-store</artifactId>
-    <version>17.102.3-SNAPSHOT</version>
+    <version>17.102.3</version>
     <packaging>pom</packaging>
 
     <name>Event Store</name>
@@ -39,7 +39,7 @@
 
     <properties>
         <cpp.repo.name>event-store</cpp.repo.name>
-        <framework.version>17.102.1</framework.version>
+        <framework.version>17.102.2</framework.version>
     </properties>
 
     <dependencyManagement>

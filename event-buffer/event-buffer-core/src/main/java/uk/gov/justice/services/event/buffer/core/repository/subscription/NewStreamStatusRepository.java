@@ -84,7 +84,8 @@ public class NewStreamStatusRepository {
             """;
     private static final String UPDATE_LATEST_KNOWN_POSITION_IN_STREAM = """
                 UPDATE stream_status
-                SET latest_known_position = ?
+                SET latest_known_position = ?,
+                is_up_to_date = ?
                 WHERE stream_id = ?
                 AND source = ?
                 AND component = ?
@@ -286,9 +287,10 @@ public class NewStreamStatusRepository {
              final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_LATEST_KNOWN_POSITION_IN_STREAM)) {
 
             preparedStatement.setLong(1, latestKnownPosition);
-            preparedStatement.setObject(2, streamId);
-            preparedStatement.setString(3, source);
-            preparedStatement.setString(4, componentName);
+            preparedStatement.setBoolean(2, false);
+            preparedStatement.setObject(3, streamId);
+            preparedStatement.setString(4, source);
+            preparedStatement.setString(5, componentName);
 
             preparedStatement.executeUpdate();
         } catch (final SQLException e) {

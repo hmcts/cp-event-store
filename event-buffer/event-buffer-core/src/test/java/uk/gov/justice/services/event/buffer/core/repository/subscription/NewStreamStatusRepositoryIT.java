@@ -200,10 +200,12 @@ public class NewStreamStatusRepositoryIT {
                 componentName,
                 updatedAt,
                 upToDate), is(1));
+        newStreamStatusRepository.setUpToDate(true, streamId, source, componentName);
 
         final Optional<StreamStatus> streamStatus = newStreamStatusRepository.find(streamId, source, componentName);
         assertThat(streamStatus.isPresent(), is(true));
         assertThat(streamStatus.get().latestKnownPosition(), is(0L));
+        assertThat(streamStatus.get().isUpToDate(), is(true));
 
         newStreamStatusRepository.updateLatestKnownPosition(
                 streamId,
@@ -215,6 +217,7 @@ public class NewStreamStatusRepositoryIT {
         final Optional<StreamStatus> updatedStreamStatus = newStreamStatusRepository.find(streamId, source, componentName);
         assertThat(updatedStreamStatus.isPresent(), is(true));
         assertThat(updatedStreamStatus.get().latestKnownPosition(), is(latestKnownPosition));
+        assertThat(updatedStreamStatus.get().isUpToDate(), is(false));
     }
 
     @Test

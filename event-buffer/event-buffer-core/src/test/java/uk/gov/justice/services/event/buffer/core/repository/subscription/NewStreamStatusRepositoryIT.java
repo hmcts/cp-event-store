@@ -207,7 +207,7 @@ public class NewStreamStatusRepositoryIT {
         assertThat(streamStatus.get().latestKnownPosition(), is(0L));
         assertThat(streamStatus.get().isUpToDate(), is(true));
 
-        newStreamStatusRepository.updateLatestKnownPosition(
+        newStreamStatusRepository.updateLatestKnownPositionAndIsUpToDateToFalse(
                 streamId,
                 source,
                 componentName,

@@ -53,7 +53,7 @@ public class StreamStatusServiceTest {
     private NewEventBufferManager newEventBufferManager;
 
     @Mock
-    private LatestKnownPositionUpdater latestKnownPositionUpdater;
+    private LatestKnownPositionAndIsUpToDateUpdater latestKnownPositionAndIsUpToDateUpdater;
 
     @Mock
     private UserTransaction userTransaction;
@@ -101,7 +101,7 @@ public class StreamStatusServiceTest {
 
         assertThat(streamStatusService.handleStreamStatusUpdates(incomingJsonEnvelope, componentName), is(EVENT_CORRECTLY_ORDERED));
 
-        final InOrder inOrder = inOrder(transactionHandler, newStreamStatusRepository, latestKnownPositionUpdater);
+        final InOrder inOrder = inOrder(transactionHandler, newStreamStatusRepository, latestKnownPositionAndIsUpToDateUpdater);
 
         inOrder.verify(transactionHandler).begin(userTransaction);
         inOrder.verify(newStreamStatusRepository).insertIfNotExists(
@@ -115,7 +115,7 @@ public class StreamStatusServiceTest {
                 source,
                 componentName,
                 incomingPositionInStream);
-        inOrder.verify(latestKnownPositionUpdater).updateIfNecessary(
+        inOrder.verify(latestKnownPositionAndIsUpToDateUpdater).updateIfNecessary(
                 streamPositions,
                 streamId,
                 source,
@@ -159,7 +159,7 @@ public class StreamStatusServiceTest {
         final InOrder inOrder = inOrder(
                 transactionHandler,
                 newStreamStatusRepository,
-                latestKnownPositionUpdater,
+                latestKnownPositionAndIsUpToDateUpdater,
                 newEventBufferManager);
 
         inOrder.verify(transactionHandler).begin(userTransaction);
@@ -174,7 +174,7 @@ public class StreamStatusServiceTest {
                 source,
                 componentName,
                 incomingPositionInStream);
-        inOrder.verify(latestKnownPositionUpdater).updateIfNecessary(
+        inOrder.verify(latestKnownPositionAndIsUpToDateUpdater).updateIfNecessary(
                 streamPositions,
                 streamId,
                 source,
@@ -220,7 +220,7 @@ public class StreamStatusServiceTest {
         final InOrder inOrder = inOrder(
                 transactionHandler,
                 newStreamStatusRepository,
-                latestKnownPositionUpdater,
+                latestKnownPositionAndIsUpToDateUpdater,
                 logger,
                 newEventBufferManager);
 
@@ -236,7 +236,7 @@ public class StreamStatusServiceTest {
                 source,
                 componentName,
                 incomingPositionInStream);
-        inOrder.verify(latestKnownPositionUpdater).updateIfNecessary(
+        inOrder.verify(latestKnownPositionAndIsUpToDateUpdater).updateIfNecessary(
                 streamPositions,
                 streamId,
                 source,
@@ -326,7 +326,7 @@ public class StreamStatusServiceTest {
         assertThat(streamStatusException.getCause(), is(nullPointerException));
         assertThat(streamStatusException.getMessage(), is("Failed to update stream_status/event_buffer for eventId 'd4666897-7420-4e18-8796-209e8f085695', eventName 'some-name', streamId '85831bb3-1257-4096-8844-ee7d88e86a1f'"));
 
-        final InOrder inOrder = inOrder(transactionHandler, newStreamStatusRepository, latestKnownPositionUpdater);
+        final InOrder inOrder = inOrder(transactionHandler, newStreamStatusRepository, latestKnownPositionAndIsUpToDateUpdater);
 
         inOrder.verify(transactionHandler).begin(userTransaction);
         inOrder.verify(transactionHandler).rollback(userTransaction);

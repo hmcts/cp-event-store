@@ -7,7 +7,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
-public class LatestKnownPositionUpdater {
+public class LatestKnownPositionAndIsUpToDateUpdater {
 
     @Inject
     private NewStreamStatusRepository newStreamStatusRepository;
@@ -19,7 +19,7 @@ public class LatestKnownPositionUpdater {
             final String componentName) {
 
         if (streamPositions.latestKnownStreamPosition() < streamPositions.incomingEventPosition()) {
-            newStreamStatusRepository.updateLatestKnownPosition(
+            newStreamStatusRepository.updateLatestKnownPositionAndIsUpToDateToFalse(
                     streamId,
                     source,
                     componentName,

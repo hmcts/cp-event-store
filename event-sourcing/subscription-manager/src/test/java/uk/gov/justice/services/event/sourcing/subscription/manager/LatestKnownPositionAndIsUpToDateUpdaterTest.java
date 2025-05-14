@@ -18,13 +18,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class LatestKnownPositionUpdaterTest {
+public class LatestKnownPositionAndIsUpToDateUpdaterTest {
 
     @Mock
     private NewStreamStatusRepository newStreamStatusRepository;
 
     @InjectMocks
-    private LatestKnownPositionUpdater latestKnownPositionUpdater;
+    private LatestKnownPositionAndIsUpToDateUpdater latestKnownPositionAndIsUpToDateUpdater;
 
     @Test
     public void shouldUpdateLatestKnownPositionIfIncomingPositionIsGreaterThanCurrentLatestKnownPosition() throws Exception {
@@ -42,14 +42,14 @@ public class LatestKnownPositionUpdaterTest {
         when(streamPositions.latestKnownStreamPosition()).thenReturn(latestKnownStreamPosition);
         when(streamPositions.incomingEventPosition()).thenReturn(incomingPositionInStream);
 
-        latestKnownPositionUpdater.updateIfNecessary(
+        latestKnownPositionAndIsUpToDateUpdater.updateIfNecessary(
                 streamPositions,
                 streamId,
                 source,
                 componentName
         );
 
-        verify(newStreamStatusRepository).updateLatestKnownPosition(streamId, source, componentName, incomingPositionInStream);
+        verify(newStreamStatusRepository).updateLatestKnownPositionAndIsUpToDateToFalse(streamId, source, componentName, incomingPositionInStream);
     }
 
     @Test
@@ -68,14 +68,14 @@ public class LatestKnownPositionUpdaterTest {
         when(streamPositions.latestKnownStreamPosition()).thenReturn(latestKnownStreamPosition);
         when(streamPositions.incomingEventPosition()).thenReturn(incomingPositionInStream);
 
-        latestKnownPositionUpdater.updateIfNecessary(
+        latestKnownPositionAndIsUpToDateUpdater.updateIfNecessary(
                 streamPositions,
                 streamId,
                 source,
                 componentName
         );
 
-        verify(newStreamStatusRepository, never()).updateLatestKnownPosition(streamId, source, componentName, incomingPositionInStream);
+        verify(newStreamStatusRepository, never()).updateLatestKnownPositionAndIsUpToDateToFalse(streamId, source, componentName, incomingPositionInStream);
     }
 
     @Test
@@ -94,13 +94,13 @@ public class LatestKnownPositionUpdaterTest {
         when(streamPositions.latestKnownStreamPosition()).thenReturn(latestKnownStreamPosition);
         when(streamPositions.incomingEventPosition()).thenReturn(incomingPositionInStream);
 
-        latestKnownPositionUpdater.updateIfNecessary(
+        latestKnownPositionAndIsUpToDateUpdater.updateIfNecessary(
                 streamPositions,
                 streamId,
                 source,
                 componentName
         );
 
-        verify(newStreamStatusRepository, never()).updateLatestKnownPosition(streamId, source, componentName, incomingPositionInStream);
+        verify(newStreamStatusRepository, never()).updateLatestKnownPositionAndIsUpToDateToFalse(streamId, source, componentName, incomingPositionInStream);
     }
 }

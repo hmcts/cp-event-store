@@ -281,7 +281,7 @@ public class NewStreamStatusRepository {
         }
     }
 
-    public void updateLatestKnownPosition(final UUID streamId, final String source, final String componentName, final long latestKnownPosition) {
+    public void updateLatestKnownPositionAndIsUpToDateToFalse(final UUID streamId, final String source, final String componentName, final long latestKnownPosition) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_LATEST_KNOWN_POSITION_IN_STREAM)) {

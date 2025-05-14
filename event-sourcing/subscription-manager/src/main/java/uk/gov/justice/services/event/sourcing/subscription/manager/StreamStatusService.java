@@ -33,7 +33,7 @@ public class StreamStatusService {
     private NewEventBufferManager newEventBufferManager;
 
     @Inject
-    private LatestKnownPositionUpdater latestKnownPositionUpdater;
+    private LatestKnownPositionAndIsUpToDateUpdater latestKnownPositionAndIsUpToDateUpdater;
 
     @Inject
     private UserTransaction userTransaction;
@@ -73,7 +73,7 @@ public class StreamStatusService {
                     componentName,
                     incomingPositionInStream);
 
-            latestKnownPositionUpdater.updateIfNecessary(
+            latestKnownPositionAndIsUpToDateUpdater.updateIfNecessary(
                     streamPositions,
                     streamId,
                     source,

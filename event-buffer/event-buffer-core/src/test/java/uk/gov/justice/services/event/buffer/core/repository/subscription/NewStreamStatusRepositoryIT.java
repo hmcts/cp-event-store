@@ -179,7 +179,7 @@ public class NewStreamStatusRepositoryIT {
     }
 
     @Test
-    public void shouldUpdateLatestPositionOfAStream() throws Exception {
+    public void shouldUpdateLatestPositionAndIsUpToDateOfAStream() throws Exception {
 
         final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);

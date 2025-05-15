@@ -1,5 +1,29 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
+import java.util.UUID;
+import javax.transaction.UserTransaction;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.services.core.interceptor.InterceptorChainProcessor;
+import uk.gov.justice.services.core.interceptor.InterceptorChainProcessorProducer;
+import uk.gov.justice.services.core.interceptor.InterceptorContext;
+import uk.gov.justice.services.event.buffer.core.repository.streambuffer.NewEventBufferRepository;
+import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
+import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamPositions;
+import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
+import uk.gov.justice.services.event.sourcing.subscription.error.MissingSourceException;
+import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
+import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
+import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
+import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
+import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
+import uk.gov.justice.services.messaging.JsonEnvelope;
+import uk.gov.justice.services.messaging.Metadata;
+
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.UUID.fromString;
@@ -17,33 +41,6 @@ import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.event.sourcing.subscription.manager.EventOrderingStatus.EVENT_ALREADY_PROCESSED;
 import static uk.gov.justice.services.event.sourcing.subscription.manager.EventOrderingStatus.EVENT_CORRECTLY_ORDERED;
 import static uk.gov.justice.services.event.sourcing.subscription.manager.EventOrderingStatus.EVENT_OUT_OF_ORDER;
-
-import uk.gov.justice.services.core.interceptor.InterceptorChainProcessor;
-import uk.gov.justice.services.core.interceptor.InterceptorChainProcessorProducer;
-import uk.gov.justice.services.core.interceptor.InterceptorContext;
-import uk.gov.justice.services.event.buffer.core.repository.streambuffer.NewEventBufferRepository;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamPositions;
-import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.MissingSourceException;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
-import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
-import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
-import uk.gov.justice.services.messaging.JsonEnvelope;
-import uk.gov.justice.services.messaging.Metadata;
-
-import java.util.UUID;
-
-import javax.transaction.UserTransaction;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class SubscriptionEventProcessorTest {
@@ -429,6 +426,88 @@ public class SubscriptionEventProcessorTest {
         verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, componentName, eventPositionInStream);
         verify(newEventBufferRepository, never()).remove(streamId, source, componentName, eventPositionInStream);
         verify(transactionHandler, never()).commit(userTransaction);
+    }
+
+    @Test
+    public void shouldThrowStreamProcessingExceptionAndRecordErrorIfLockRowAndGetPositionsFails() throws Exception {
+
+        final NullPointerException nullPointerException = new NullPointerException("Ooops");
+
+        final UUID eventId = fromString("ba0c36e1-659e-430c-9d33-67eda5ca70cd");
+        final UUID streamId = fromString("4f4815fa-825d-4869-a37f-e443dea21d18");
+        final String componentName = "some-component-name";
+        final String eventName = "some-event-name";
+        final String source = "some-source";
+        final long eventPositionInStream = 876;
+
+        final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
+        final Metadata metadata = mock(Metadata.class);
+
+        when(eventJsonEnvelope.metadata()).thenReturn(metadata);
+        when(metadata.name()).thenReturn(eventName);
+        when(metadata.id()).thenReturn(eventId);
+        when(metadata.streamId()).thenReturn(of(streamId));
+        when(metadata.source()).thenReturn(of(source));
+        when(metadata.position()).thenReturn(of(eventPositionInStream));
+        doThrow(nullPointerException).when(newStreamStatusRepository).lockRowAndGetPositions(
+                streamId,
+                source,
+                componentName,
+                eventPositionInStream);
+
+        assertThrows(StreamProcessingException.class,
+                () -> subscriptionEventProcessor.processSingleEvent(eventJsonEnvelope, componentName));
+
+        final InOrder inOrder = inOrder(
+                transactionHandler,
+                streamErrorStatusHandler);
+
+        inOrder.verify(transactionHandler).rollback(userTransaction);
+        inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, componentName);
+
+        verifyNoInteractions(eventProcessingStatusCalculator, interceptorChainProcessorProducer, newEventBufferRepository);
+    }
+
+    @Test
+    public void shouldThrowStreamProcessingExceptionAndRecordErrorIfEventOrderingCalculationFails() throws Exception {
+
+        final NullPointerException nullPointerException = new NullPointerException("Ooops");
+
+        final UUID eventId = fromString("ba0c36e1-659e-430c-9d33-67eda5ca70cd");
+        final UUID streamId = fromString("4f4815fa-825d-4869-a37f-e443dea21d18");
+        final String componentName = "some-component-name";
+        final String eventName = "some-event-name";
+        final String source = "some-source";
+        final long eventPositionInStream = 876;
+
+        final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
+        final Metadata metadata = mock(Metadata.class);
+        final StreamPositions streamPositions = mock(StreamPositions.class);
+
+        when(eventJsonEnvelope.metadata()).thenReturn(metadata);
+        when(metadata.name()).thenReturn(eventName);
+        when(metadata.id()).thenReturn(eventId);
+        when(metadata.streamId()).thenReturn(of(streamId));
+        when(metadata.source()).thenReturn(of(source));
+        when(metadata.position()).thenReturn(of(eventPositionInStream));
+        when(newStreamStatusRepository.lockRowAndGetPositions(
+                streamId,
+                source,
+                componentName,
+                eventPositionInStream)).thenReturn(streamPositions);
+        doThrow(nullPointerException).when(eventProcessingStatusCalculator).calculateEventOrderingStatus(streamPositions);
+
+        assertThrows(StreamProcessingException.class,
+                () -> subscriptionEventProcessor.processSingleEvent(eventJsonEnvelope, componentName));
+
+        final InOrder inOrder = inOrder(
+                transactionHandler,
+                streamErrorStatusHandler);
+
+        inOrder.verify(transactionHandler).rollback(userTransaction);
+        inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, componentName);
+
+        verifyNoInteractions(interceptorChainProcessorProducer, newEventBufferRepository);
     }
 
     @Test

@@ -1,22 +1,22 @@
 package uk.gov.justice.services.eventstore.management.replay.process;
 
-import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
-
-import uk.gov.justice.services.event.sourcing.subscription.manager.EventBufferProcessor;
-import uk.gov.justice.services.messaging.JsonEnvelope;
-
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.factories.SubscriptionManagerSelector;
+import uk.gov.justice.services.messaging.JsonEnvelope;
+import uk.gov.justice.services.subscription.SubscriptionManager;
+
+import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 
 public class TransactionReplayEventProcessor {
 
     @Inject
-    private EventBufferProcessorFactory eventBufferProcessorFactory;
+    private SubscriptionManagerSelector subscriptionManagerSelector;
 
 
     @Transactional(REQUIRES_NEW)
-    public void processWithEventBuffer(final String componentName, final JsonEnvelope eventEnvelope) {
-        final EventBufferProcessor eventBufferProcessor = eventBufferProcessorFactory.create(componentName);
-        eventBufferProcessor.processWithEventBuffer(eventEnvelope);
+    public void process(final String componentName, final JsonEnvelope eventEnvelope) {
+        final SubscriptionManager subscriptionManager = subscriptionManagerSelector.selectFor(componentName);
+        subscriptionManager.process(eventEnvelope);
     }
 }

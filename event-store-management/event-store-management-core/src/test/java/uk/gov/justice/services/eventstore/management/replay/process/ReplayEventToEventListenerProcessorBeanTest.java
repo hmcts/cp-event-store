@@ -57,7 +57,7 @@ public class ReplayEventToEventListenerProcessorBeanTest {
 
         replayEventToEventListenerProcessorBean.perform(REPLAY_EVENT_CONTEXT);
 
-        verify(transactionReplayEventProcessor).processWithEventBuffer(EVENT_LISTENER, eventEnvelope);
+        verify(transactionReplayEventProcessor).process(EVENT_LISTENER, eventEnvelope);
     }
 
     @Test

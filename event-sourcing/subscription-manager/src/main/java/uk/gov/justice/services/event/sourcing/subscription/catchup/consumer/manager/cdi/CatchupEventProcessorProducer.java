@@ -10,7 +10,7 @@ import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
 @ApplicationScoped
-public class TransactionalEventProcessorProducer {
+public class CatchupEventProcessorProducer {
 
     @Inject
     private EventErrorHandlingConfiguration eventErrorHandlingConfiguration;

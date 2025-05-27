@@ -29,7 +29,7 @@ class CatchupEventProcessorProducerTest {
     private NewSubscriptionAwareEventProcessor newSubscriptionAwareEventProcessor;
 
     @InjectMocks
-    private TransactionalEventProcessorProducer transactionalEventProcessorProducer;
+    private CatchupEventProcessorProducer catchupEventProcessorProducer;
 
     @Test
     void transactionalEventProcessorDefault() {
@@ -39,7 +39,7 @@ class CatchupEventProcessorProducerTest {
         when(eventErrorHandlingConfiguration.isEventStreamSelfHealingEnabled()).thenReturn(false);
 
         // run
-        transactionalEventProcessorProducer.transactionalEventProcessor()
+        catchupEventProcessorProducer.transactionalEventProcessor()
                 .processWithEventBuffer(publishedEvent, compName);
 
         // verify
@@ -55,7 +55,7 @@ class CatchupEventProcessorProducerTest {
         when(eventErrorHandlingConfiguration.isEventStreamSelfHealingEnabled()).thenReturn(true);
 
         // run
-        transactionalEventProcessorProducer.transactionalEventProcessor()
+        catchupEventProcessorProducer.transactionalEventProcessor()
                 .processWithEventBuffer(publishedEvent, compName);
 
         // verify

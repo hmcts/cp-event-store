@@ -1,20 +1,19 @@
 package uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task;
 
+import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.CatchupEventProcessor;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.EventStreamConsumptionResolver;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.FinishedProcessingMessage;
-import uk.gov.justice.services.event.sourcing.subscription.manager.TransactionalEventProcessor;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.PublishedEvent;
 import uk.gov.justice.services.eventstore.management.commands.CatchupCommand;
 
+import javax.inject.Inject;
 import java.util.Queue;
 import java.util.UUID;
-
-import javax.inject.Inject;
 
 public class EventQueueConsumer {
 
     @Inject
-    private TransactionalEventProcessor transactionalEventProcessor;
+    private CatchupEventProcessor catchupEventProcessor;
 
     @Inject
     private EventStreamConsumptionResolver eventStreamConsumptionResolver;
@@ -32,7 +31,7 @@ public class EventQueueConsumer {
 
             final PublishedEvent publishedEvent = events.poll();
             try {
-                transactionalEventProcessor.processWithEventBuffer(publishedEvent, subscriptionName);
+                catchupEventProcessor.processWithEventBuffer(publishedEvent, subscriptionName);
             } catch (final Exception e) {
                 eventProcessingFailedHandler.handleEventFailure(e, publishedEvent, subscriptionName, catchupCommand, commandId);
             } finally {

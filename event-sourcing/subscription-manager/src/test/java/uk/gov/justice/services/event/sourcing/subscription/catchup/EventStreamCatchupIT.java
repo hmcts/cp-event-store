@@ -1,10 +1,13 @@
 package uk.gov.justice.services.event.sourcing.subscription.catchup;
 
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
-import static org.junit.jupiter.api.Assertions.fail;
-import static uk.gov.justice.services.core.postgres.OpenEjbConfigurationBuilder.createOpenEjbConfigurationBuilder;
-
+import org.apache.commons.lang3.time.StopWatch;
+import org.apache.openejb.jee.WebApp;
+import org.apache.openejb.junit5.RunWithApplicationComposer;
+import org.apache.openejb.testing.Application;
+import org.apache.openejb.testing.Classes;
+import org.apache.openejb.testing.Configuration;
+import org.apache.openejb.testing.Module;
+import org.junit.jupiter.api.Test;
 import uk.gov.justice.services.cdi.LoggerProducer;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.DummyEventQueueProcessingConfig;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.ConcurrentEventStreamConsumerManager;
@@ -15,25 +18,20 @@ import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task.ConsumeEventQueueTaskManager;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task.EventProcessingFailedHandler;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task.EventQueueConsumer;
-import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.util.DummyTransactionalEventProcessor;
+import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.util.DummyCatchupEventProcessor;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.util.TestCatchupBean;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.PublishedEvent;
 import uk.gov.justice.services.test.utils.core.messaging.Poller;
 
+import javax.inject.Inject;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Queue;
 
-import javax.inject.Inject;
-
-import org.apache.commons.lang3.time.StopWatch;
-import org.apache.openejb.jee.WebApp;
-import org.apache.openejb.junit5.RunWithApplicationComposer;
-import org.apache.openejb.testing.Application;
-import org.apache.openejb.testing.Classes;
-import org.apache.openejb.testing.Configuration;
-import org.apache.openejb.testing.Module;
-import org.junit.jupiter.api.Test;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
+import static org.junit.jupiter.api.Assertions.fail;
+import static uk.gov.justice.services.core.postgres.OpenEjbConfigurationBuilder.createOpenEjbConfigurationBuilder;
 
 @RunWithApplicationComposer
 public class EventStreamCatchupIT {
@@ -42,14 +40,14 @@ public class EventStreamCatchupIT {
     TestCatchupBean testCatchupBean;
 
     @Inject
-    DummyTransactionalEventProcessor dummyTransactionalEventProcessor;
+    DummyCatchupEventProcessor dummyTransactionalEventProcessor;
 
     private final Poller poller = new Poller(60, 1000L);
 
     @Module
     @Classes(cdi = true, value = {
             TestCatchupBean.class,
-            DummyTransactionalEventProcessor.class,
+            DummyCatchupEventProcessor.class,
             EventStreamsInProgressList.class,
             ConsumeEventQueueBean.class,
             LoggerProducer.class,

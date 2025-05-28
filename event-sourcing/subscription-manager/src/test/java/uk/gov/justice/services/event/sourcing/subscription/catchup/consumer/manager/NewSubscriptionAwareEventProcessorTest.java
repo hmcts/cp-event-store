@@ -6,6 +6,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.services.event.sourcing.subscription.manager.EventBufferAwareSubscriptionEventProcessor;
+import uk.gov.justice.services.event.sourcing.subscription.manager.NewSubscriptionManagerDelegate;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.PublishedEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
@@ -25,7 +26,7 @@ class NewSubscriptionAwareEventProcessorTest {
     private SubscriptionsDescriptorsRegistry subscriptionsDescriptorsRegistry;
 
     @Mock
-    private EventBufferAwareSubscriptionEventProcessor eventBufferAwareSubscriptionEventProcessor;
+    private NewSubscriptionManagerDelegate newSubscriptionManagerDelegate;
 
     @Mock
     private EventConverter eventConverter;
@@ -48,7 +49,7 @@ class NewSubscriptionAwareEventProcessorTest {
 
         // verify
         assertEquals(1, result);
-        verify(eventBufferAwareSubscriptionEventProcessor).process(eq(jsonEnvelope), eq(compName));
-        verifyNoMoreInteractions(subscriptionsDescriptorsRegistry, eventBufferAwareSubscriptionEventProcessor, eventConverter);
+        verify(newSubscriptionManagerDelegate).process(eq(jsonEnvelope), eq(compName));
+        verifyNoMoreInteractions(subscriptionsDescriptorsRegistry, newSubscriptionManagerDelegate, eventConverter);
     }
 }

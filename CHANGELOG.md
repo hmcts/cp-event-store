@@ -3,7 +3,11 @@ All notable changes to this project will be documented in this file, which follo
 on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
-### [Unreleased] 
+### [Unreleased]
+
+# [17.103.0-M5] - 2025-05-28
+### Changed
+- Fix ReplayEventToEventListener, ReplayEventToEventIndexer, CatchUp command execution to work with selfhealing feature
 
 # [17.103.0-M4] - 2025-05-22
 ### Changed 

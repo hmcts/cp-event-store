@@ -1,28 +1,31 @@
 package uk.gov.justice.services.event.buffer.core.repository.subscription;
 
-import static java.util.Optional.empty;
-import static java.util.UUID.randomUUID;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.when;
-
-import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
-import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
-import uk.gov.justice.services.test.utils.persistence.TestJdbcDataSourceProvider;
-
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
 import javax.sql.DataSource;
-
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.services.common.util.UtcClock;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
+import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
+import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
+import uk.gov.justice.services.test.utils.persistence.TestJdbcDataSourceProvider;
+
+import static java.util.Optional.empty;
+import static java.util.UUID.randomUUID;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class NewStreamStatusRepositoryIT {
@@ -34,6 +37,12 @@ public class NewStreamStatusRepositoryIT {
 
     @InjectMocks
     private NewStreamStatusRepository newStreamStatusRepository;
+
+    @InjectMocks
+    private StreamErrorHashPersistence streamErrorHashPersistence;
+
+    @InjectMocks
+    private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
 
     @BeforeEach
     public void cleanDatabase() {
@@ -102,6 +111,64 @@ public class NewStreamStatusRepositoryIT {
         assertThat(idempotentStreamStatus.get().updatedAt(), is(updatedAt));
         assertThat(idempotentStreamStatus.get().latestKnownPosition(), is(0L));
         assertThat(idempotentStreamStatus.get().isUpToDate(), is(upToDate));
+    }
+
+    @Nested
+    class FindByErrorHashTest {
+
+        private static final String SOURCE = "some-source";
+        private static final String COMPONENT_NAME = "some-component-name";
+
+        @Test
+        public void shouldQueryAllStreamsByErrorHash() throws Exception {
+            final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
+            when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+            final UUID stream1Id = randomUUID();
+            final UUID stream2Id = randomUUID();
+            final boolean upToDate = false;
+            final ZonedDateTime updatedAt = new UtcClock().now().minusDays(2);
+            final String error1Hash = "hash-1";
+            final String error2Hash = "hash-2";
+
+            assertThat(newStreamStatusRepository.findBy(error1Hash).isEmpty(), is(true));
+
+            newStreamStatusRepository.insertIfNotExists(stream1Id, SOURCE, COMPONENT_NAME, updatedAt, upToDate);
+            newStreamStatusRepository.insertIfNotExists(stream2Id, SOURCE, COMPONENT_NAME, updatedAt, upToDate);
+            insertEntriesToStreamErrorHash(error1Hash, error2Hash, viewStoreDataSource);
+            insertEntryToStreamError(stream1Id, error1Hash, 1L, viewStoreDataSource);
+            insertEntryToStreamError(stream1Id, error1Hash, 2L, viewStoreDataSource);
+            insertEntryToStreamError(stream2Id, error2Hash, 1L, viewStoreDataSource);
+
+            final List<StreamStatus> streamStatuses = newStreamStatusRepository.findBy(error1Hash);
+
+            assertThat(streamStatuses.size(), is(1));
+            final StreamStatus streamStatus = streamStatuses.get(0);
+            assertThat(streamStatus.streamId(), is(stream1Id));
+            assertThat(streamStatus.latestKnownPosition(), is(0L));
+            assertThat(streamStatus.position(), is(0L));
+            assertThat(streamStatus.updatedAt(), is(updatedAt));
+            assertThat(streamStatus.component(), is(COMPONENT_NAME));
+            assertThat(streamStatus.source(), is(SOURCE));
+        }
+
+        private void insertEntriesToStreamErrorHash(String error1Hash, String error2Hash, DataSource dataSource) throws Exception {
+            final StreamErrorHash streamError1Hash = new StreamErrorHash(error1Hash.toString(), "java.lang.NullPointerException", Optional.empty(), "java.lang.NullPointerException", "find", 1);
+            final StreamErrorHash streamError2Hash = new StreamErrorHash(error2Hash.toString(), "java.lang.IllegalArgumentException", Optional.empty(), "java.lang.IllegalArgumentException", "find1", 2);
+            streamErrorHashPersistence.upsert(streamError1Hash, dataSource.getConnection());
+            streamErrorHashPersistence.upsert(streamError2Hash, dataSource.getConnection());
+        }
+
+        private void insertEntryToStreamError(final UUID stream1Id, final String error1Hash,
+                                              final Long position, final DataSource dataSource) throws Exception {
+            final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+                    randomUUID(), error1Hash.toString(), "some-exception-message", empty(),
+                    "event-name", randomUUID(), stream1Id, position,
+                    new UtcClock().now(), "stack-trace",
+                    COMPONENT_NAME, SOURCE
+            );
+            streamErrorDetailsPersistence.insert(streamErrorDetails, dataSource.getConnection());
+        }
     }
 
     @Test

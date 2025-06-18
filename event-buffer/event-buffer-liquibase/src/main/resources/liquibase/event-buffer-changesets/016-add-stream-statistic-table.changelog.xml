@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.3.xsd">
+
+    <changeSet id="stream_buffer-016" author="TechPod"
+               logicalFilePath="liquibase/event-buffer-changesets/016-add-stream-statistic-table.changelog.xml">
+
+
+        <createTable tableName="stream_statistic">
+            <column name="source" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="component" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="updated_at" type="TIMESTAMP" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="total_count" type="BIGINT" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="blocked_count" type="BIGINT" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="unblocked_count" type="BIGINT" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="stale_count" type="BIGINT" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="fresh_count" type="BIGINT" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey tableName="stream_statistic" columnNames="source,component"
+                       constraintName="stream_statistic_pkey"/>
+
+        <rollback>
+            <dropTable cascadeConstraints="true" tableName="stream_statistic"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

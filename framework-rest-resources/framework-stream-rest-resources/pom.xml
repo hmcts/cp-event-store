@@ -3,13 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>event-buffer</artifactId>
+        <artifactId>framework-rest-resources</artifactId>
         <groupId>uk.gov.justice.event-store</groupId>
-        <version>17.103.0-M14-SNAPSHOT</version>
+        <version>17.103.0-M13-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>event-buffer-core</artifactId>
+    <artifactId>framework-stream-rest-resources</artifactId>
     <dependencies>
         <dependency>
             <groupId>javax</groupId>
@@ -17,17 +17,17 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>uk.gov.justice.framework-api</groupId>
-            <artifactId>framework-api-event-buffer</artifactId>
-        </dependency>
-        <dependency>
             <groupId>uk.gov.justice.event-store</groupId>
-            <artifactId>event-store-util</artifactId>
+            <artifactId>event-buffer-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>uk.gov.justice.services</groupId>
+            <artifactId>persistence-jdbc</artifactId>
         </dependency>
 
         <!-- Test Dependencies -->
@@ -37,8 +37,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>co.unruly</groupId>
-            <artifactId>java-8-matchers</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -52,25 +52,10 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.skyscreamer</groupId>
-            <artifactId>jsonassert</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.glassfish</groupId>
             <artifactId>javax.json</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>uk.gov.justice.utils</groupId>
-            <artifactId>utilities-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>uk.gov.justice.services</groupId>
-            <artifactId>persistence-jdbc</artifactId>
-        </dependency>
-
-        <!--Test Dependencies-->
         <dependency>
             <groupId>uk.gov.justice.event-store</groupId>
             <artifactId>test-utils-persistence</artifactId>

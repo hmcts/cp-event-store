@@ -30,6 +30,7 @@
         <module>event-store-management</module>
         <module>healthchecks</module>
         <module>event-store-metric-meters</module>
+        <module>framework-rest-resources</module>
     </modules>
 
     <scm>

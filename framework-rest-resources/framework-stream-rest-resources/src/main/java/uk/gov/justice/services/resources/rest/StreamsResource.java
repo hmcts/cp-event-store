@@ -1,4 +1,4 @@
-package uk.gov.justice.services.event.buffer.core.resource;
+package uk.gov.justice.services.resources.rest;
 
 import java.util.List;
 import javax.inject.Inject;
@@ -8,10 +8,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
-import uk.gov.justice.services.event.buffer.core.resource.model.ErrorResponse;
-import uk.gov.justice.services.event.buffer.core.resource.model.Stream;
+import uk.gov.justice.services.resources.repository.StreamStatusReadRepository;
+import uk.gov.justice.services.resources.rest.model.ErrorResponse;
+import uk.gov.justice.services.resources.rest.model.StreamResponse;
 
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
@@ -21,7 +21,7 @@ import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 public class StreamsResource {
     private static final String INVALID_PARAM_MESSAGE = "Invalid or missing errorHash query parameter";
     @Inject
-    private NewStreamStatusRepository newStreamStatusRepository;
+    private StreamStatusReadRepository streamStatusReadRepository;
 
     @GET
     public Response findBy(@QueryParam("errorHash") String errorHash) {
@@ -30,7 +30,7 @@ public class StreamsResource {
         }
 
         try {
-            final List<Stream> streamResponses = newStreamStatusRepository.findBy(errorHash)
+            final List<StreamResponse> streamResponses = streamStatusReadRepository.findBy(errorHash)
                     .stream().map(this::mapToStream).toList();
             return Response.ok(streamResponses).build();
         } catch (Exception e) {
@@ -40,11 +40,11 @@ public class StreamsResource {
         }
     }
 
-    private Stream mapToStream(StreamStatus streamStatus) {
-        return new Stream(streamStatus.streamId(), streamStatus.position(),
+    private StreamResponse mapToStream(StreamStatus streamStatus) {
+        return new StreamResponse(streamStatus.streamId(), streamStatus.position(),
                 streamStatus.latestKnownPosition(), streamStatus.source(),
                 streamStatus.component(), streamStatus.updatedAt().toString(),
-                streamStatus.isUpToDate(), streamStatus.streamErrorId(), streamStatus.streamErrorPosition());
+                streamStatus.isUpToDate(), streamStatus.streamErrorId().orElse(null), streamStatus.streamErrorPosition().orElse(null));
     }
 
     private Response buildBadRequestResponse() {

@@ -2,7 +2,6 @@ package uk.gov.justice.services.eventstore.metrics.meters.statistic;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -57,8 +56,8 @@ public class StreamStatisticTimerBeanTest {
         final long timerIntervalValue = 60000L;
 
         when(metricsConfiguration.micrometerMetricsEnabled()).thenReturn(true);
-        when(metricsConfiguration.getStatisticTimerDelayMilliseconds()).thenReturn(timerDelayValue);
-        when(metricsConfiguration.getStatisticTimerIntervalMilliseconds()).thenReturn(timerIntervalValue);
+        when(metricsConfiguration.statisticTimerDelayMilliseconds()).thenReturn(timerDelayValue);
+        when(metricsConfiguration.statisticTimerIntervalMilliseconds()).thenReturn(timerIntervalValue);
 
         // run
         streamStatisticTimerBean.startTimerService();
@@ -85,7 +84,7 @@ public class StreamStatisticTimerBeanTest {
     @Test
     public void shouldCalculateStreamStatisticWithCorrectFreshnessLimit() {
         final long timerIntervalValue = 60000L;
-        when(metricsConfiguration.getStatisticTimerIntervalMilliseconds()).thenReturn(timerIntervalValue);
+        when(metricsConfiguration.statisticTimerIntervalMilliseconds()).thenReturn(timerIntervalValue);
         Instant beforeRunningTest = Instant.now().minusMillis(timerIntervalValue);
 
         // run
@@ -109,7 +108,7 @@ public class StreamStatisticTimerBeanTest {
         final long timerIntervalValue = 60000L;
         final Exception exception = new RuntimeException("Test exception");
 
-        when(metricsConfiguration.getStatisticTimerIntervalMilliseconds()).thenReturn(timerIntervalValue);
+        when(metricsConfiguration.statisticTimerIntervalMilliseconds()).thenReturn(timerIntervalValue);
         doThrow(exception).when(streamMetricsRepository).calculateStreamStatistic(timestampCaptor.capture());
 
         // run

@@ -42,15 +42,15 @@ public class StreamStatisticTimerBean {
         if (metricsConfiguration.micrometerMetricsEnabled()) {
             timerServiceManager.createIntervalTimer(
                     TIMER_JOB_NAME,
-                    metricsConfiguration.getStatisticTimerDelayMilliseconds(),
-                    metricsConfiguration.getStatisticTimerIntervalMilliseconds(),
+                    metricsConfiguration.statisticTimerDelayMilliseconds(),
+                    metricsConfiguration.statisticTimerIntervalMilliseconds(),
                     timerService);
         }
     }
 
     @Timeout
     public void calculateStreamStatistic() {
-        final long timerIntervalMillis = metricsConfiguration.getStatisticTimerIntervalMilliseconds();
+        final long timerIntervalMillis = metricsConfiguration.statisticTimerIntervalMilliseconds();
         final Timestamp freshnessLimit = Timestamp.from(Instant.now().minusMillis(timerIntervalMillis));
         try {
             streamMetricsRepository.calculateStreamStatistic(freshnessLimit);

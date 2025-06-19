@@ -27,7 +27,7 @@ public class StreamMetricsRepository {
                 GROUP BY source, component;
             """;
 
-    private static final String CALCULATE_STREAM_STATISTIC = """
+    private static final String CALCULATE_STREAM_STATISTIC_SQL = """
                 INSERT INTO stream_statistic (source, component, total_count, blocked_count, unblocked_count, stale_count, fresh_count)
                 SELECT
                         source,
@@ -95,8 +95,8 @@ public class StreamMetricsRepository {
                 return;
             }
 
-            try (final PreparedStatement mergedStatement = connection.prepareStatement(CALCULATE_STREAM_STATISTIC)) {
-                mergedStatement.executeUpdate();
+            try (final PreparedStatement streamStatisticsStatement = connection.prepareStatement(CALCULATE_STREAM_STATISTIC_SQL)) {
+                streamStatisticsStatement.executeUpdate();
             }
         } catch (final SQLException e) {
             throw new MetricsJdbcException("Failed to update stream_statistic table", e);

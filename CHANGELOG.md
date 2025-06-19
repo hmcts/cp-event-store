@@ -6,6 +6,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### [Unreleased] 
 ### Added
 - New table stream_statistic to include statistics of streams per source, component and state 
+- Added StreamStatisticTimerBean to fill stream_statistic every configured milliseconds
 
 # [17.103.0-M13] - 2025-06-18
 ### Added

@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +26,30 @@ public class StreamMetricsRepository {
                 FROM stream_status
                 GROUP BY source, component;
             """;
+
+    private static final String CALCULATE_STREAM_STATISTIC = """
+                INSERT INTO stream_statistic (source, component, total_count, blocked_count, unblocked_count, stale_count, fresh_count)
+                SELECT
+                        source,
+                        component,
+                        COUNT(*) AS total_count,
+                        COUNT(*) FILTER (WHERE stream_error_id IS NOT NULL) AS blocked_count,
+                        COUNT(*) FILTER (WHERE stream_error_id IS NULL) AS unblocked_count,
+                        COUNT(*) FILTER (WHERE NOT is_up_to_date) AS stale_count,
+                        COUNT(*) FILTER (WHERE is_up_to_date) AS fresh_count
+                    FROM stream_status
+                    GROUP BY source, component
+                ON CONFLICT (source, component) DO UPDATE SET
+                    total_count = EXCLUDED.total_count,
+                    blocked_count = EXCLUDED.blocked_count,
+                    unblocked_count = EXCLUDED.unblocked_count,
+                    stale_count = EXCLUDED.stale_count,
+                    fresh_count = EXCLUDED.fresh_count,
+                    updated_at = CURRENT_TIMESTAMP
+            """;
+
+    private static final String MOST_RECENT_UPDATED_AT_SQL =
+            "SELECT MAX(updated_at) as most_recent_updated_at FROM stream_statistic";
 
     @Inject
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
@@ -61,6 +86,34 @@ public class StreamMetricsRepository {
 
         } catch (final SQLException e) {
             throw new MetricsJdbcException("Failed to get metrics from stream_status table", e);
+        }
+    }
+
+    public void calculateStreamStatistic(Timestamp freshnessLimit) {
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
+            if (!isUpdateNeeded(connection, freshnessLimit)) {
+                return;
+            }
+
+            try (final PreparedStatement mergedStatement = connection.prepareStatement(CALCULATE_STREAM_STATISTIC)) {
+                mergedStatement.executeUpdate();
+            }
+        } catch (final SQLException e) {
+            throw new MetricsJdbcException("Failed to update stream_statistic table", e);
+        }
+
+    }
+
+    private boolean isUpdateNeeded(Connection connection, Timestamp freshnessLimit) throws SQLException {
+        try (final PreparedStatement checkMostRecentStatement = connection.prepareStatement(MOST_RECENT_UPDATED_AT_SQL);
+             final ResultSet resultSet = checkMostRecentStatement.executeQuery()) {
+
+            if (resultSet.next()) {
+                final Timestamp mostRecentUpdatedAt = resultSet.getTimestamp("most_recent_updated_at");
+                return mostRecentUpdatedAt == null || mostRecentUpdatedAt.before(freshnessLimit);
+            } else {
+                return true;
+            }
         }
     }
 }

@@ -1,15 +1,14 @@
 package uk.gov.justice.services.eventstore.metrics.tags;
 
-import static java.util.Collections.unmodifiableMap;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.COMPONENT_TAG_NAME;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.SOURCE_TAG_NAME;
+import static uk.gov.justice.services.core.annotation.Component.EVENT_PROCESSOR;
+import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.ENV_TAG_NAME;
+import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.SERVICE_TAG_NAME;
 
-import uk.gov.justice.subscription.domain.subscriptiondescriptor.SubscriptionsDescriptor;
+import uk.gov.justice.services.jdbc.persistence.JndiAppNameProvider;
+import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
 import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -17,33 +16,33 @@ import io.micrometer.core.instrument.Tag;
 
 public class TagProvider {
 
+    public record SourceComponentPair(String source, String component) {
+    }
+
+    @Inject
+    private JndiAppNameProvider jndiAppNameProvider;
+
+    @Inject
+    private MetricsConfiguration metricsConfiguration;
+
     @Inject
     private SubscriptionsDescriptorsRegistry subscriptionsDescriptorsRegistry;
 
-    private Map<Tag, List<Tag>> tagMapByComponentAndSourceList;
+    public List<SourceComponentPair> getSourceComponentPairs() {
 
-    public synchronized Map<Tag, List<Tag>> getComponentTags() {
-
-        if(tagMapByComponentAndSourceList == null) {
-            tagMapByComponentAndSourceList = createComponentTagsMap();
-        }
-
-        return tagMapByComponentAndSourceList;
+        return subscriptionsDescriptorsRegistry.getAll().stream()
+                .filter(subscriptionsDescriptor -> !EVENT_PROCESSOR.equalsIgnoreCase(subscriptionsDescriptor.getServiceComponent()))
+                .flatMap(subscriptionsDescriptor -> subscriptionsDescriptor.getSubscriptions().stream()
+                        .map(subscription ->
+                                new SourceComponentPair(subscription.getEventSourceName(), subscriptionsDescriptor.getServiceComponent())
+                        ))
+                .toList();
     }
 
-    private Map<Tag, List<Tag>> createComponentTagsMap() {
-
-        final Map<Tag, List<Tag>> tagsMap = new HashMap<>();
-        final List<SubscriptionsDescriptor> subscriptionsDescriptors = subscriptionsDescriptorsRegistry.getAll();
-
-        subscriptionsDescriptors.forEach(subscriptionsDescriptor -> {
-            final String serviceComponent = subscriptionsDescriptor.getServiceComponent();
-            final List<Tag> eventSourceTags = subscriptionsDescriptor.getSubscriptions().stream()
-                    .map(subscription -> Tag.of(SOURCE_TAG_NAME.getTagName(), subscription.getEventSourceName()))
-                    .toList();
-            tagsMap.put(Tag.of(COMPONENT_TAG_NAME.getTagName(), serviceComponent), eventSourceTags);
-        });
-
-        return unmodifiableMap(tagsMap);
+    public List<Tag> getGlobalTags() {
+        return List.of(
+                Tag.of(SERVICE_TAG_NAME.getTagName(), jndiAppNameProvider.getAppName()),
+                Tag.of(ENV_TAG_NAME.getTagName(), metricsConfiguration.micrometerEnv()));
     }
+
 }

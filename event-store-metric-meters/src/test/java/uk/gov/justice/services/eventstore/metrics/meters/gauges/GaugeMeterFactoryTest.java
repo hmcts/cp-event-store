@@ -1,8 +1,20 @@
 package uk.gov.justice.services.eventstore.metrics.meters.gauges;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static uk.gov.justice.services.metrics.micrometer.meters.MetricsMeterNames.BLOCKED_EVENT_STREAMS_GAUGE_NAME;
+import static uk.gov.justice.services.metrics.micrometer.meters.MetricsMeterNames.FRESH_EVENT_STREAMS_GAUGE_NAME;
+import static uk.gov.justice.services.metrics.micrometer.meters.MetricsMeterNames.STALE_EVENT_STREAMS_GAUGE_NAME;
+import static uk.gov.justice.services.metrics.micrometer.meters.MetricsMeterNames.TOTAL_EVENT_STREAMS_GAUGE_NAME;
+import static uk.gov.justice.services.metrics.micrometer.meters.MetricsMeterNames.UNBLOCKED_EVENT_STREAMS_GAUGE_NAME;
 import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.getValueOfField;
+
+import uk.gov.justice.services.eventstore.metrics.tags.TagProvider.SourceComponentPair;
+import uk.gov.justice.services.metrics.micrometer.meters.GaugeMetricsMeter;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,73 +31,69 @@ public class GaugeMeterFactoryTest {
     @InjectMocks
     private GaugeMeterFactory gaugeMeterFactory;
 
+
     @Test
-    public void shouldCreateNewBlockedEventStreamsGaugeMeter() throws Exception {
+    public void shouldCreateAllGaugeMetersForSingleSourceAndComponent() throws Exception {
         final String source = "some-source";
         final String component = "some-component";
 
-        final BlockedEventStreamsGaugeMeter blockedStreamsGaugeMeter = gaugeMeterFactory.createBlockedStreamsGaugeMeter(
-                source,
-                component);
+        final List<SourceComponentPair> sourceAndComponents = List.of(new SourceComponentPair(source, component));
 
-        assertThat(getValueOfField(blockedStreamsGaugeMeter, "source", String.class), is(source));
-        assertThat(getValueOfField(blockedStreamsGaugeMeter, "component", String.class), is(component));
-        assertThat(getValueOfField(blockedStreamsGaugeMeter, "streamMetricsProvider", StreamMetricsProvider.class), is(streamMetricsProvider));
+        // run
+        final List<EventStreamGaugeMeter> gaugeMeters = gaugeMeterFactory.createAllGaugeMetersForSourceAndComponents(sourceAndComponents);
+
+        assertThat(gaugeMeters, hasSize(5));
+
+        // Verify each gauge meter is an instance of EventStreamGaugeMeter with correct properties
+        for (EventStreamGaugeMeter gaugeMeter : gaugeMeters) {
+            SourceComponentPair sourceComponentPair = gaugeMeter.getSourceComponentPair();
+            assertThat(sourceComponentPair.source(), is(source));
+            assertThat(sourceComponentPair.component(), is(component));
+            assertThat(getValueOfField(gaugeMeter, "streamMetricsProvider", StreamMetricsProvider.class), is(streamMetricsProvider));
+        }
+
+        // Verify specific properties of each gauge meter
+        assertThat(gaugeMeters.get(0).metricName(), is(BLOCKED_EVENT_STREAMS_GAUGE_NAME));
+        assertThat(gaugeMeters.get(1).metricName(), is(TOTAL_EVENT_STREAMS_GAUGE_NAME));
+        assertThat(gaugeMeters.get(2).metricName(), is(STALE_EVENT_STREAMS_GAUGE_NAME));
+        assertThat(gaugeMeters.get(3).metricName(), is(UNBLOCKED_EVENT_STREAMS_GAUGE_NAME));
+        assertThat(gaugeMeters.get(4).metricName(), is(FRESH_EVENT_STREAMS_GAUGE_NAME));
     }
 
     @Test
-    public void shouldCreateNewCountEventStreamsGaugeMeter() throws Exception {
-        final String source = "some-source";
-        final String component = "some-component";
+    public void shouldCreateAllGaugeMetersForMultipleSourceAndComponents() throws Exception {
+        final String source1 = "source-1";
+        final String component1 = "component-1";
+        final String source2 = "source-2";
+        final String component2 = "component-2";
 
-        final CountEventStreamsGaugeMeter countEventStreamsGaugeMeter = gaugeMeterFactory.createCountEventStreamsGaugeMeter(
-                source,
-                component);
+        final List<SourceComponentPair> sourceAndComponents = List.of(
+                new SourceComponentPair(source1, component1),
+                new SourceComponentPair(source2, component2)
+        );
 
-        assertThat(getValueOfField(countEventStreamsGaugeMeter, "source", String.class), is(source));
-        assertThat(getValueOfField(countEventStreamsGaugeMeter, "component", String.class), is(component));
-        assertThat(getValueOfField(countEventStreamsGaugeMeter, "streamMetricsProvider", StreamMetricsProvider.class), is(streamMetricsProvider));
-    }
+        // run
+        final List<EventStreamGaugeMeter> gaugeMeters = gaugeMeterFactory.createAllGaugeMetersForSourceAndComponents(sourceAndComponents);
 
-    @Test
-    public void shouldCreateNewOutOfDateEventStreamsGaugeMeter() throws Exception {
-        final String source = "some-source";
-        final String component = "some-component";
+        // verify
+        assertThat(gaugeMeters, hasSize(10));
 
-        final OutOfDateEventStreamsGaugeMeter countEventStreamsGaugeMeter = gaugeMeterFactory.createOutOfDateEventStreamsGaugeMeter(
-                source,
-                component);
+        // Verify first 5 meters are for source1/component1
+        for (int i = 0; i < 5; i++) {
+            EventStreamGaugeMeter eventStreamGaugeMeter = gaugeMeters.get(i);
+            SourceComponentPair sourceComponentPair = eventStreamGaugeMeter.getSourceComponentPair();
+            assertThat(sourceComponentPair.source(), is(source1));
+            assertThat(sourceComponentPair.component(), is(component1));
+            assertThat(getValueOfField(eventStreamGaugeMeter, "streamMetricsProvider", StreamMetricsProvider.class), is(streamMetricsProvider));
+        }
 
-        assertThat(getValueOfField(countEventStreamsGaugeMeter, "source", String.class), is(source));
-        assertThat(getValueOfField(countEventStreamsGaugeMeter, "component", String.class), is(component));
-        assertThat(getValueOfField(countEventStreamsGaugeMeter, "streamMetricsProvider", StreamMetricsProvider.class), is(streamMetricsProvider));
-    }
-
-    @Test
-    public void shouldCreateNewUnblockedEventStreamsGaugeMeter() throws Exception {
-        final String source = "some-source";
-        final String component = "some-component";
-
-        final UnblockedEventStreamsGaugeMeter unblockedEventStreamsGaugeMeter = gaugeMeterFactory.createUnblockedEventStreamsGaugeMeter(
-                source,
-                component);
-
-        assertThat(getValueOfField(unblockedEventStreamsGaugeMeter, "source", String.class), is(source));
-        assertThat(getValueOfField(unblockedEventStreamsGaugeMeter, "component", String.class), is(component));
-        assertThat(getValueOfField(unblockedEventStreamsGaugeMeter, "streamMetricsProvider", StreamMetricsProvider.class), is(streamMetricsProvider));
-    }
-
-    @Test
-    public void shouldCreateNewUpToDateEventStreamsGaugeMeter() throws Exception {
-        final String source = "some-source";
-        final String component = "some-component";
-
-        final UpToDateEventStreamsGaugeMeter upToDateEventStreamsGaugeMeter = gaugeMeterFactory.createUpToDateEventStreamsGaugeMeter(
-                source,
-                component);
-
-        assertThat(getValueOfField(upToDateEventStreamsGaugeMeter, "source", String.class), is(source));
-        assertThat(getValueOfField(upToDateEventStreamsGaugeMeter, "component", String.class), is(component));
-        assertThat(getValueOfField(upToDateEventStreamsGaugeMeter, "streamMetricsProvider", StreamMetricsProvider.class), is(streamMetricsProvider));
+        // Verify next 5 meters are for source2/component2
+        for (int i = 5; i < 10; i++) {
+            EventStreamGaugeMeter eventStreamGaugeMeter = gaugeMeters.get(i);
+            SourceComponentPair sourceComponentPair = eventStreamGaugeMeter.getSourceComponentPair();
+            assertThat(sourceComponentPair.source(), is(source2));
+            assertThat(sourceComponentPair.component(), is(component2));
+            assertThat(getValueOfField(eventStreamGaugeMeter, "streamMetricsProvider", StreamMetricsProvider.class), is(streamMetricsProvider));
+        }
     }
 }

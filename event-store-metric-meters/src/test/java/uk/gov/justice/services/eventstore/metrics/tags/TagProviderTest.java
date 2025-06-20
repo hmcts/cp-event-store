@@ -2,19 +2,20 @@ package uk.gov.justice.services.eventstore.metrics.tags;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.COMPONENT_TAG_NAME;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.SOURCE_TAG_NAME;
+import static uk.gov.justice.services.core.annotation.Component.EVENT_PROCESSOR;
+import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.ENV_TAG_NAME;
+import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.SERVICE_TAG_NAME;
 
+import uk.gov.justice.services.eventstore.metrics.tags.TagProvider.SourceComponentPair;
+import uk.gov.justice.services.jdbc.persistence.JndiAppNameProvider;
+import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
+import uk.gov.justice.subscription.domain.subscriptiondescriptor.Event;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Subscription;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.SubscriptionsDescriptor;
 import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
 
 import java.util.List;
-import java.util.Map;
 
 import io.micrometer.core.instrument.Tag;
 import org.junit.jupiter.api.Test;
@@ -29,77 +30,57 @@ public class TagProviderTest {
     @Mock
     private SubscriptionsDescriptorsRegistry subscriptionsDescriptorsRegistry;
 
+    @Mock
+    private JndiAppNameProvider jndiAppNameProvider;
+
+    @Mock
+    private MetricsConfiguration metricsConfiguration;
+
     @InjectMocks
     private TagProvider tagProvider;
 
     @Test
-    public void shouldGetTheMapOfComponentAndSourceNamesFromTheSubscriptionRegistryAsMicrometerTags() throws Exception {
+    public void shouldGetSourceComponentPairsAndFilterOutEventProcessorComponents() throws Exception {
 
-        final String component_1 = "some-component-1";
-        final String component_2 = "some-component-2";
+        List<Event> eventList = List.of(new Event("test-event", "test-schema-uri"));
+        final SubscriptionsDescriptor subscriptionsDescriptor1 = new SubscriptionsDescriptor(
+                "1.0", "service-1", "some-component-1", 1, List.of(
+                        new Subscription("subscription-1-1", eventList, "source-1-1", 1),
+                        new Subscription("subscription-1-2", eventList, "source-1-2", 1)
+                ));
 
-        final String source_1_1 = "source-1-1";
-        final String source_1_2 = "source-1-2";
-        final String source_2_1 = "source-2-1";
-        final String source_2_2 = "source-2-2";
+        final SubscriptionsDescriptor subscriptionsDescriptor2 = new SubscriptionsDescriptor(
+                "1.0", "service-3", EVENT_PROCESSOR, 1, List.of(
+                        new Subscription("subscription-3-1", eventList, "source-3-1", 1)
+                ));
 
-        final SubscriptionsDescriptor subscriptionsDescriptor_1 = mock(SubscriptionsDescriptor.class);
-        final SubscriptionsDescriptor subscriptionsDescriptor_2 = mock(SubscriptionsDescriptor.class);
+        when(subscriptionsDescriptorsRegistry.getAll()).thenReturn(List.of(subscriptionsDescriptor1, subscriptionsDescriptor2));
 
-        final Subscription subscription_1_1 = mock(Subscription.class);
-        final Subscription subscription_1_2 = mock(Subscription.class);
-        final Subscription subscription_2_1 = mock(Subscription.class);
-        final Subscription subscription_2_2 = mock(Subscription.class);
+        final List<SourceComponentPair> sourceComponentPairs = tagProvider.getSourceComponentPairs();
 
-        when(subscriptionsDescriptorsRegistry.getAll()).thenReturn(List.of(subscriptionsDescriptor_1, subscriptionsDescriptor_2));
-        when(subscriptionsDescriptor_1.getServiceComponent()).thenReturn(component_1);
-        when(subscriptionsDescriptor_1.getSubscriptions()).thenReturn(List.of(subscription_1_1, subscription_1_2));
-        when(subscriptionsDescriptor_2.getServiceComponent()).thenReturn(component_2);
-        when(subscriptionsDescriptor_2.getSubscriptions()).thenReturn(List.of(subscription_2_1, subscription_2_2));
-        when(subscription_1_1.getEventSourceName()).thenReturn(source_1_1);
-        when(subscription_1_2.getEventSourceName()).thenReturn(source_1_2);
-        when(subscription_2_1.getEventSourceName()).thenReturn(source_2_1);
-        when(subscription_2_2.getEventSourceName()).thenReturn(source_2_2);
+        // Verify that EVENT_PROCESSOR component is filtered out
+        assertThat(sourceComponentPairs.size(), is(2));
 
-        final Map<Tag, List<Tag>> componentTags = tagProvider.getComponentTags();
+        assertThat(sourceComponentPairs.get(0), is(new SourceComponentPair("source-1-1", "some-component-1")));
+        assertThat(sourceComponentPairs.get(1), is(new SourceComponentPair("source-1-2", "some-component-1")));
 
-        assertThat(componentTags.size(), is(2));
-
-        final List<Tag> sourceTags_1 = componentTags.get(Tag.of(COMPONENT_TAG_NAME.getTagName(), component_1));
-        assertThat(sourceTags_1.size(), is(2));
-        assertThat(sourceTags_1.get(0), is(Tag.of(SOURCE_TAG_NAME.getTagName(), source_1_1)));
-        assertThat(sourceTags_1.get(1), is(Tag.of(SOURCE_TAG_NAME.getTagName(), source_1_2)));
-
-        final List<Tag> sourceTags_2 = componentTags.get(Tag.of("component", component_2));
-        assertThat(sourceTags_2.size(), is(2));
-        assertThat(sourceTags_2.get(0), is(Tag.of(SOURCE_TAG_NAME.getTagName(), source_2_1)));
-        assertThat(sourceTags_2.get(1), is(Tag.of(SOURCE_TAG_NAME.getTagName(), source_2_2)));
     }
 
     @Test
-    public void shouldCreateTheTagMapOnlyOnce() throws Exception {
+    public void shouldGetGlobalTags() {
+        // Given
+        final String appName = "test-app";
+        final String env = "test-env";
 
-        final String component = "some-component";
-        final String source = "source";
+        when(jndiAppNameProvider.getAppName()).thenReturn(appName);
+        when(metricsConfiguration.micrometerEnv()).thenReturn(env);
 
-        final SubscriptionsDescriptor subscriptionsDescriptor = mock(SubscriptionsDescriptor.class);
-        final Subscription subscription = mock(Subscription.class);
+        // When
+        final List<Tag> globalTags = tagProvider.getGlobalTags();
 
-        when(subscriptionsDescriptorsRegistry.getAll()).thenReturn(List.of(subscriptionsDescriptor));
-        when(subscriptionsDescriptor.getServiceComponent()).thenReturn(component);
-        when(subscriptionsDescriptor.getSubscriptions()).thenReturn(List.of(subscription));
-        when(subscription.getEventSourceName()).thenReturn(source);
-
-        tagProvider.getComponentTags();
-        tagProvider.getComponentTags();
-        tagProvider.getComponentTags();
-        tagProvider.getComponentTags();
-        tagProvider.getComponentTags();
-        tagProvider.getComponentTags();
-        tagProvider.getComponentTags();
-        tagProvider.getComponentTags();
-        tagProvider.getComponentTags();
-
-        verify(subscriptionsDescriptorsRegistry, times(1)).getAll();
+        // Then
+        assertThat(globalTags.size(), is(2));
+        assertThat(globalTags.get(0), is(Tag.of(SERVICE_TAG_NAME.getTagName(), appName)));
+        assertThat(globalTags.get(1), is(Tag.of(ENV_TAG_NAME.getTagName(), env)));
     }
 }

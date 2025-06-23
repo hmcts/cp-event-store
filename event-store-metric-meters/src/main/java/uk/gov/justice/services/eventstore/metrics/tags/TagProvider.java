@@ -1,11 +1,12 @@
 package uk.gov.justice.services.eventstore.metrics.tags;
 
 import static uk.gov.justice.services.core.annotation.Component.EVENT_PROCESSOR;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.ENV_TAG_NAME;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.SERVICE_TAG_NAME;
+import static uk.gov.justice.services.metrics.micrometer.config.TagNames.ENV_TAG_NAME;
+import static uk.gov.justice.services.metrics.micrometer.config.TagNames.SERVICE_TAG_NAME;
 
 import uk.gov.justice.services.jdbc.persistence.JndiAppNameProvider;
 import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
+import uk.gov.justice.services.metrics.micrometer.config.SourceComponentPair;
 import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
 
 import java.util.List;
@@ -15,9 +16,6 @@ import javax.inject.Inject;
 import io.micrometer.core.instrument.Tag;
 
 public class TagProvider {
-
-    public record SourceComponentPair(String source, String component) {
-    }
 
     @Inject
     private JndiAppNameProvider jndiAppNameProvider;

@@ -5,10 +5,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 import static java.util.Optional.of;
 import static java.util.Optional.empty;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.COMPONENT_TAG_NAME;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.SOURCE_TAG_NAME;
-
-import uk.gov.justice.services.eventstore.metrics.tags.TagProvider.SourceComponentPair;
+import static uk.gov.justice.services.metrics.micrometer.config.TagNames.COMPONENT_TAG_NAME;
+import static uk.gov.justice.services.metrics.micrometer.config.TagNames.SOURCE_TAG_NAME;
 
 import uk.gov.justice.services.event.buffer.core.repository.metrics.StreamMetrics;
 
@@ -21,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.services.metrics.micrometer.config.SourceComponentPair;
 
 @ExtendWith(MockitoExtension.class)
 public class EventStreamGaugeMeterTest {

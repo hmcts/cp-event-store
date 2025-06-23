@@ -4,12 +4,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.core.annotation.Component.EVENT_PROCESSOR;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.ENV_TAG_NAME;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.SERVICE_TAG_NAME;
+import static uk.gov.justice.services.metrics.micrometer.config.TagNames.ENV_TAG_NAME;
+import static uk.gov.justice.services.metrics.micrometer.config.TagNames.SERVICE_TAG_NAME;
 
-import uk.gov.justice.services.eventstore.metrics.tags.TagProvider.SourceComponentPair;
 import uk.gov.justice.services.jdbc.persistence.JndiAppNameProvider;
 import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
+import uk.gov.justice.services.metrics.micrometer.config.SourceComponentPair;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Event;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Subscription;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.SubscriptionsDescriptor;

@@ -1,11 +1,11 @@
 package uk.gov.justice.services.eventstore.metrics.meters.gauges;
 
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.COMPONENT_TAG_NAME;
-import static uk.gov.justice.services.eventstore.metrics.tags.TagNames.SOURCE_TAG_NAME;
+import static uk.gov.justice.services.metrics.micrometer.config.TagNames.COMPONENT_TAG_NAME;
+import static uk.gov.justice.services.metrics.micrometer.config.TagNames.SOURCE_TAG_NAME;
 
 import io.micrometer.core.instrument.Tag;
 import uk.gov.justice.services.event.buffer.core.repository.metrics.StreamMetrics;
-import uk.gov.justice.services.eventstore.metrics.tags.TagProvider.SourceComponentPair;
+import uk.gov.justice.services.metrics.micrometer.config.SourceComponentPair;
 import uk.gov.justice.services.metrics.micrometer.meters.GaugeMetricsMeter;
 
 import java.util.List;

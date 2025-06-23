@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
@@ -18,6 +19,7 @@ import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamEr
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
+import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRowMapper;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
@@ -46,6 +48,9 @@ public class StreamResponseStatusReadRepositoryIT {
 
     @InjectMocks
     private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
+
+    @Spy
+    private NewStreamStatusRowMapper streamStatusRowMapper;
 
     @InjectMocks
     private StreamStatusReadRepository streamStatusReadRepository;

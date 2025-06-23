@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.103.0-M16] - 2025-06-23
+### Changed
+- Refactor to extract resultSet mapping of StreamStatus for reusability
+- Add framework-stream-rest-resources library to event-store-bom
+
 # [17.103.0-M15] - 2025-06-20
 ### Added
 - Global tags for micrometer gauges

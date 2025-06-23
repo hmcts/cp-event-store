@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
+import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRowMapper;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
@@ -35,6 +36,9 @@ public class StreamStatusReadRepository {
             """;
 
     @Inject
+    private NewStreamStatusRowMapper streamStatusRowMapper;
+
+    @Inject
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
 
     public List<StreamStatus> findBy(final String errorHash) {
@@ -47,28 +51,7 @@ public class StreamStatusReadRepository {
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
 
                 while(resultSet.next()) {
-                    final Long position = resultSet.getLong("position");
-                    final Optional<UUID> streamErrorId = ofNullable((UUID) resultSet.getObject("stream_error_id"));
-                    final Optional<Long> streamErrorPosition = ofNullable((Long) resultSet.getObject("stream_error_position"));
-                    final ZonedDateTime updatedAt = fromSqlTimestamp(resultSet.getTimestamp("updated_at"));
-                    final Long latestKnownPosition = resultSet.getLong("latest_known_position");
-                    final Boolean isUpToDate = resultSet.getBoolean("is_up_to_date");
-                    final String source = resultSet.getString("source");
-                    final String componentName = resultSet.getString("component");
-                    final UUID streamId = (UUID) resultSet.getObject("stream_id");
-
-                    final StreamStatus streamStatus = new StreamStatus(
-                            streamId,
-                            position,
-                            source,
-                            componentName,
-                            streamErrorId,
-                            streamErrorPosition,
-                            updatedAt,
-                            latestKnownPosition,
-                            isUpToDate
-                    );
-
+                    final StreamStatus streamStatus = streamStatusRowMapper.mapRow(resultSet);
                     streamStatuses.add(streamStatus);
                 }
             }

@@ -126,6 +126,11 @@
                 <artifactId>event-store-metric-meters</artifactId>
                 <version>${event-store.version}</version>
             </dependency>
+            <dependency>
+                <groupId>uk.gov.justice.event-store</groupId>
+                <artifactId>framework-stream-rest-resources</artifactId>
+                <version>${event-store.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

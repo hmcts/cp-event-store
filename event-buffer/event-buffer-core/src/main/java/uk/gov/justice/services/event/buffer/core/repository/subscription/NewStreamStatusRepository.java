@@ -1,14 +1,5 @@
 package uk.gov.justice.services.event.buffer.core.repository.subscription;
 
-import static java.lang.String.format;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
-import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
-import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
-
-import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,8 +10,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
 import javax.inject.Inject;
+import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
+
+import static java.lang.String.format;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 @SuppressWarnings("java:S1192")
 public class NewStreamStatusRepository {
@@ -41,6 +39,9 @@ public class NewStreamStatusRepository {
             """;
     private static final String SELECT_SQL = """
                 SELECT
+                    stream_id,
+                    source,
+                    component,
                     position,
                     stream_error_id,
                     stream_error_position,
@@ -97,6 +98,8 @@ public class NewStreamStatusRepository {
                 AND source = ?
                 AND component = ?
                 """;
+    @Inject
+    private NewStreamStatusRowMapper streamStatusRowMapper;
 
     @Inject
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
@@ -225,25 +228,7 @@ public class NewStreamStatusRepository {
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
 
                 if (resultSet.next()) {
-                    final Long position = resultSet.getLong("position");
-                    final Optional<UUID> streamErrorId = ofNullable((UUID) resultSet.getObject("stream_error_id"));
-                    final Optional<Long> streamErrorPosition = ofNullable((Long) resultSet.getObject("stream_error_position"));
-                    final ZonedDateTime updatedAt = fromSqlTimestamp(resultSet.getTimestamp("updated_at"));
-                    final Long latestKnownPosition = resultSet.getLong("latest_known_position");
-                    final Boolean isUpToDate = resultSet.getBoolean("is_up_to_date");
-
-                    final StreamStatus streamStatus = new StreamStatus(
-                            streamId,
-                            position,
-                            source,
-                            componentName,
-                            streamErrorId,
-                            streamErrorPosition,
-                            updatedAt,
-                            latestKnownPosition,
-                            isUpToDate
-                    );
-                    return of(streamStatus);
+                    return of(streamStatusRowMapper.mapRow(resultSet));
                 }
             }
 

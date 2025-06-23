@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 
+import org.mockito.Spy;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
@@ -31,6 +32,9 @@ public class NewStreamStatusRepositoryIT {
 
     @Mock
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
+
+    @Spy
+    private NewStreamStatusRowMapper streamStatusRowMapper;
 
     @InjectMocks
     private NewStreamStatusRepository newStreamStatusRepository;

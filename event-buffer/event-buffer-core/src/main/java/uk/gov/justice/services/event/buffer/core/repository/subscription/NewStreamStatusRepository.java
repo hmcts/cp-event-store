@@ -16,8 +16,6 @@ import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
-import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 @SuppressWarnings("java:S1192")
@@ -145,28 +143,7 @@ public class NewStreamStatusRepository {
                 final ArrayList<StreamStatus> streamStatuses = new ArrayList<>();
 
                 while (resultSet.next()) {
-                    final UUID streamId = resultSet.getObject("stream_id", UUID.class);
-                    final String source = resultSet.getString("source");
-                    final String componentName = resultSet.getString("component");
-                    final Long position = resultSet.getLong("position");
-                    final Optional<UUID> streamErrorId = ofNullable((UUID) resultSet.getObject("stream_error_id"));
-                    final Optional<Long> streamErrorPosition = ofNullable(resultSet.getObject("stream_error_position", Long.class));
-                    final ZonedDateTime updatedAt = fromSqlTimestamp(resultSet.getTimestamp("updated_at"));
-                    final Long latestKnownPosition = resultSet.getLong("latest_known_position");
-                    final Boolean isUpToDate = resultSet.getBoolean("is_up_to_date");
-
-                    final StreamStatus streamStatus = new StreamStatus(
-                            streamId,
-                            position,
-                            source,
-                            componentName,
-                            streamErrorId,
-                            streamErrorPosition,
-                            updatedAt,
-                            latestKnownPosition,
-                            isUpToDate
-                    );
-
+                    final StreamStatus streamStatus = streamStatusRowMapper.mapRow(resultSet);
                     streamStatuses.add(streamStatus);
                 }
 

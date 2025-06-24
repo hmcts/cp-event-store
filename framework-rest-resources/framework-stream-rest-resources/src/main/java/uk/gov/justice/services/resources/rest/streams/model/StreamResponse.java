@@ -1,4 +1,4 @@
-package uk.gov.justice.services.resources.rest.model;
+package uk.gov.justice.services.resources.rest.streams.model;
 
 import java.util.UUID;
 

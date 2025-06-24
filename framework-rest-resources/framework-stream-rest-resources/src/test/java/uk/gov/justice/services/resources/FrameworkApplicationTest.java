@@ -2,7 +2,7 @@ package uk.gov.justice.services.resources;
 
 import java.util.Set;
 import org.junit.jupiter.api.Test;
-import uk.gov.justice.services.resources.rest.StreamsResource;
+import uk.gov.justice.services.resources.rest.streams.StreamsResource;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;

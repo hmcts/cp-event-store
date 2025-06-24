@@ -4,8 +4,9 @@ import static uk.gov.justice.services.core.annotation.Component.EVENT_PROCESSOR;
 import static uk.gov.justice.services.metrics.micrometer.config.TagNames.ENV_TAG_NAME;
 import static uk.gov.justice.services.metrics.micrometer.config.TagNames.SERVICE_TAG_NAME;
 
-import uk.gov.justice.services.jdbc.persistence.JndiAppNameProvider;
+import uk.gov.justice.services.common.configuration.ContextNameProvider;
 import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
+import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
 import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
 
 import java.util.List;
@@ -16,11 +17,8 @@ import io.micrometer.core.instrument.Tag;
 
 public class TagProvider {
 
-    public record SourceComponentPair(String source, String component) {
-    }
-
     @Inject
-    private JndiAppNameProvider jndiAppNameProvider;
+    private ContextNameProvider contextNameProvider;
 
     @Inject
     private MetricsConfiguration metricsConfiguration;
@@ -39,9 +37,9 @@ public class TagProvider {
                 .toList();
     }
 
-    public List<Tag> getGlobalTags() {
+    public List<Tag> getCommonTags() {
         return List.of(
-                Tag.of(SERVICE_TAG_NAME.getTagName(), jndiAppNameProvider.getAppName()),
+                Tag.of(SERVICE_TAG_NAME.getTagName(), contextNameProvider.getContextName()),
                 Tag.of(ENV_TAG_NAME.getTagName(), metricsConfiguration.micrometerEnv()));
     }
 

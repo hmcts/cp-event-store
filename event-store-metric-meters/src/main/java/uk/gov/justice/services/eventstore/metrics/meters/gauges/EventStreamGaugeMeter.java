@@ -1,12 +1,12 @@
 package uk.gov.justice.services.eventstore.metrics.meters.gauges;
 
 import uk.gov.justice.services.event.buffer.core.repository.metrics.StreamMetrics;
-import uk.gov.justice.services.eventstore.metrics.tags.TagProvider.SourceComponentPair;
-import uk.gov.justice.services.metrics.micrometer.meters.GaugeMetricsMeter;
+import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
 
 import java.util.function.Function;
 
 import com.google.common.annotations.VisibleForTesting;
+import uk.gov.justice.services.metrics.micrometer.meters.GaugeMetricsMeter;
 
 public class EventStreamGaugeMeter implements GaugeMetricsMeter {
 
@@ -30,7 +30,7 @@ public class EventStreamGaugeMeter implements GaugeMetricsMeter {
     }
 
     @Override
-    public int measure() {
+    public Integer get() {
         return streamMetricsProvider
                 .getMetrics(sourceComponentPair.source(), sourceComponentPair.component())
                 .map(metricExtractor)
@@ -48,7 +48,7 @@ public class EventStreamGaugeMeter implements GaugeMetricsMeter {
     }
 
     @VisibleForTesting
-    public SourceComponentPair getSourceComponentPair() {
+    public SourceComponentPair sourceComponentPair() {
         return sourceComponentPair;
     }
 }

@@ -7,9 +7,9 @@ import static uk.gov.justice.services.core.annotation.Component.EVENT_PROCESSOR;
 import static uk.gov.justice.services.metrics.micrometer.config.TagNames.ENV_TAG_NAME;
 import static uk.gov.justice.services.metrics.micrometer.config.TagNames.SERVICE_TAG_NAME;
 
-import uk.gov.justice.services.eventstore.metrics.tags.TagProvider.SourceComponentPair;
-import uk.gov.justice.services.jdbc.persistence.JndiAppNameProvider;
+import uk.gov.justice.services.common.configuration.ContextNameProvider;
 import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
+import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Event;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Subscription;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.SubscriptionsDescriptor;
@@ -31,7 +31,7 @@ public class TagProviderTest {
     private SubscriptionsDescriptorsRegistry subscriptionsDescriptorsRegistry;
 
     @Mock
-    private JndiAppNameProvider jndiAppNameProvider;
+    private ContextNameProvider contextNameProvider;
 
     @Mock
     private MetricsConfiguration metricsConfiguration;
@@ -67,20 +67,20 @@ public class TagProviderTest {
     }
 
     @Test
-    public void shouldGetGlobalTags() {
+    public void shouldGetCommonTags() {
         // Given
         final String appName = "test-app";
         final String env = "test-env";
 
-        when(jndiAppNameProvider.getAppName()).thenReturn(appName);
+        when(contextNameProvider.getContextName()).thenReturn(appName);
         when(metricsConfiguration.micrometerEnv()).thenReturn(env);
 
         // When
-        final List<Tag> globalTags = tagProvider.getGlobalTags();
+        final List<Tag> commonTags = tagProvider.getCommonTags();
 
         // Then
-        assertThat(globalTags.size(), is(2));
-        assertThat(globalTags.get(0), is(Tag.of(SERVICE_TAG_NAME.getTagName(), appName)));
-        assertThat(globalTags.get(1), is(Tag.of(ENV_TAG_NAME.getTagName(), env)));
+        assertThat(commonTags.size(), is(2));
+        assertThat(commonTags.get(0), is(Tag.of(SERVICE_TAG_NAME.getTagName(), appName)));
+        assertThat(commonTags.get(1), is(Tag.of(ENV_TAG_NAME.getTagName(), env)));
     }
 }

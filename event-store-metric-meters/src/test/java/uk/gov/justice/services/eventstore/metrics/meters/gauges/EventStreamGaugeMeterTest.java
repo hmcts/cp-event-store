@@ -7,7 +7,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.buffer.core.repository.metrics.StreamMetrics;
-import uk.gov.justice.services.eventstore.metrics.tags.TagProvider.SourceComponentPair;
 
 import java.util.function.Function;
 
@@ -15,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
 
 @ExtendWith(MockitoExtension.class)
 public class EventStreamGaugeMeterTest {
@@ -46,7 +46,7 @@ public class EventStreamGaugeMeterTest {
                 METRIC_DESCRIPTION
         );
 
-        assertThat(gaugeMeter.measure(), is(expectedValue));
+        assertThat(gaugeMeter.get(), is(expectedValue));
         assertThat(gaugeMeter.metricName(), is(METRIC_NAME));
         assertThat(gaugeMeter.metricDescription(), is(METRIC_DESCRIPTION));
     }
@@ -66,6 +66,6 @@ public class EventStreamGaugeMeterTest {
                 METRIC_DESCRIPTION
         );
 
-        assertThat(gaugeMeter.measure(), is(0));
+        assertThat(gaugeMeter.get(), is(0));
     }
 }

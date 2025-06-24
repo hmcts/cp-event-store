@@ -7,7 +7,7 @@ import static uk.gov.justice.services.metrics.micrometer.meters.MetricsMeterName
 import static uk.gov.justice.services.metrics.micrometer.meters.MetricsMeterNames.UNBLOCKED_EVENT_STREAMS_GAUGE_NAME;
 
 import uk.gov.justice.services.event.buffer.core.repository.metrics.StreamMetrics;
-import uk.gov.justice.services.eventstore.metrics.tags.TagProvider.SourceComponentPair;
+import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
 
 import java.util.Arrays;
 import java.util.List;

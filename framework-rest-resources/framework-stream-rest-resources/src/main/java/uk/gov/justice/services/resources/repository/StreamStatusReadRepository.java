@@ -30,18 +30,24 @@ public class StreamStatusReadRepository {
                     is_up_to_date
             """;
     private static final String FIND_BY_ERROR_HASH = """
-                %s\s
+                SELECT
+                    s.stream_id,
+                    s.source,
+                    s.component,
+                    s.position,
+                    s.stream_error_id,
+                    s.stream_error_position,
+                    s.updated_at,
+                    s.latest_known_position,
+                    s.is_up_to_date
                  FROM stream_status s
-                 WHERE EXISTS (
-                     SELECT 1\s
-                     FROM stream_error e
-                     WHERE e.hash = ?
-                       AND e.stream_id = s.stream_id
-                       AND e.component = s.component
-                       AND e.source = s.source
-                 )
-                ORDER BY s.updated_at DESC
-            """.formatted(SELECT_CLAUSE);
+                 JOIN stream_error e
+                     ON e.stream_id = s.stream_id
+                     AND e.component = s.component
+                     AND e.source = s.source
+                 WHERE e.hash = ?
+                 ORDER BY s.updated_at DESC
+            """;
 
     private static final String FIND_BY_STREAM_ID = """
                 %s\s

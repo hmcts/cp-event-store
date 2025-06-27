@@ -1,11 +1,10 @@
-package uk.gov.justice.services.resources.rest.mapper;
+package uk.gov.justice.services.resources.rest.streams;
 
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
-import uk.gov.justice.services.resources.rest.streams.StreamResponseMapper;
 import uk.gov.justice.services.resources.rest.streams.model.StreamResponse;
 
 import static java.util.Optional.empty;

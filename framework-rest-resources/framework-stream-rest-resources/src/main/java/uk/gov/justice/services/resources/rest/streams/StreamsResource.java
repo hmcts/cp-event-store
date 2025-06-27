@@ -23,7 +23,7 @@ import static org.apache.commons.lang3.ObjectUtils.isNotEmpty;
 @Path("/streams")
 @Produces(MediaType.APPLICATION_JSON)
 public class StreamsResource {
-    private static final String INVALID_PARAM_MESSAGE = "Exactly one query parameter(errorHash/streamId/hasError) must be provided";
+    static final String INVALID_PARAM_MESSAGE = "Exactly one query parameter(errorHash/streamId/hasError) must be provided. Accepted values for errorHash: true";
     @Inject
     private StreamStatusReadRepository streamStatusReadRepository;
 
@@ -33,7 +33,7 @@ public class StreamsResource {
     @GET
     public Response findBy(@QueryParam("errorHash") String errorHash,
                            @QueryParam("streamId") UUID streamId,
-                           @QueryParam("streamId") Boolean hasError) {
+                           @QueryParam("hasError") Boolean hasError) {
         if (!validQueryParameters(errorHash, streamId, hasError)) {
             return buildBadRequestResponse();
         }
@@ -62,6 +62,14 @@ public class StreamsResource {
     }
 
     private boolean validQueryParameters(String errorHash, UUID streamId, Boolean hasError) {
+        return providedOnlyOneParameter(errorHash, streamId, hasError) && validErrorHashValue(hasError);
+    }
+
+    private boolean validErrorHashValue(Boolean hasError) {
+        return hasError == null || hasError;
+    }
+
+    private boolean providedOnlyOneParameter(String errorHash, UUID streamId, Boolean hasError) {
         final int noOfProvidedQueryParameters = Stream.of(errorHash, streamId, hasError)
                 .filter(ObjectUtils::isNotEmpty)
                 .toList().size();

@@ -1,4 +1,4 @@
-package uk.gov.justice.services.resources.rest;
+package uk.gov.justice.services.resources.rest.streams;
 
 import java.util.List;
 import java.util.UUID;
@@ -13,8 +13,6 @@ import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
 import uk.gov.justice.services.resources.repository.StreamStatusReadRepository;
 import uk.gov.justice.services.resources.rest.model.ErrorResponse;
-import uk.gov.justice.services.resources.rest.streams.StreamResponseMapper;
-import uk.gov.justice.services.resources.rest.streams.StreamsResource;
 import uk.gov.justice.services.resources.rest.streams.model.StreamResponse;
 
 import static java.util.Optional.empty;
@@ -22,6 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.services.resources.rest.streams.StreamsResource.INVALID_PARAM_MESSAGE;
 
 @ExtendWith(MockitoExtension.class)
 class StreamsResourceTest {
@@ -45,17 +44,7 @@ class StreamsResourceTest {
             assertThat(response.getStatus(), is(400));
             assertTrue(response.getEntity() instanceof ErrorResponse);
             final ErrorResponse errorResponse = (ErrorResponse) response.getEntity();
-            assertThat(errorResponse.errorMessage(), is("Exactly one query parameter(errorHash/streamId/hasError) must be provided"));
-        }
-
-        @Test
-        void shouldReturnBadRequestGivenMoreThanOneQueryParameterProvided() {
-            final Response response = streamsResource.findBy("hash-1", UUID.randomUUID(), null);
-
-            assertThat(response.getStatus(), is(400));
-            assertTrue(response.getEntity() instanceof ErrorResponse);
-            final ErrorResponse errorResponse = (ErrorResponse) response.getEntity();
-            assertThat(errorResponse.errorMessage(), is("Exactly one query parameter(errorHash/streamId/hasError) must be provided"));
+            assertThat(errorResponse.errorMessage(), is(INVALID_PARAM_MESSAGE));
         }
 
         @Test
@@ -65,7 +54,27 @@ class StreamsResourceTest {
             assertThat(response.getStatus(), is(400));
             assertTrue(response.getEntity() instanceof ErrorResponse);
             final ErrorResponse errorResponse = (ErrorResponse) response.getEntity();
-            assertThat(errorResponse.errorMessage(), is("Exactly one query parameter(errorHash/streamId/hasError) must be provided"));
+            assertThat(errorResponse.errorMessage(), is(INVALID_PARAM_MESSAGE));
+        }
+
+        @Test
+        void shouldReturnBadRequestGivenMoreThanOneQueryParameterProvided() {
+            final Response response = streamsResource.findBy("hash-1", UUID.randomUUID(), null);
+
+            assertThat(response.getStatus(), is(400));
+            assertTrue(response.getEntity() instanceof ErrorResponse);
+            final ErrorResponse errorResponse = (ErrorResponse) response.getEntity();
+            assertThat(errorResponse.errorMessage(), is(INVALID_PARAM_MESSAGE));
+        }
+
+        @Test
+        void shouldReturnBadRequestGivenErrorHashHasValueFalse() {
+            final Response response = streamsResource.findBy(null, null, false);
+
+            assertThat(response.getStatus(), is(400));
+            assertTrue(response.getEntity() instanceof ErrorResponse);
+            final ErrorResponse errorResponse = (ErrorResponse) response.getEntity();
+            assertThat(errorResponse.errorMessage(), is(INVALID_PARAM_MESSAGE));
         }
     }
 

@@ -22,8 +22,8 @@ import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStre
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamPositions;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatusException;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.MissingSourceException;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
+import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
@@ -71,6 +71,9 @@ public class StreamStatusServiceTest {
     @Mock
     private Logger logger;
 
+    @Mock
+    private EventSourceNameCalculator eventSourceNameCalculator;
+
     @InjectMocks
     private StreamStatusService streamStatusService;
 
@@ -93,7 +96,7 @@ public class StreamStatusServiceTest {
         when(metadata.name()).thenReturn(name);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
         when(clock.now()).thenReturn(updatedAt);
         when(newStreamStatusRepository.lockRowAndGetPositions(
@@ -149,7 +152,7 @@ public class StreamStatusServiceTest {
         when(metadata.name()).thenReturn(name);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
         when(clock.now()).thenReturn(updatedAt);
         when(newStreamStatusRepository.lockRowAndGetPositions(
@@ -210,7 +213,7 @@ public class StreamStatusServiceTest {
         when(metadata.name()).thenReturn(name);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
         when(clock.now()).thenReturn(updatedAt);
         when(newStreamStatusRepository.lockRowAndGetPositions(
@@ -275,7 +278,7 @@ public class StreamStatusServiceTest {
         when(metadata.name()).thenReturn(name);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
         when(clock.now()).thenReturn(updatedAt);
         when(newStreamStatusRepository.lockRowAndGetPositions(
@@ -320,7 +323,7 @@ public class StreamStatusServiceTest {
         when(metadata.name()).thenReturn(name);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
         when(clock.now()).thenReturn(updatedAt);
         when(newStreamStatusRepository.lockRowAndGetPositions(
@@ -369,32 +372,6 @@ public class StreamStatusServiceTest {
     }
 
     @Test
-    public void shouldThrowMissingSourceExceptionIfNoSourceFoundInIncomingEvent() throws Exception {
-
-        final String name = "some-name";
-        final String componentName = "some-component";
-        final UUID eventId = fromString("abffce7f-6ccb-413b-a43e-9bb61386c000");
-        final UUID streamId = randomUUID();
-
-        final JsonEnvelope incomingJsonEnvelope = mock(JsonEnvelope.class);
-        final Metadata metadata = mock(Metadata.class);
-
-        when(incomingJsonEnvelope.metadata()).thenReturn(metadata);
-        when(metadata.name()).thenReturn(name);
-        when(metadata.id()).thenReturn(eventId);
-        when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(empty());
-
-        final MissingSourceException missingSourceException = assertThrows(
-                MissingSourceException.class,
-                () -> streamStatusService.handleStreamStatusUpdates(incomingJsonEnvelope, componentName));
-
-        assertThat(missingSourceException.getMessage(), is("No source found in event: name 'some-name', eventId 'abffce7f-6ccb-413b-a43e-9bb61386c000'"));
-
-        verifyNoInteractions(micrometerMetricsCounters);
-    }
-
-    @Test
     public void shouldThrowMissingPositionInStreamExceptionIfNoStreamIdFoundInIncomingEvent() throws Exception {
 
         final String name = "some-name";
@@ -410,7 +387,7 @@ public class StreamStatusServiceTest {
         when(metadata.name()).thenReturn(name);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(empty());
 
         final MissingPositionInStreamException missingStreamIdException = assertThrows(

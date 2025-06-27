@@ -8,8 +8,8 @@ import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStre
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamPositions;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatusException;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.MissingSourceException;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
+import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
@@ -51,6 +51,9 @@ public class StreamStatusService {
     @Inject
     private Logger logger;
 
+    @Inject
+    private EventSourceNameCalculator eventSourceNameCalculator;
+
     @Transactional(NOT_SUPPORTED)
     public EventOrderingStatus handleStreamStatusUpdates(final JsonEnvelope incomingJsonEnvelope, final String component) {
 
@@ -58,7 +61,7 @@ public class StreamStatusService {
         final String name = metadata.name();
         final UUID eventId = metadata.id();
         final UUID streamId = metadata.streamId().orElseThrow(() -> new MissingStreamIdException(format("No streamId found in event: name '%s', eventId '%s'", name, eventId)));
-        final String source = metadata.source().orElseThrow(() -> new MissingSourceException(format("No source found in event: name '%s', eventId '%s'", name, eventId)));
+        final String source = eventSourceNameCalculator.getSource(incomingJsonEnvelope);
         final Long incomingPositionInStream = metadata.position().orElseThrow(() -> new MissingPositionInStreamException(format("No position found in event: name '%s', eventId '%s'", name, eventId)));
 
         try {

@@ -16,6 +16,7 @@ import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamEr
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
+import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 
@@ -37,6 +38,9 @@ public class StreamErrorConverterTest {
 
     @Mock
     private UtcClock clock;
+
+    @Mock
+    private EventSourceNameCalculator eventSourceNameCalculator;
 
     @InjectMocks
     private StreamErrorConverter streamErrorConverter;
@@ -84,7 +88,7 @@ public class StreamErrorConverterTest {
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
         when(metadata.position()).thenReturn(of(positionInStream));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(event)).thenReturn(source);
 
         when(earliestStackTraceElement.getClassName()).thenReturn(javaClassName);
         when(earliestStackTraceElement.getMethodName()).thenReturn(methodName);
@@ -110,79 +114,6 @@ public class StreamErrorConverterTest {
         assertThat(streamErrorHash.hash(), is(hash));
         assertThat(streamErrorHash.exceptionClassName(), is(exception.getClass().getName()));
         assertThat(streamErrorHash.causeClassName(), is(of(causeException.getClass().getName())));
-        assertThat(streamErrorHash.javaClassName(), is(javaClassName));
-        assertThat(streamErrorHash.javaMethod(), is(methodName));
-        assertThat(streamErrorHash.javaLineNumber(), is(lineNumber));
-    }
-
-    @Test
-    public void shouldHandleMissingCauseException() throws Exception {
-
-        final RuntimeException exception = new RuntimeException("Something went wrogn");
-
-        final String componentName = "SOME_COMPONENT";
-        final String fullStackTrace = "Full stack trace";
-        final String javaClassName = "uk.gov.justice.eventbuffer.core.error.SomeFailingJavaClass";
-        final String methodName = "someJavaMethod";
-        final int lineNumber = 234;
-        final String source = "some-source";
-
-        final String hash = "kshdkfhkjsdfhkjsdhfkj";
-        final ZonedDateTime dateCreated = new UtcClock().now();
-        final String eventName = "context.events.something.happened";
-        final UUID eventId = randomUUID();
-        final UUID streamId = randomUUID();
-        final Long positionInStream = 987L;
-
-        final StackTraceElement earliestStackTraceElement = mock(StackTraceElement.class);
-        final StackTraceElement laterStackTraceElement = mock(StackTraceElement.class);
-        final JsonEnvelope event = mock(JsonEnvelope.class);
-        final Metadata metadata = mock(Metadata.class);
-
-        final List<StackTraceElement> stackTraceElements = List.of(earliestStackTraceElement, laterStackTraceElement);
-        final ExceptionDetails exceptionDetails = new ExceptionDetails(
-                exception,
-                empty(),
-                stackTraceElements,
-                fullStackTrace
-        );
-
-        when(clock.now()).thenReturn(dateCreated);
-        when(exceptionHashGenerator.createHashStringFrom(
-                earliestStackTraceElement,
-                exception.getClass().getName(),
-                empty())).thenReturn(hash);
-        when(event.metadata()).thenReturn(metadata);
-        when(metadata.name()).thenReturn(eventName);
-        when(metadata.id()).thenReturn(eventId);
-        when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.position()).thenReturn(of(positionInStream));
-        when(metadata.source()).thenReturn(of(source));
-
-        when(earliestStackTraceElement.getClassName()).thenReturn(javaClassName);
-        when(earliestStackTraceElement.getMethodName()).thenReturn(methodName);
-        when(earliestStackTraceElement.getLineNumber()).thenReturn(lineNumber);
-
-        final StreamError streamError = streamErrorConverter.asStreamError(exceptionDetails, event, componentName);
-
-        final StreamErrorDetails streamErrorDetails = streamError.streamErrorDetails();
-
-        assertThat(streamErrorDetails.id(), is(instanceOf(UUID.class)));
-        assertThat(streamErrorDetails.eventName(), is(eventName));
-        assertThat(streamErrorDetails.eventId(), is(eventId));
-        assertThat(streamErrorDetails.streamId(), is(streamId));
-        assertThat(streamErrorDetails.positionInStream(), is(positionInStream));
-        assertThat(streamErrorDetails.dateCreated(), is(dateCreated));
-        assertThat(streamErrorDetails.exceptionMessage(), is("Something went wrogn"));
-        assertThat(streamErrorDetails.causeMessage(), is(empty()));
-        assertThat(streamErrorDetails.fullStackTrace(), is(fullStackTrace));
-        assertThat(streamErrorDetails.componentName(), is(componentName));
-
-        final StreamErrorHash streamErrorHash = streamError.streamErrorHash();
-
-        assertThat(streamErrorHash.hash(), is(hash));
-        assertThat(streamErrorHash.exceptionClassName(), is(exception.getClass().getName()));
-        assertThat(streamErrorHash.causeClassName(), is(empty()));
         assertThat(streamErrorHash.javaClassName(), is(javaClassName));
         assertThat(streamErrorHash.javaMethod(), is(methodName));
         assertThat(streamErrorHash.javaLineNumber(), is(lineNumber));

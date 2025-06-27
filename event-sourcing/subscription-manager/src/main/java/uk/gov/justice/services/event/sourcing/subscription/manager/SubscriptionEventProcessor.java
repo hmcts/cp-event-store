@@ -13,12 +13,12 @@ import uk.gov.justice.services.event.buffer.core.repository.streambuffer.NewEven
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamPositions;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.MissingSourceException;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
+import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
@@ -59,6 +59,9 @@ public class SubscriptionEventProcessor {
     @Inject
     private MicrometerMetricsCounters micrometerMetricsCounters;
 
+    @Inject
+    private EventSourceNameCalculator eventSourceNameCalculator;
+
     @Transactional(value = NOT_SUPPORTED)
     public boolean processSingleEvent(
             final JsonEnvelope eventJsonEnvelope,
@@ -68,7 +71,7 @@ public class SubscriptionEventProcessor {
         final String name = metadata.name();
         final UUID eventId = metadata.id();
         final UUID streamId = metadata.streamId().orElseThrow(() -> new MissingStreamIdException(format("No streamId found in event: name '%s', eventId '%s'", name, eventId)));
-        final String source = metadata.source().orElseThrow(() -> new MissingSourceException(format("No source found in event: name '%s', eventId '%s'", name, eventId)));
+        final String source = eventSourceNameCalculator.getSource(eventJsonEnvelope);
         final Long eventPositionInStream = metadata.position().orElseThrow(() -> new MissingPositionInStreamException(format("No position found in event: name '%s', eventId '%s'", name, eventId)));
 
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);

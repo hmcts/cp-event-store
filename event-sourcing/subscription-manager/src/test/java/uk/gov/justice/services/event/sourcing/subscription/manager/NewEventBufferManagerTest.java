@@ -15,8 +15,8 @@ import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streambuffer.EventBufferEvent;
 import uk.gov.justice.services.event.buffer.core.repository.streambuffer.NewEventBufferRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.MissingSourceException;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
+import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.JsonObjectEnvelopeConverter;
 import uk.gov.justice.services.messaging.Metadata;
@@ -46,6 +46,9 @@ public class NewEventBufferManagerTest {
     @Mock
     private UtcClock clock;
 
+    @Mock
+    private EventSourceNameCalculator eventSourceNameCalculator;
+
     @InjectMocks
     private NewEventBufferManager newEventBufferManager;
 
@@ -67,7 +70,7 @@ public class NewEventBufferManagerTest {
 
         when(currentJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(currentJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(currentPosition));
         when(newEventBufferRepository.findByPositionAndStream(streamId, nextPosition, source, componentName)).thenReturn(of(eventBufferEvent));
         when(eventBufferEvent.getEvent()).thenReturn(jsonEnvelopeJson);
@@ -92,7 +95,7 @@ public class NewEventBufferManagerTest {
 
         when(currentJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(currentJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(currentPosition));
         when(newEventBufferRepository.findByPositionAndStream(streamId, nextPosition, source, componentName)).thenReturn(empty());
 
@@ -123,31 +126,7 @@ public class NewEventBufferManagerTest {
     }
 
     @Test
-    public void shouldThrowMissingSourceExceptionIfNoSourceFoundInEventWhenGettingNextFromEventBuffer() throws Exception {
-
-        final String eventName = "some-event-name";
-        final String componentName = "some-component";
-        final UUID eventId = fromString("b9d3f7a4-f6ee-4447-95bd-cf804fd2afc4");
-        final UUID streamId = randomUUID();
-
-        final JsonEnvelope currentJsonEnvelope = mock(JsonEnvelope.class);
-        final Metadata metadata = mock(Metadata.class);
-
-        when(currentJsonEnvelope.metadata()).thenReturn(metadata);
-        when(metadata.name()).thenReturn(eventName);
-        when(metadata.id()).thenReturn(eventId);
-        when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(empty());
-
-        final MissingSourceException missingSourceException = assertThrows(
-                MissingSourceException.class,
-                () -> newEventBufferManager.getNextFromEventBuffer(currentJsonEnvelope, componentName));
-
-        assertThat(missingSourceException.getMessage(), is("No source found in event. name 'some-event-name', eventId 'b9d3f7a4-f6ee-4447-95bd-cf804fd2afc4'"));
-    }
-
-    @Test
-    public void shouldThrowMissingPositionInStreamExceptionIfNoSourceFoundInEventWhenGettingNextFromEventBuffer() throws Exception {
+    public void shouldThrowMissingPositionInStreamExceptionIfNoPositionFoundInEventWhenGettingNextFromEventBuffer() throws Exception {
 
         final String eventName = "some-event-name";
         final String componentName = "some-component";
@@ -162,7 +141,7 @@ public class NewEventBufferManagerTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(currentJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(empty());
 
         final MissingPositionInStreamException missingPositionInStreamException = assertThrows(

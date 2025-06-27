@@ -2,6 +2,7 @@ package uk.gov.justice.services.event.sourcing.subscription.manager;
 
 import java.util.UUID;
 import javax.transaction.UserTransaction;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -16,12 +17,12 @@ import uk.gov.justice.services.event.buffer.core.repository.streambuffer.NewEven
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamPositions;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.MissingSourceException;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
+import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
@@ -77,6 +78,9 @@ public class SubscriptionEventProcessorTest {
     @Mock
     private TransactionHandler transactionHandler;
 
+    @Mock
+    private EventSourceNameCalculator eventSourceNameCalculator;
+
     @InjectMocks
     private SubscriptionEventProcessor subscriptionEventProcessor;
 
@@ -100,7 +104,7 @@ public class SubscriptionEventProcessorTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(eventJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         when(streamPositions.latestKnownStreamPosition()).thenReturn(eventPositionInStream);
         when(newStreamStatusRepository.lockRowAndGetPositions(
@@ -164,7 +168,7 @@ public class SubscriptionEventProcessorTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(eventJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         when(streamPositions.latestKnownStreamPosition()).thenReturn(latestKnowPositionInStream);
         when(newStreamStatusRepository.lockRowAndGetPositions(
@@ -227,7 +231,7 @@ public class SubscriptionEventProcessorTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(eventJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         when(newStreamStatusRepository.lockRowAndGetPositions(
                 streamId,
@@ -288,7 +292,7 @@ public class SubscriptionEventProcessorTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(eventJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         when(newStreamStatusRepository.lockRowAndGetPositions(
                 streamId,
@@ -347,7 +351,7 @@ public class SubscriptionEventProcessorTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(eventJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         when(newStreamStatusRepository.lockRowAndGetPositions(
                 streamId,
@@ -410,7 +414,7 @@ public class SubscriptionEventProcessorTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(eventJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         when(newStreamStatusRepository.lockRowAndGetPositions(
                 streamId,
@@ -476,7 +480,7 @@ public class SubscriptionEventProcessorTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(eventJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         doThrow(nullPointerException).when(newStreamStatusRepository).lockRowAndGetPositions(
                 streamId,
@@ -521,7 +525,7 @@ public class SubscriptionEventProcessorTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(eventJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         when(newStreamStatusRepository.lockRowAndGetPositions(
                 streamId,
@@ -563,7 +567,7 @@ public class SubscriptionEventProcessorTest {
         when(metadata.name()).thenReturn(eventName);
         when(metadata.id()).thenReturn(eventId);
         when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(of(source));
+        when(eventSourceNameCalculator.getSource(eventJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(empty());
 
         final MissingPositionInStreamException missingPositionInStreamException = assertThrows(
@@ -580,40 +584,6 @@ public class SubscriptionEventProcessorTest {
         verifyNoInteractions(newEventBufferRepository);
         verifyNoInteractions(newEventBufferRepository);
         verifyNoInteractions(streamErrorStatusHandler);
-    }
-
-    @Test
-    public void shouldThrowMissingSourceExceptionIfNoSourceFoundInEventEnvelope() throws Exception {
-
-        final UUID eventId = fromString("b82b226a-3d8e-4fad-b456-5e747697f46d");
-        final UUID streamId = randomUUID();
-        final String eventName = "some-event-name";
-        final String source = "some-source";
-        final String component = "some-component";
-
-        final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
-        final Metadata metadata = mock(Metadata.class);
-
-        when(eventJsonEnvelope.metadata()).thenReturn(metadata);
-        when(metadata.name()).thenReturn(eventName);
-        when(metadata.id()).thenReturn(eventId);
-        when(metadata.streamId()).thenReturn(of(streamId));
-        when(metadata.source()).thenReturn(empty());
-
-        final MissingSourceException missingSourceException = assertThrows(
-                MissingSourceException.class,
-                () -> subscriptionEventProcessor.processSingleEvent(eventJsonEnvelope, component));
-
-        assertThat(missingSourceException.getMessage(), is("No source found in event: name 'some-event-name', eventId 'b82b226a-3d8e-4fad-b456-5e747697f46d'"));
-
-        verifyNoInteractions(transactionHandler);
-        verifyNoInteractions(newStreamStatusRepository);
-        verifyNoInteractions(newEventBufferRepository);
-        verifyNoInteractions(newEventBufferRepository);
-        verifyNoInteractions(streamErrorStatusHandler);
-        verify(micrometerMetricsCounters, never()).incrementEventsProcessedCount(source, component);
-        verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
-        verify(micrometerMetricsCounters, never()).incrementEventsIgnoredCount(source, component);
     }
 
     @Test

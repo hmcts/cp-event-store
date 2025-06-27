@@ -8,6 +8,7 @@ import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamEr
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
+import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import java.time.ZonedDateTime;
@@ -23,6 +24,9 @@ public class StreamErrorConverter {
 
     @Inject
     private UtcClock clock;
+
+    @Inject
+    private EventSourceNameCalculator eventSourceNameCalculator;
 
     public StreamError asStreamError(
             final ExceptionDetails exceptionDetails,
@@ -51,8 +55,7 @@ public class StreamErrorConverter {
                 .orElseThrow(() -> new MissingStreamIdException(format("No stream id found in event JsonEnvelope. Event name: '%s', eventId: '%s'", eventName, eventId)));
         final Long positionInStream = event.metadata().position()
                 .orElseThrow(() -> new MissingPositionInStreamException(format("No positionInStream found in event JsonEnvelope. Event name: '%s', eventId: '%s'", eventName, eventId)));
-        final String source = event.metadata().source()
-                .orElseThrow(() -> new MissingSourceException(format("No source found in event JsonEnvelope. Event name: '%s', eventId: '%s'", eventName, eventId)));
+        final String source = eventSourceNameCalculator.getSource(event);
         final ZonedDateTime dateCreated = clock.now();
         final String fullStackTrace = exceptionDetails.fullStackTrace();
 

@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- Refactor NewSubscriptionManager to use EventSourceNameCalculator while calculating source
 
 # [17.103.0-M18] - 2025-06-24
 ### Changed

@@ -3,6 +3,7 @@ package uk.gov.justice.services.resources;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
+import uk.gov.justice.services.resources.rest.CorsFilter;
 import uk.gov.justice.services.resources.rest.streams.ActiveErrorsResource;
 import uk.gov.justice.services.resources.rest.streams.StreamErrorsResource;
 import uk.gov.justice.services.resources.rest.streams.StreamsResource;
@@ -20,9 +21,10 @@ class FrameworkApplicationTest {
     void validateConfiguredResourceClasses() {
         final Set<Class<?>> resourceClasses = frameworkApplication.getClasses();
 
-        assertThat(resourceClasses.size(), is(3));
+        assertThat(resourceClasses.size(), is(4));
         assertThat(resourceClasses, hasItem(StreamsResource.class));
         assertThat(resourceClasses, hasItem(StreamErrorsResource.class));
         assertThat(resourceClasses, hasItem(ActiveErrorsResource.class));
+        assertThat(resourceClasses, hasItem(CorsFilter.class));
     }
 }

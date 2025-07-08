@@ -5,6 +5,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.103.0-M24] - 2025-07-08
+### Changed
+- Add "Access-Control-Allow-Origin" response header to stream REST endpoints
+
 # [17.103.0-M23] - 2025-07-07
 ### Added
 - New REST endpoint to fetch _active_ errors from the stream_error tables

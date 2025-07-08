@@ -50,6 +50,8 @@ public class NewSubscriptionManagerDelegateTest {
 
         newSubscriptionManagerDelegate.process(incomingJsonEnvelope, componentName);
 
+        verify(eventSourceNameCalculator).getSource(incomingJsonEnvelope);
+        verify(micrometerMetricsCounters).incrementEventsReceivedCount(source,componentName);
         verify(eventBufferAwareSubscriptionEventProcessor).process(incomingJsonEnvelope, componentName);
     }
 
@@ -67,6 +69,8 @@ public class NewSubscriptionManagerDelegateTest {
 
         newSubscriptionManagerDelegate.process(incomingJsonEnvelope, componentName);
 
+        verify(eventSourceNameCalculator).getSource(incomingJsonEnvelope);
+        verify(micrometerMetricsCounters).incrementEventsReceivedCount(source,componentName);
         verify(eventBufferAwareSubscriptionEventProcessor, never()).process(incomingJsonEnvelope, componentName);
     }
 
@@ -84,6 +88,8 @@ public class NewSubscriptionManagerDelegateTest {
 
         newSubscriptionManagerDelegate.process(incomingJsonEnvelope, componentName);
 
+        verify(eventSourceNameCalculator).getSource(incomingJsonEnvelope);
+        verify(micrometerMetricsCounters).incrementEventsReceivedCount(source,componentName);
         verify(eventBufferAwareSubscriptionEventProcessor, never()).process(incomingJsonEnvelope, componentName);
     }
 }

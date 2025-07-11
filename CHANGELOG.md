@@ -4,6 +4,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- Update maven-framework-parent-pom to 17.103.0
+- Update framework to 17.103.0-M16
 
 ### Changed
 - Added framework.events.received to NewSubscriptionManagerDelegate to count correctly

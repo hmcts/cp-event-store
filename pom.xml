@@ -7,7 +7,7 @@
     <parent>
         <groupId>uk.gov.justice</groupId>
         <artifactId>maven-framework-parent-pom</artifactId>
-        <version>17.101.0</version>
+        <version>17.103.0</version>
     </parent>
 
     <groupId>uk.gov.justice.event-store</groupId>
@@ -41,7 +41,7 @@
 
     <properties>
         <cpp.repo.name>event-store</cpp.repo.name>
-        <framework.version>17.103.0-M15</framework.version>
+        <framework.version>17.103.0-M16</framework.version>
 
         <!-- junit 4 version needed for deltaspike tests. Should be moved to common bom -->
         <junit4.version>4.13.2</junit4.version>

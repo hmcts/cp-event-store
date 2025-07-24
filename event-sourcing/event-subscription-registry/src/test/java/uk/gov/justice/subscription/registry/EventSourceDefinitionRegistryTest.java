@@ -46,7 +46,7 @@ public class EventSourceDefinitionRegistryTest {
     @Test
     public void shouldReturnDefaultEventSourceDefinition() {
 
-        final Location location = new Location("", empty(), Optional.of("dataSource"));
+        final Location location = new Location("", null, "dataSource");
 
         final EventSourceDefinition eventSourceDefinition1 = eventSourceDefinition()
                 .withLocation(location)
@@ -74,8 +74,8 @@ public class EventSourceDefinitionRegistryTest {
     @Test
     public void shouldThrowExceptionIfSecondDefaultEventSourceIsAdded() {
 
-        final Location location1 = new Location("", empty(), Optional.of("dataSource"));
-        final Location location2 = new Location("", empty(), Optional.of("dataSource"));
+        final Location location1 = new Location("", null, "dataSource");
+        final Location location2 = new Location("", null, "dataSource");
 
         final EventSourceDefinition eventSourceDefinition1 = eventSourceDefinition()
                 .withLocation(location1)
@@ -103,8 +103,8 @@ public class EventSourceDefinitionRegistryTest {
     @Test
     public void shouldThrowExceptionIfNoDataSourceDefinedForDefaultEventSource() {
 
-        final Location location1 = new Location("", empty(), empty());
-        final Location location2 = new Location("", empty(), empty());
+        final Location location1 = new Location("", null, null);
+        final Location location2 = new Location("", null, null);
 
         final EventSourceDefinition eventSourceDefinition1 = eventSourceDefinition()
                 .withLocation(location1)

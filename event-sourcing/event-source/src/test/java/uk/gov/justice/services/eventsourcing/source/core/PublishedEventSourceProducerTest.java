@@ -49,7 +49,7 @@ public class PublishedEventSourceProducerTest {
         final EventSourceDefinition eventSourceDefinition = eventSourceDefinition()
                 .withName("defaultEventSource")
                 .withDefault(true)
-                .withLocation(new Location("", empty(), Optional.of("dataSource")))
+                .withLocation(new Location("", null, "dataSource"))
                 .build();
         final InjectionPoint injectionPoint = mock(InjectionPoint.class);
         final EventSourceName eventSourceNameAnnotation = mock(EventSourceName.class);
@@ -67,7 +67,7 @@ public class PublishedEventSourceProducerTest {
         final EventSourceDefinition eventSourceDefinition = eventSourceDefinition()
                 .withName("defaultEventSource")
                 .withDefault(true)
-                .withLocation(new Location("", empty(), Optional.of("dataSource")))
+                .withLocation(new Location("", null, "dataSource"))
                 .build();
 
         final DefaultPublishedEventSource defaultPublishedEventSource = mock(DefaultPublishedEventSource.class);

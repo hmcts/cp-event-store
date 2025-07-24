@@ -85,8 +85,8 @@ public class EventSourceDefinitionRegistryProducerTest {
         final URL url_1 = new URL("file:/test");
         final URL url_2 = new URL("file:/test");
 
-        final Location location1 = new Location("", empty(), of("dataSource"));
-        final Location location2 = new Location("", empty(), empty());
+        final Location location1 = new Location("", null, "dataSource");
+        final Location location2 = new Location("", null, null);
 
         final EventSourceDefinition eventSourceDefinition1 = eventSourceDefinition()
                 .withLocation(location1)
@@ -116,7 +116,7 @@ public class EventSourceDefinitionRegistryProducerTest {
         final EventSourceDefinition defaultEventSourceDefinition = new EventSourceDefinition(
                 "name",
                 true,
-                new Location("jms uri", of("rest uri"), of("data source name"))
+                new Location("jms uri", "rest uri", "data source name")
         );
 
         when(defaultEventSourceDefinitionFactory.createDefaultEventSource()).thenReturn(defaultEventSourceDefinition);

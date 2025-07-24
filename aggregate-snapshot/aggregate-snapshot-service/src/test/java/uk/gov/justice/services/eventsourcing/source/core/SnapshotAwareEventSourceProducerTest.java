@@ -42,7 +42,7 @@ public class SnapshotAwareEventSourceProducerTest {
         final EventSourceDefinition eventSourceDefinition = eventSourceDefinition()
                 .withName("defaultEventSource")
                 .withDefault(true)
-                .withLocation(new Location("", empty(), of(jndiDataSourceName)))
+                .withLocation(new Location("", null, jndiDataSourceName))
                 .build();
         final EventSourceName eventSourceNameAnnotation = mock(EventSourceName.class);
         final JdbcBasedEventSource jdbcBasedEventSource = mock(JdbcBasedEventSource.class);
@@ -60,7 +60,7 @@ public class SnapshotAwareEventSourceProducerTest {
         final EventSourceDefinition eventSourceDefinition = eventSourceDefinition()
                 .withName("defaultEventSource")
                 .withDefault(true)
-                .withLocation(new Location("", empty(), of(jndiDataSourceName)))
+                .withLocation(new Location("", null, jndiDataSourceName))
                 .build();
         final JdbcBasedEventSource jdbcBasedEventSource = mock(JdbcBasedEventSource.class);
 
@@ -76,7 +76,7 @@ public class SnapshotAwareEventSourceProducerTest {
         final EventSourceDefinition eventSourceDefinition = eventSourceDefinition()
                 .withName("defaultEventSource")
                 .withDefault(true)
-                .withLocation(new Location("", empty(), empty()))
+                .withLocation(new Location("", null, null))
                 .build();
         final EventSourceName eventSourceNameAnnotation = mock(EventSourceName.class);
         final JdbcBasedEventSource jdbcBasedEventSource = mock(JdbcBasedEventSource.class);

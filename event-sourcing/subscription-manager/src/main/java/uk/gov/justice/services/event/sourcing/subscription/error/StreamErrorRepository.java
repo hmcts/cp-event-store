@@ -110,9 +110,9 @@ public class StreamErrorRepository {
     }
 
     @Transactional(REQUIRED)
-    public void markSameErrorHappened(final StreamError newStreamError, final Timestamp lastUpdatedAt) {
+    public void markSameErrorHappened(final StreamError newStreamError, final long lastStreamPosition, final Timestamp lastUpdatedAt) {
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
-            final int numberOfChange = streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastUpdatedAt, connection);
+            final int numberOfChange = streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection);
             if (numberOfChange == 0) {
                 logger.warn("Existing stream status entry is changed by another transaction errorId: {} streamId: {} source {} component {}",
                         newStreamError.streamErrorDetails().id(),

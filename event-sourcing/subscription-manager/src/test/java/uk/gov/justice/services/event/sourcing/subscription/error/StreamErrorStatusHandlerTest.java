@@ -150,7 +150,7 @@ public class StreamErrorStatusHandlerTest {
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
         inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamErrorRepository).markSameErrorHappened(newStreamError, lastUpdatedAt);
+        inOrder.verify(streamErrorRepository).markSameErrorHappened(newStreamError, streamUpdateContext.currentStreamPosition(), lastUpdatedAt);
         inOrder.verify(transactionHandler).commit(userTransaction);
 
         verify(transactionHandler, never()).rollback(userTransaction);

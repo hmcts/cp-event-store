@@ -187,7 +187,7 @@ public class StreamErrorRepositoryIT {
 
     @Test
     public void shouldUpdateStreamStatusWhenMarkingSameErrorHappened() throws Exception {
-        
+
         final long streamErrorPosition = 234L;
         final long currentStreamPosition = 233L;
         final StreamError streamError = aStreamError(streamErrorPosition);
@@ -197,15 +197,15 @@ public class StreamErrorRepositoryIT {
         final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis() - 1000); // 1 second ago
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
-        
+
         insertStreamStatus(streamId, currentStreamPosition, source, componentName, viewStoreDataSource.getConnection());
         streamErrorRepository.markStreamAsErrored(streamError, currentStreamPosition);
-        
+
         updateStreamStatusTimestamp(streamId, source, componentName, lastUpdatedAt);
-        
+
         // run
-        streamErrorRepository.markSameErrorHappened(streamError, lastUpdatedAt);
-        
+        streamErrorRepository.markSameErrorHappened(streamError, currentStreamPosition, lastUpdatedAt);
+
         // Verify
         final Optional<Timestamp> updatedTimestamp = getStreamStatusUpdatedAt(streamId, source, componentName);
         assertThat(updatedTimestamp.isPresent(), is(true));

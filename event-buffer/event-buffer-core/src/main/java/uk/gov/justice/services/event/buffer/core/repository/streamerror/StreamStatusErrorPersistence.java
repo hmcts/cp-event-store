@@ -32,7 +32,7 @@ public class StreamStatusErrorPersistence {
                 WHERE stream_id = ?
                 AND source = ?
                 AND component = ?
-                AND stream_error_id = ?
+                AND position = ?
                 AND updated_at  = ?
             """;
 
@@ -133,7 +133,7 @@ public class StreamStatusErrorPersistence {
     }
 
 
-    public int updateStreamStatusUpdatedAtForSameError(final StreamError newStreamError, final Timestamp previousUpdateAtTimestamp, final Connection connection) {
+    public int updateStreamStatusUpdatedAtForSameError(final StreamError newStreamError, final long lastStreamPosition, final Timestamp previousUpdateAtTimestamp, final Connection connection) {
         final StreamErrorDetails streamErrorDetails = newStreamError.streamErrorDetails();
         final ZonedDateTime updatedAt = clock.now();
 
@@ -144,7 +144,7 @@ public class StreamStatusErrorPersistence {
             preparedStatement.setObject(2, streamErrorDetails.streamId());
             preparedStatement.setString(3, streamErrorDetails.source());
             preparedStatement.setString(4, streamErrorDetails.componentName());
-            preparedStatement.setObject(5, streamErrorDetails.id());
+            preparedStatement.setObject(5, lastStreamPosition);
             preparedStatement.setObject(6, previousUpdateAtTimestamp);
 
             return preparedStatement.executeUpdate();

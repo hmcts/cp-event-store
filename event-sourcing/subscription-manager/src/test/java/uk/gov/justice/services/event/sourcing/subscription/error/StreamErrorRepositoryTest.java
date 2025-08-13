@@ -326,17 +326,19 @@ public class StreamErrorRepositoryTest {
 
         final StreamError newStreamError = mock(StreamError.class);
         final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis());
+        final long lastStreamPosition = 122L;
+
 
         final DataSource viewStoreDataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
         when(viewStoreDataSource.getConnection()).thenReturn(connection);
-        when(streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastUpdatedAt, connection)).thenReturn(1);
+        when(streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection)).thenReturn(1);
 
-        streamErrorRepository.markSameErrorHappened(newStreamError, lastUpdatedAt);
+        streamErrorRepository.markSameErrorHappened(newStreamError, lastStreamPosition, lastUpdatedAt);
 
-        verify(streamStatusErrorPersistence).updateStreamStatusUpdatedAtForSameError(newStreamError, lastUpdatedAt, connection);
+        verify(streamStatusErrorPersistence).updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection);
         verify(connection).close();
         verifyNoInteractions(logger);
     }
@@ -351,6 +353,8 @@ public class StreamErrorRepositoryTest {
         final UUID streamId = randomUUID();
         final String componentName = "SOME_COMPONENT";
         final String source = "some-source";
+        final long lastStreamPosition = 122L;
+
 
         final DataSource viewStoreDataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
@@ -362,11 +366,11 @@ public class StreamErrorRepositoryTest {
         when(streamErrorDetails.streamId()).thenReturn(streamId);
         when(streamErrorDetails.componentName()).thenReturn(componentName);
         when(streamErrorDetails.source()).thenReturn(source);
-        when(streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastUpdatedAt, connection)).thenReturn(0);
+        when(streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection)).thenReturn(0);
 
-        streamErrorRepository.markSameErrorHappened(newStreamError, lastUpdatedAt);
+        streamErrorRepository.markSameErrorHappened(newStreamError, lastStreamPosition, lastUpdatedAt);
 
-        verify(streamStatusErrorPersistence).updateStreamStatusUpdatedAtForSameError(newStreamError, lastUpdatedAt, connection);
+        verify(streamStatusErrorPersistence).updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection);
         verify(logger).warn("Existing stream status entry is changed by another transaction errorId: {} streamId: {} source {} component {}",
                 streamErrorId, streamId, source, componentName);
         verify(connection).close();
@@ -378,6 +382,8 @@ public class StreamErrorRepositoryTest {
         final StreamError newStreamError = mock(StreamError.class);
         final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis());
         final SQLException sqlException = new SQLException("Ooops");
+        final long lastStreamPosition = 122L;
+
 
         final DataSource viewStoreDataSource = mock(DataSource.class);
 
@@ -386,7 +392,7 @@ public class StreamErrorRepositoryTest {
 
         final StreamErrorHandlingException streamErrorHandlingException = assertThrows(
                 StreamErrorHandlingException.class,
-                () -> streamErrorRepository.markSameErrorHappened(newStreamError, lastUpdatedAt));
+                () -> streamErrorRepository.markSameErrorHappened(newStreamError, lastStreamPosition, lastUpdatedAt));
 
         assertThat(streamErrorHandlingException.getCause(), is(sqlException));
         assertThat(streamErrorHandlingException.getMessage(), is("Failed to get connection to view-store"));

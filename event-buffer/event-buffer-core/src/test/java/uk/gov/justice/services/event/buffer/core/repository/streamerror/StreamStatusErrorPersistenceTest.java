@@ -49,7 +49,7 @@ public class StreamStatusErrorPersistenceTest {
                 WHERE stream_id = ?
                 AND source = ?
                 AND component = ?
-                AND stream_error_id = ?
+                AND position = ?
                 AND updated_at  = ?
             """;
 
@@ -155,6 +155,8 @@ public class StreamStatusErrorPersistenceTest {
         final Timestamp previousUpdateAtTimestamp = new Timestamp(System.currentTimeMillis() - 1000);
         final ZonedDateTime updatedAt = ZonedDateTime.now();
         final int expectedRowsUpdated = 1;
+        final long lastStreamPosition = 122L;
+
 
         final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
                 streamErrorId,
@@ -181,6 +183,7 @@ public class StreamStatusErrorPersistenceTest {
 
         final int actualRowsUpdated = streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(
                 streamError,
+                lastStreamPosition,
                 previousUpdateAtTimestamp,
                 connection
         );
@@ -192,7 +195,7 @@ public class StreamStatusErrorPersistenceTest {
         inOrder.verify(preparedStatement).setObject(2, streamId);
         inOrder.verify(preparedStatement).setString(3, source);
         inOrder.verify(preparedStatement).setString(4, componentName);
-        inOrder.verify(preparedStatement).setObject(5, streamErrorId);
+        inOrder.verify(preparedStatement).setObject(5, lastStreamPosition);
         inOrder.verify(preparedStatement).setObject(6, previousUpdateAtTimestamp);
         inOrder.verify(preparedStatement).executeUpdate();
         inOrder.verify(preparedStatement).close();
@@ -210,6 +213,8 @@ public class StreamStatusErrorPersistenceTest {
         final Timestamp previousUpdateAtTimestamp = new Timestamp(System.currentTimeMillis() - 1000);
         final ZonedDateTime updatedAt = ZonedDateTime.now();
         final SQLException sqlException = new SQLException("Database error");
+        final long lastStreamPosition = 122L;
+
 
         final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
                 streamErrorId,
@@ -238,6 +243,7 @@ public class StreamStatusErrorPersistenceTest {
                 StreamErrorHandlingException.class,
                 () -> streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(
                         streamError,
+                        lastStreamPosition,
                         previousUpdateAtTimestamp,
                         connection
                 ));

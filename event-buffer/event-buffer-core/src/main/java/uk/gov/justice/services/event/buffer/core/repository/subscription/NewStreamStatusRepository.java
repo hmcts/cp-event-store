@@ -304,9 +304,7 @@ public class NewStreamStatusRepository {
     public StreamUpdateContext lockStreamAndGetStreamUpdateContextWithError(final UUID streamId, final String source, final String componentName, final long incomingEventPosition) {
         final StreamUpdateContext streamUpdateContext = lockStreamAndGetStreamUpdateContext(streamId, source, componentName, incomingEventPosition);
 
-        if (streamUpdateContext.streamErrorId().isEmpty()) {
-            return streamUpdateContext;
-        } else {
+        if (streamUpdateContext.streamErrorId().isPresent()) {
             try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
                 return streamErrorDetailsPersistence.findById(streamUpdateContext.streamErrorId().get(), connection)
                         .map(streamErrorDetails -> new StreamUpdateContext(
@@ -321,6 +319,8 @@ public class NewStreamStatusRepository {
             } catch (final SQLException e) {
                 throw new StreamErrorHandlingException(format("Failed find StreamError by streamErrorId: '%s'", streamUpdateContext.streamErrorId().get()), e);
             }
+        } else {
+            return streamUpdateContext;
         }
     }
 }

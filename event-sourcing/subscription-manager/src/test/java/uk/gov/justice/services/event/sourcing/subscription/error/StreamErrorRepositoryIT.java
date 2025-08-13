@@ -4,10 +4,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
@@ -55,7 +58,7 @@ public class StreamErrorRepositoryIT {
 
     @Spy
     private StreamErrorDetailsRowMapper streamErrorDetailsRowMapper;
-    
+
     @InjectMocks
     private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
 
@@ -67,6 +70,9 @@ public class StreamErrorRepositoryIT {
 
     @Spy
     private StreamStatusErrorPersistence streamStatusErrorPersistence = new StreamStatusErrorPersistence();
+
+    @Mock
+    private Logger logger;
 
     @InjectMocks
     private StreamErrorRepository streamErrorRepository;
@@ -87,11 +93,17 @@ public class StreamErrorRepositoryIT {
     public void shouldSaveNewStreamErrorAndUpdateStreamStatusTable() throws Exception {
 
         final long streamErrorPosition = 234L;
+        final long currentStreamPosition = 233L;
+        final StreamError streamError = aStreamError(streamErrorPosition);
+        final UUID streamId = streamError.streamErrorDetails().streamId();
+        final String source = streamError.streamErrorDetails().source();
+        final String componentName = streamError.streamErrorDetails().componentName();
+
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        insertStreamStatus(streamId, currentStreamPosition, source, componentName, viewStoreDataSource.getConnection());
 
-        final StreamError streamError = aStreamError(streamErrorPosition);
-        streamErrorRepository.markStreamAsErrored(streamError);
+        streamErrorRepository.markStreamAsErrored(streamError, currentStreamPosition);
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
             final Optional<StreamError> streamErrorOptional = streamErrorPersistence.findByErrorId(streamError.streamErrorDetails().id(), connection);
@@ -115,21 +127,25 @@ public class StreamErrorRepositoryIT {
     public void shouldReturnStreamErrorIdWhenLockingRowInStreamStatusIfErrorExistsOnThatStream() throws Exception {
 
         final long streamErrorPosition = 234L;
+        final long currentStreamPosition = 233L;
+        final StreamError streamError = aStreamError(streamErrorPosition);
+        final UUID streamId = streamError.streamErrorDetails().streamId();
+        final String source = streamError.streamErrorDetails().source();
+        final String componentName = streamError.streamErrorDetails().componentName();
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
 
-        final StreamError streamError = aStreamError(streamErrorPosition);
-        streamErrorRepository.markStreamAsErrored(streamError);
+        insertStreamStatus(streamId, currentStreamPosition, source, componentName, viewStoreDataSource.getConnection());
+
+        streamErrorRepository.markStreamAsErrored(streamError, currentStreamPosition);
 
         final NewStreamStatusRepository newStreamStatusRepository = new NewStreamStatusRepository();
 
         setField(newStreamStatusRepository, "streamStatusRowMapper", new NewStreamStatusRowMapper());
         setField(newStreamStatusRepository, "viewStoreJdbcDataSourceProvider", viewStoreJdbcDataSourceProvider);
 
-        final UUID streamId = streamError.streamErrorDetails().streamId();
-        final String source = streamError.streamErrorDetails().source();
-        final String componentName = streamError.streamErrorDetails().componentName();
-        final StreamUpdateContext streamUpdateContext = newStreamStatusRepository.lockStreamAndGetStreamUpdateContext(streamId, source, componentName, 23);
+
+        final StreamUpdateContext streamUpdateContext = newStreamStatusRepository.lockStreamAndGetStreamUpdateContext(streamId, source, componentName, streamErrorPosition);
 
         assertThat(streamUpdateContext.streamErrorId(), is(of(streamError.streamErrorDetails().id())));
 
@@ -139,26 +155,17 @@ public class StreamErrorRepositoryIT {
     public void shouldSaveNewStreamErrorAndUpdateStreamStatusTableWhenStreamExistsInStreamStatusTable() throws Exception {
 
         final long streamErrorPosition = 234L;
+        final long currentStreamPosition = 233L;
         final StreamError streamError = aStreamError(streamErrorPosition);
+        final UUID streamId = streamError.streamErrorDetails().streamId();
+        final String source = streamError.streamErrorDetails().source();
+        final String componentName = streamError.streamErrorDetails().componentName();
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
 
-        final String sql = """
-                INSERT INTO stream_status (stream_id, position, source, component, updated_at)
-                VALUES(?, ?, ?, ?, ?)
-            """;
-        try(final Connection connection = viewStoreDataSource.getConnection();
-            final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        insertStreamStatus(streamId, currentStreamPosition, source, componentName, viewStoreDataSource.getConnection());
 
-            preparedStatement.setObject(1, streamError.streamErrorDetails().streamId());
-            preparedStatement.setLong(2, 1L);
-            preparedStatement.setString(3, streamError.streamErrorDetails().source());
-            preparedStatement.setString(4, streamError.streamErrorDetails().componentName());
-            preparedStatement.setTimestamp(5, toSqlTimestamp(new UtcClock().now()));
-            preparedStatement.executeUpdate();
-        }
-
-        streamErrorRepository.markStreamAsErrored(streamError);
+        streamErrorRepository.markStreamAsErrored(streamError, currentStreamPosition);
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
             final Optional<StreamError> streamErrorOptional = streamErrorPersistence.findByErrorId(streamError.streamErrorDetails().id(), connection);
@@ -178,6 +185,33 @@ public class StreamErrorRepositoryIT {
         }
     }
 
+    @Test
+    public void shouldUpdateStreamStatusWhenMarkingSameErrorHappened() throws Exception {
+        
+        final long streamErrorPosition = 234L;
+        final long currentStreamPosition = 233L;
+        final StreamError streamError = aStreamError(streamErrorPosition);
+        final UUID streamId = streamError.streamErrorDetails().streamId();
+        final String source = streamError.streamErrorDetails().source();
+        final String componentName = streamError.streamErrorDetails().componentName();
+        final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis() - 1000); // 1 second ago
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        
+        insertStreamStatus(streamId, currentStreamPosition, source, componentName, viewStoreDataSource.getConnection());
+        streamErrorRepository.markStreamAsErrored(streamError, currentStreamPosition);
+        
+        updateStreamStatusTimestamp(streamId, source, componentName, lastUpdatedAt);
+        
+        // run
+        streamErrorRepository.markSameErrorHappened(streamError, lastUpdatedAt);
+        
+        // Verify
+        final Optional<Timestamp> updatedTimestamp = getStreamStatusUpdatedAt(streamId, source, componentName);
+        assertThat(updatedTimestamp.isPresent(), is(true));
+        assertThat(updatedTimestamp.get().after(lastUpdatedAt), is(true));
+    }
+
     private Optional<StreamStatusErrorDetails> findErrorInStreamStatusTable(final UUID streamErrorId) throws SQLException {
 
         final String sql = """
@@ -194,7 +228,7 @@ public class StreamErrorRepositoryIT {
              final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
             preparedStatement.setObject(1, streamErrorId);
-            try(final ResultSet resultSet = preparedStatement.executeQuery()) {
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
 
                 if (resultSet.next()) {
                     final UUID streamId = (UUID) resultSet.getObject("stream_id");
@@ -262,5 +296,85 @@ public class StreamErrorRepositoryIT {
             long streamErrorPosition,
             String source,
             String component) {
+    }
+
+    public void insertStreamStatus(
+            final UUID streamId,
+            final Long positionInStream,
+            final String source,
+            final String componentName,
+            final Connection connection) throws SQLException {
+
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement("""
+                 INSERT INTO stream_status (
+                                stream_id,
+                                position,
+                                source,
+                                component, 
+                                updated_at
+                            ) VALUES (?, ?, ?, ?, ?)
+                """)) {
+
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setLong(2, positionInStream);
+            preparedStatement.setString(3, source);
+            preparedStatement.setString(4, componentName);
+            preparedStatement.setTimestamp(5, toSqlTimestamp(new UtcClock().now()));
+
+            preparedStatement.executeUpdate();
+        }
+    }
+
+    private void updateStreamStatusTimestamp(
+            final UUID streamId,
+            final String source,
+            final String componentName,
+            final Timestamp timestamp) throws SQLException {
+
+        final String sql = """
+                UPDATE stream_status 
+                SET updated_at = ? 
+                WHERE stream_id = ? AND source = ? AND component = ?
+                """;
+
+        try (final Connection connection = viewStoreDataSource.getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setTimestamp(1, timestamp);
+            preparedStatement.setObject(2, streamId);
+            preparedStatement.setString(3, source);
+            preparedStatement.setString(4, componentName);
+
+            preparedStatement.executeUpdate();
+        }
+    }
+
+    private Optional<Timestamp> getStreamStatusUpdatedAt(
+            final UUID streamId,
+            final String source,
+            final String componentName) throws SQLException {
+
+        final String sql = """
+                SELECT updated_at 
+                FROM stream_status 
+                WHERE stream_id = ? AND source = ? AND component = ?
+                """;
+
+        try (final Connection connection = viewStoreDataSource.getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setString(2, source);
+            preparedStatement.setString(3, componentName);
+
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return of(resultSet.getTimestamp("updated_at"));
+                }
+            }
+        }
+
+        return empty();
     }
 }

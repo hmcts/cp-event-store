@@ -4,6 +4,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- `onStreamProcessingFailure(...)` now
+  - Check the new error is same as previous error before to avoid updating stream_error tables.
+  - If the error is different, now locks stream_status and updates error details.
+  - If the error is same, `markSameErrorHappened(...)` only updates stream_status.updated_at. 
 
 # [17.103.1-M3] - 2025-08-04
 ### Changed

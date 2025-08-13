@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
+
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
 import static java.lang.String.format;
@@ -66,16 +69,17 @@ public class NewStreamStatusRepository {
                 FROM stream_status
             """;
     private static final String LOCK_AND_GET_POSITIONS_SQL = """
-                SELECT
-                        position,
-                        latest_known_position,
-                        stream_error_id
-                FROM stream_status
-                WHERE stream_id = ?
-                AND source = ?
-                AND component = ?
-                FOR NO KEY UPDATE 
-                """;
+            SELECT
+                    position,
+                    latest_known_position,
+                    stream_error_id,
+                    updated_at
+            FROM stream_status
+            WHERE stream_id = ?
+            AND source = ?
+            AND component = ?
+            FOR NO KEY UPDATE 
+            """;
     private static final String UPDATE_CURRENT_POSITION_IN_STREAM = """
                 UPDATE stream_status
                 SET position = ?
@@ -92,17 +96,20 @@ public class NewStreamStatusRepository {
                 AND component = ?
             """;
     private static final String SET_IS_UP_TO_DATE_SQL = """
-                UPDATE stream_status
-                SET is_up_to_date = ?
-                WHERE stream_id = ?
-                AND source = ?
-                AND component = ?
-                """;
+            UPDATE stream_status
+            SET is_up_to_date = ?
+            WHERE stream_id = ?
+            AND source = ?
+            AND component = ?
+            """;
     @Inject
     private NewStreamStatusRowMapper streamStatusRowMapper;
 
     @Inject
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
+
+    @Inject
+    private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
 
     public int insertIfNotExists(
             final UUID streamId,
@@ -171,12 +178,15 @@ public class NewStreamStatusRepository {
                     final long currentStreamPosition = resultSet.getLong("position");
                     final long latestKnownPosition = resultSet.getLong("latest_known_position");
                     final UUID streamErrorId = resultSet.getObject("stream_error_id", UUID.class);
+                    final Timestamp lastUpdatedAt = resultSet.getObject("updated_at", Timestamp.class);
 
                     return new StreamUpdateContext(
                             incomingEventPosition,
                             currentStreamPosition,
                             latestKnownPosition,
-                            ofNullable(streamErrorId)
+                            lastUpdatedAt,
+                            ofNullable(streamErrorId),
+                            empty()
                     );
                 }
             }
@@ -288,6 +298,29 @@ public class NewStreamStatusRepository {
                     source,
                     componentName),
                     e);
+        }
+    }
+
+    public StreamUpdateContext lockStreamAndGetStreamUpdateContextWithError(final UUID streamId, final String source, final String componentName, final long incomingEventPosition) {
+        final StreamUpdateContext streamUpdateContext = lockStreamAndGetStreamUpdateContext(streamId, source, componentName, incomingEventPosition);
+
+        if (streamUpdateContext.streamErrorId().isEmpty()) {
+            return streamUpdateContext;
+        } else {
+            try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
+                return streamErrorDetailsPersistence.findById(streamUpdateContext.streamErrorId().get(), connection)
+                        .map(streamErrorDetails -> new StreamUpdateContext(
+                                streamUpdateContext.incomingEventPosition(),
+                                streamUpdateContext.currentStreamPosition(),
+                                streamUpdateContext.latestKnownStreamPosition(),
+                                streamUpdateContext.lastUpdatedAt(),
+                                streamUpdateContext.streamErrorId(),
+                                of(streamErrorDetails)
+                        )).orElse(streamUpdateContext);
+
+            } catch (final SQLException e) {
+                throw new StreamErrorHandlingException(format("Failed find StreamError by streamErrorId: '%s'", streamUpdateContext.streamErrorId().get()), e);
+            }
         }
     }
 }

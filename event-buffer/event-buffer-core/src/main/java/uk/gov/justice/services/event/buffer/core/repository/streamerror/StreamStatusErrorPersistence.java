@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 import javax.inject.Inject;
+
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.jdbc.persistence.JdbcRepositoryException;
 
@@ -25,19 +26,25 @@ public class StreamStatusErrorPersistence {
                     AND component = ?
                 """;
 
-    private static final String UPSERT_STREAM_ERROR_SQL = """
-            INSERT INTO stream_status (
-                stream_id,
-                position,
-                source,
-                component,
-                stream_error_id,
-                stream_error_position,
-                updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (stream_id, source, component)
-            DO UPDATE
-            SET stream_error_id = ?, stream_error_position = ?, updated_at = ?""";
+    private static final String UPDATE_STREAM_UPDATED_AT_IF_ERROR_IS_SAME = """
+                UPDATE stream_status
+                SET updated_at = ?
+                WHERE stream_id = ?
+                AND source = ?
+                AND component = ?
+                AND stream_error_id = ?
+                AND updated_at  = ?
+            """;
+
+    private static final String UPDATE_STREAM_STATUS_ERROR_DETAILS = """
+                UPDATE stream_status
+                SET stream_error_id = ?,
+                    stream_error_position=?,
+                    updated_at = ?
+                WHERE stream_id = ?
+                AND source = ?
+                AND component = ?
+            """;
 
     private static final String SELECT_FOR_UPDATE_SQL = """
             SELECT
@@ -47,7 +54,7 @@ public class StreamStatusErrorPersistence {
             WHERE stream_id = ?
             AND source = ?
             AND component = ?
-            FOR UPDATE
+            FOR NO KEY UPDATE
             """;
 
     private static final long INITIAL_POSITION_ON_ERROR = 0L;
@@ -63,23 +70,16 @@ public class StreamStatusErrorPersistence {
             final String source,
             final Connection connection) {
 
-        final ZonedDateTime updatedAt = clock.now();
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_STREAM_STATUS_ERROR_DETAILS)) {
 
-        try (final PreparedStatement preparedStatement = connection.prepareStatement(UPSERT_STREAM_ERROR_SQL)) {
+            final Timestamp updatedAtTimestamp = toSqlTimestamp(clock.now());
 
-            final Timestamp updatedAtTimestamp = toSqlTimestamp(updatedAt);
-
-            preparedStatement.setObject(1, streamId);
-            preparedStatement.setLong(2, INITIAL_POSITION_ON_ERROR);
-            preparedStatement.setString(3, source);
-            preparedStatement.setString(4, componentName);
-            preparedStatement.setObject(5, streamErrorId);
-            preparedStatement.setLong(6, errorPosition);
-            preparedStatement.setTimestamp(7, updatedAtTimestamp);
-            preparedStatement.setObject(8, streamErrorId);
-            preparedStatement.setLong(9, errorPosition);
-            preparedStatement.setTimestamp(10, updatedAtTimestamp);
-
+            preparedStatement.setObject(1, streamErrorId);
+            preparedStatement.setLong(2, errorPosition);
+            preparedStatement.setTimestamp(3, updatedAtTimestamp);
+            preparedStatement.setObject(4, streamId);
+            preparedStatement.setString(5, source);
+            preparedStatement.setString(6, componentName);
             preparedStatement.executeUpdate();
         } catch (final SQLException e) {
             throw new JdbcRepositoryException(
@@ -115,9 +115,9 @@ public class StreamStatusErrorPersistence {
             preparedStatement.setString(2, source);
             preparedStatement.setString(3, component);
 
-            try(final ResultSet resultSet = preparedStatement.executeQuery()) {
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                   return resultSet.getLong("position");
+                    return resultSet.getLong("position");
                 }
 
                 throw new StreamNotFoundException(format(
@@ -133,4 +133,28 @@ public class StreamStatusErrorPersistence {
     }
 
 
+    public int updateStreamStatusUpdatedAtForSameError(final StreamError newStreamError, final Timestamp previousUpdateAtTimestamp, final Connection connection) {
+        final StreamErrorDetails streamErrorDetails = newStreamError.streamErrorDetails();
+        final ZonedDateTime updatedAt = clock.now();
+
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_STREAM_UPDATED_AT_IF_ERROR_IS_SAME)) {
+            final Timestamp updatedAtTimestamp = toSqlTimestamp(updatedAt);
+
+            preparedStatement.setObject(1, updatedAtTimestamp);
+            preparedStatement.setObject(2, streamErrorDetails.streamId());
+            preparedStatement.setString(3, streamErrorDetails.source());
+            preparedStatement.setString(4, streamErrorDetails.componentName());
+            preparedStatement.setObject(5, streamErrorDetails.id());
+            preparedStatement.setObject(6, previousUpdateAtTimestamp);
+
+            return preparedStatement.executeUpdate();
+        } catch (final SQLException e) {
+            throw new StreamErrorHandlingException(format(
+                    "Failed to update Stream Status updated at. streamId: '%s', source: '%s, component: '%s'",
+                    streamErrorDetails.streamId(),
+                    streamErrorDetails.source(),
+                    streamErrorDetails.componentName()
+            ), e);
+        }
+    }
 }

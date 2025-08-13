@@ -1,18 +1,17 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 import javax.transaction.UserTransaction;
+
 import uk.gov.justice.services.core.interceptor.InterceptorChainProcessor;
 import uk.gov.justice.services.core.interceptor.InterceptorChainProcessorProducer;
 import uk.gov.justice.services.core.interceptor.InterceptorContext;
 import uk.gov.justice.services.event.buffer.core.repository.streambuffer.NewEventBufferRepository;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamUpdateContext;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatusLockingException;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
@@ -76,11 +75,17 @@ public class SubscriptionEventProcessor {
         final Long eventPositionInStream = metadata.position().orElseThrow(() -> new MissingPositionInStreamException(format("No position found in event: name '%s', eventId '%s'", name, eventId)));
 
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
-        
+
+        final StreamUpdateContext streamUpdateContext;
         try {
             transactionHandler.begin(userTransaction);
+            streamUpdateContext = newStreamStatusRepository.lockStreamAndGetStreamUpdateContextWithError(streamId, source, component, eventPositionInStream);
+        } catch (final Exception e) {
+            transactionHandler.rollback(userTransaction);
+            throw new StreamProcessingException(format("Failed to process event. name: '%s', eventId: '%s', streamId: '%s'", name, eventId, streamId), e);
+        }
 
-            final StreamUpdateContext streamUpdateContext = newStreamStatusRepository.lockStreamAndGetStreamUpdateContext(streamId, source, component, eventPositionInStream);
+        try {
             final EventOrderingStatus eventOrderingStatus = eventProcessingStatusCalculator.calculateEventOrderingStatus(streamUpdateContext);
 
             final AtomicBoolean eventProcessed = new AtomicBoolean(false);
@@ -104,7 +109,7 @@ public class SubscriptionEventProcessor {
                 eventProcessed.set(true);
 
                 micrometerMetricsCounters.incrementEventsSucceededCount(source, component);
-            }   else {
+            } else {
                 micrometerMetricsCounters.incrementEventsIgnoredCount(source, component);
             }
 
@@ -112,12 +117,9 @@ public class SubscriptionEventProcessor {
 
             return eventProcessed.get();
 
-        } catch (final StreamStatusLockingException e) {
-            transactionHandler.rollback(userTransaction);
-            throw new StreamProcessingException(format("Failed to process event. name: '%s', eventId: '%s', streamId: '%s'", name, eventId, streamId), e);
         } catch (final Exception e) {
             transactionHandler.rollback(userTransaction);
-            streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, source, component);
+            streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, source, component, streamUpdateContext);
             throw new StreamProcessingException(format("Failed to process event. name: '%s', eventId: '%s', streamId: '%s'", name, eventId, streamId), e);
         }
     }

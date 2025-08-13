@@ -37,6 +37,7 @@ public class StreamStatusErrorPersistenceIT {
     protected static final long INITIAL_STREAM_POSITION = 0L;
 
     private DataSource viewStoreDataSource = new FrameworkTestDataSourceFactory().createViewStoreDataSource();
+    private final NewStreamStatusRepository newStreamStatusRepository = new NewStreamStatusRepository();
     private final StreamErrorPersistence streamErrorPersistence = new StreamErrorPersistence();
     private final StreamStatusErrorPersistence streamStatusErrorPersistence = new StreamStatusErrorPersistence();
 
@@ -73,8 +74,9 @@ public class StreamStatusErrorPersistenceIT {
                 componentName,
                 source);
 
-        try(final Connection connection = viewStoreDataSource.getConnection()) {
+        try (final Connection connection = viewStoreDataSource.getConnection()) {
             streamErrorPersistence.save(streamError, connection);
+            insertStreamStatus(streamId, source, componentName, connection);
             streamStatusErrorPersistence.markStreamAsErrored(
                     streamId,
                     streamErrorId,
@@ -108,7 +110,7 @@ public class StreamStatusErrorPersistenceIT {
         final String componentName = EVENT_LISTENER;
         final StreamError streamError = aStreamError(streamErrorId, eventId, streamId, positionInStream, componentName, source);
 
-        try(final Connection connection = viewStoreDataSource.getConnection()) {
+        try (final Connection connection = viewStoreDataSource.getConnection()) {
             streamErrorPersistence.save(streamError, connection);
 
             insertStreamIntoStreamStatusTable(streamId, positionInStream, source, componentName, connection);
@@ -140,8 +142,9 @@ public class StreamStatusErrorPersistenceIT {
                 componentName,
                 source);
 
-        try(final Connection connection = viewStoreDataSource.getConnection()) {
+        try (final Connection connection = viewStoreDataSource.getConnection()) {
             streamErrorPersistence.save(streamError, connection);
+            insertStreamStatus(streamId, source, componentName, connection);
             streamStatusErrorPersistence.markStreamAsErrored(
                     streamId,
                     streamErrorId,
@@ -172,7 +175,7 @@ public class StreamStatusErrorPersistenceIT {
         final String source = "source1";
         final String componentName = EVENT_LISTENER;
 
-        try(final Connection connection = viewStoreDataSource.getConnection()) {
+        try (final Connection connection = viewStoreDataSource.getConnection()) {
             streamStatusErrorPersistence.unmarkStreamStatusAsErrored(streamId, source, componentName, connection);
 
             final Optional<StreamStatusErrorStatus> errorStatus = findErrorStatus(streamId, source, componentName, connection);
@@ -226,7 +229,7 @@ public class StreamStatusErrorPersistenceIT {
             final String source,
             final String componentName,
             final Connection connection) throws SQLException {
-        
+
         final String sql = "INSERT INTO stream_status (stream_id, position, source, component) VALUES (?, ?, ?, ?)";
         try (final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setObject(1, streamId);
@@ -258,7 +261,7 @@ public class StreamStatusErrorPersistenceIT {
             preparedStatement.setString(2, source);
             preparedStatement.setString(3, componentName);
 
-            try(final ResultSet resultSet = preparedStatement.executeQuery()) {
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     final Long foundPositionInStream = resultSet.getLong("position");
                     final UUID foundStreamErrorId = (UUID) resultSet.getObject("stream_error_id");
@@ -274,6 +277,30 @@ public class StreamStatusErrorPersistenceIT {
                 return empty();
             }
         }
+    }
+
+    public void insertStreamStatus(
+            final UUID streamId,
+            final String source,
+            final String componentName,
+            final Connection connection) throws SQLException {
+
+
+        final PreparedStatement preparedStatement = connection.prepareStatement("""
+                 INSERT INTO stream_status (
+                                stream_id,
+                                position,
+                                source,
+                                component      
+                            ) VALUES (?, ?, ?, ?)
+                """);
+
+        preparedStatement.setObject(1, streamId);
+        preparedStatement.setLong(2, 0L);
+        preparedStatement.setString(3, source);
+        preparedStatement.setString(4, componentName);
+
+        preparedStatement.executeUpdate();
     }
 }
 

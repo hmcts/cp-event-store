@@ -304,20 +304,21 @@ public class NewStreamStatusRepository {
     public StreamUpdateContext lockStreamAndGetStreamUpdateContextWithError(final UUID streamId, final String source, final String componentName, final long incomingEventPosition) {
         final StreamUpdateContext streamUpdateContext = lockStreamAndGetStreamUpdateContext(streamId, source, componentName, incomingEventPosition);
 
-        if (streamUpdateContext.streamErrorId().isPresent()) {
+        final Optional<UUID> streamErrorId = streamUpdateContext.streamErrorId();
+        if (streamErrorId.isPresent()) {
             try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
-                return streamErrorDetailsPersistence.findById(streamUpdateContext.streamErrorId().get(), connection)
+                return streamErrorDetailsPersistence.findById(streamErrorId.get(), connection)
                         .map(streamErrorDetails -> new StreamUpdateContext(
                                 streamUpdateContext.incomingEventPosition(),
                                 streamUpdateContext.currentStreamPosition(),
                                 streamUpdateContext.latestKnownStreamPosition(),
                                 streamUpdateContext.lastUpdatedAt(),
-                                streamUpdateContext.streamErrorId(),
+                                streamErrorId,
                                 of(streamErrorDetails)
                         )).orElse(streamUpdateContext);
 
             } catch (final SQLException e) {
-                throw new StreamErrorHandlingException(format("Failed find StreamError by streamErrorId: '%s'", streamUpdateContext.streamErrorId().get()), e);
+                throw new StreamErrorHandlingException(format("Failed find StreamError by streamErrorId: '%s'", streamErrorId.get()), e);
             }
         } else {
             return streamUpdateContext;

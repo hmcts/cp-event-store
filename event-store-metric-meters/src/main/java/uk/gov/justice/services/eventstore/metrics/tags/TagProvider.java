@@ -5,6 +5,7 @@ import static uk.gov.justice.services.metrics.micrometer.config.TagNames.ENV_TAG
 import static uk.gov.justice.services.metrics.micrometer.config.TagNames.SERVICE_TAG_NAME;
 
 import uk.gov.justice.services.common.configuration.ContextNameProvider;
+import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
 import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
 import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
@@ -26,13 +27,16 @@ public class TagProvider {
     @Inject
     private SubscriptionsDescriptorsRegistry subscriptionsDescriptorsRegistry;
 
+    @Inject
+    private EventSourceNameCalculator eventSourceNameCalculator;
+
     public List<SourceComponentPair> getSourceComponentPairs() {
 
         return subscriptionsDescriptorsRegistry.getAll().stream()
                 .filter(subscriptionsDescriptor -> !EVENT_PROCESSOR.equalsIgnoreCase(subscriptionsDescriptor.getServiceComponent()))
                 .flatMap(subscriptionsDescriptor -> subscriptionsDescriptor.getSubscriptions().stream()
                         .map(subscription ->
-                                new SourceComponentPair(subscription.getEventSourceName(), subscriptionsDescriptor.getServiceComponent())
+                                new SourceComponentPair(eventSourceNameCalculator.getSource(subscription.getEventSourceName()), subscriptionsDescriptor.getServiceComponent())
                         ))
                 .toList();
     }

@@ -31,5 +31,13 @@ public class EventSourceNameCalculatorTest {
         when(metadata.name()).thenReturn(eventName);
 
         assertThat(eventSourceNameCalculator.getSource(event), is("source-context"));
+        assertThat(eventSourceNameCalculator.getSource("source-context.event.name"), is("source-context"));
     }
+
+    @Test
+    public void shouldReturnWholeNameIfNoDotPresent() throws Exception {
+        final String eventName = "source";
+        assertThat(eventSourceNameCalculator.getSource(eventName), is("source"));
+    }
+
 }

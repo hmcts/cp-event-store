@@ -7,6 +7,10 @@ import uk.gov.justice.services.messaging.JsonEnvelope;
 public class EventSourceNameCalculator {
 
     public String getSource(final JsonEnvelope event) {
-        return substringBefore(event.metadata().name(), ".");
+        return getSource(event.metadata().name());
+    }
+
+    public String getSource(final String name) {
+        return substringBefore(name, ".");
     }
 }

@@ -20,7 +20,6 @@ public class StreamMetricsProvider {
     private Logger logger;
 
     public Optional<StreamMetrics> getMetrics(final String source, final String component) {
-
         final Optional<StreamMetrics> streamMetrics = streamMetricsRepository.getStreamMetrics(source, component);
 
         if (logger.isDebugEnabled()) {

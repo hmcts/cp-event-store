@@ -8,6 +8,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### Changed
 - Add limit 1 to ERRORS_EXIST_FOR_HASH_SQL
 - Temporarily disable coveralls whilst its site is down
+- TagProvider now uses `EventSourceNameCalculator` to calculate `source` so it will align with `stream_status.source`.
 
 # [17.103.1] - 2025-08-18
 ### Changed

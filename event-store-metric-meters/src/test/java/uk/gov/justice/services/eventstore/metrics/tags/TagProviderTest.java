@@ -8,6 +8,7 @@ import static uk.gov.justice.services.metrics.micrometer.config.TagNames.ENV_TAG
 import static uk.gov.justice.services.metrics.micrometer.config.TagNames.SERVICE_TAG_NAME;
 
 import uk.gov.justice.services.common.configuration.ContextNameProvider;
+import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
 import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Event;
@@ -36,17 +37,21 @@ public class TagProviderTest {
     @Mock
     private MetricsConfiguration metricsConfiguration;
 
+    @Mock
+    private EventSourceNameCalculator eventSourceNameCalculator;
+
     @InjectMocks
     private TagProvider tagProvider;
 
     @Test
-    public void shouldGetSourceComponentPairsAndFilterOutEventProcessorComponents() throws Exception {
+    public void shouldGetSourceComponentPairsAndFilterOutEventProcessorComponents() throws
+            Exception {
 
         List<Event> eventList = List.of(new Event("test-event", "test-schema-uri"));
         final SubscriptionsDescriptor subscriptionsDescriptor1 = new SubscriptionsDescriptor(
                 "1.0", "service-1", "some-component-1", 1, List.of(
-                        new Subscription("subscription-1-1", eventList, "source-1-1", 1),
-                        new Subscription("subscription-1-2", eventList, "source-1-2", 1)
+                        new Subscription("subscription-1-1", eventList, "source-1-1.event", 1),
+                        new Subscription("subscription-1-2", eventList, "source-1-2.other", 1)
                 ));
 
         final SubscriptionsDescriptor subscriptionsDescriptor2 = new SubscriptionsDescriptor(
@@ -55,15 +60,43 @@ public class TagProviderTest {
                 ));
 
         when(subscriptionsDescriptorsRegistry.getAll()).thenReturn(List.of(subscriptionsDescriptor1, subscriptionsDescriptor2));
+        when(eventSourceNameCalculator.getSource("source-1-1.event")).thenReturn("source-1-1");
+        when(eventSourceNameCalculator.getSource("source-1-2.other")).thenReturn("source-1-2");
 
         final List<SourceComponentPair> sourceComponentPairs = tagProvider.getSourceComponentPairs();
 
-        // Verify that EVENT_PROCESSOR component is filtered out
+        // Verify that EVENT_PROCESSOR component is filtered out and sources are parsed to context
         assertThat(sourceComponentPairs.size(), is(2));
 
         assertThat(sourceComponentPairs.get(0), is(new SourceComponentPair("source-1-1", "some-component-1")));
         assertThat(sourceComponentPairs.get(1), is(new SourceComponentPair("source-1-2", "some-component-1")));
 
+    }
+
+    @Test
+    public void shouldReturnEmptyListIfNoSubscriptions() {
+        when(subscriptionsDescriptorsRegistry.getAll()).thenReturn(List.of());
+
+        final List<SourceComponentPair> sourceComponentPairs = tagProvider.getSourceComponentPairs();
+
+        assertThat(sourceComponentPairs.size(), is(0));
+    }
+
+    @Test
+    public void shouldGetSourceUnchangedIfNoDotInEventSourceName() {
+        List<Event> eventList = List.of(new Event("test-event", "test-schema-uri"));
+        final SubscriptionsDescriptor subscriptionsDescriptor = new SubscriptionsDescriptor(
+                "1.0", "service-1", "some-component-1", 1, List.of(
+                        new Subscription("subscription-1-1", eventList, "source1", 1)
+                ));
+
+        when(subscriptionsDescriptorsRegistry.getAll()).thenReturn(List.of(subscriptionsDescriptor));
+        when(eventSourceNameCalculator.getSource("source1")).thenReturn("source1");
+
+        final List<SourceComponentPair> sourceComponentPairs = tagProvider.getSourceComponentPairs();
+
+        assertThat(sourceComponentPairs.size(), is(1));
+        assertThat(sourceComponentPairs.get(0), is(new SourceComponentPair("source1", "some-component-1")));
     }
 
     @Test

@@ -3,7 +3,6 @@ package uk.gov.justice.services.event.sourcing.subscription.error;
 import static javax.transaction.Transactional.TxType.MANDATORY;
 import static javax.transaction.Transactional.TxType.REQUIRED;
 
-import org.slf4j.Logger;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
@@ -22,6 +21,8 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+
+import org.slf4j.Logger;
 
 @SuppressWarnings("java:S1192")
 public class StreamErrorRepository {

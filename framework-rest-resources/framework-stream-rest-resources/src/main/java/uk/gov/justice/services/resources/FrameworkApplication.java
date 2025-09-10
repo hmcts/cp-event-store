@@ -1,13 +1,14 @@
 package uk.gov.justice.services.resources;
 
-import java.util.HashSet;
-import java.util.Set;
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Application;
-
 import uk.gov.justice.services.resources.rest.streams.ActiveErrorsResource;
 import uk.gov.justice.services.resources.rest.streams.StreamErrorsResource;
 import uk.gov.justice.services.resources.rest.streams.StreamsResource;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.core.Application;
 
 @ApplicationPath("/internal")
 public class FrameworkApplication extends Application {

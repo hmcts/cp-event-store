@@ -1,8 +1,9 @@
 package uk.gov.justice.services.resources.rest.streams;
 
-import java.util.List;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
 import uk.gov.justice.services.resources.rest.streams.model.StreamResponse;
+
+import java.util.List;
 
 public class StreamResponseMapper {
 

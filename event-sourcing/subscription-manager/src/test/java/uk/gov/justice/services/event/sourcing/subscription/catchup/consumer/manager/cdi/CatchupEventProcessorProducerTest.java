@@ -1,20 +1,21 @@
 package uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.cdi;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.justice.services.common.configuration.errors.event.EventErrorHandlingConfiguration;
-import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.DefaultTransactionalEventProcessor;
-import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.NewSubscriptionAwareEventProcessor;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.PublishedEvent;
-
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import uk.gov.justice.services.common.configuration.errors.event.EventErrorHandlingConfiguration;
+import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.DefaultTransactionalEventProcessor;
+import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.NewSubscriptionAwareEventProcessor;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.PublishedEvent;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class CatchupEventProcessorProducerTest {

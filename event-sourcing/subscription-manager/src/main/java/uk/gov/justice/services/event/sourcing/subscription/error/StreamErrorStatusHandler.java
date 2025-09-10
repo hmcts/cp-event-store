@@ -7,13 +7,13 @@ import uk.gov.justice.services.event.sourcing.subscription.manager.TransactionHa
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
+import java.util.Objects;
+import java.util.Optional;
+
 import javax.inject.Inject;
 import javax.transaction.UserTransaction;
 
 import org.slf4j.Logger;
-
-import java.util.Objects;
-import java.util.Optional;
 
 public class StreamErrorStatusHandler {
 

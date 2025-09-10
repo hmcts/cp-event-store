@@ -8,12 +8,18 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 - Locking of stream_status table when publishing events, no longer calls error tables updates on locking errors
 - Refactor of event publishing:
   - New timer bean worker and database access for linking events (previous and current event numbers in event_log table)
+  - previous_event_number and event_number moved to event_log table
+  - Events now exist solely in event_log table, removing the need for published_event
+  - Publish queue now reads directly from event_log table and ignores published_event
+  - published_event table to be deprecated
 ### Added
 - New column `previous_event_number` on `event_log` table
 - New column `is_published` on `event_log` table
 - New index `idx_event_log_not_sequenced` on `event_log(date_created)`
 - New index `idx_event_log_not_published` on `event_log(date_created)`
 - New index `idx_event_log_global_sequence` on `event_log(previous_event_number,event_number);`
+### Removed
+- Removed REBUILD jmx command and associatied classes
 
 # [17.104.0-M1] - 2025-07-29
 ### Added

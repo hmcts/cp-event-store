@@ -1,10 +1,12 @@
 package uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.util;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import org.apache.openejb.testing.Default;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.CatchupEventProcessor;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.PublishedEvent;
+
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import org.apache.openejb.testing.Default;
 
 @Default
 public class DummyCatchupEventProcessor implements CatchupEventProcessor {

@@ -3,7 +3,6 @@ package uk.gov.justice.services.event.buffer.core.repository.metrics;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
-import org.slf4j.Logger;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
 import java.sql.Connection;
@@ -14,6 +13,8 @@ import java.sql.Timestamp;
 import java.util.Optional;
 
 import javax.inject.Inject;
+
+import org.slf4j.Logger;
 
 public class StreamMetricsRepository {
 

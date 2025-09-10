@@ -1,10 +1,8 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
-import javax.transaction.UserTransaction;
+import static java.lang.String.format;
+import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
+import static uk.gov.justice.services.event.sourcing.subscription.manager.EventOrderingStatus.EVENT_CORRECTLY_ORDERED;
 
 import uk.gov.justice.services.core.interceptor.InterceptorChainProcessor;
 import uk.gov.justice.services.core.interceptor.InterceptorChainProcessorProducer;
@@ -23,9 +21,12 @@ import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
-import static java.lang.String.format;
-import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
-import static uk.gov.justice.services.event.sourcing.subscription.manager.EventOrderingStatus.EVENT_CORRECTLY_ORDERED;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+import javax.transaction.UserTransaction;
 
 public class SubscriptionEventProcessor {
 

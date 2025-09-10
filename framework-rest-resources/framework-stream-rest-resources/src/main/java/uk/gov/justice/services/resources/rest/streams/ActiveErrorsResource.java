@@ -1,12 +1,11 @@
 package uk.gov.justice.services.resources.rest.streams;
 
-import static java.lang.String.format;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.ActiveStreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.ActiveStreamErrorsRepository;
 import uk.gov.justice.services.resources.rest.model.ErrorResponse;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.ActiveStreamError;
 
 import java.util.List;
 

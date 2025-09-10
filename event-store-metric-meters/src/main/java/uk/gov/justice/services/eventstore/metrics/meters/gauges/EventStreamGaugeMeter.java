@@ -1,12 +1,12 @@
 package uk.gov.justice.services.eventstore.metrics.meters.gauges;
 
 import uk.gov.justice.services.event.buffer.core.repository.metrics.StreamMetrics;
+import uk.gov.justice.services.metrics.micrometer.meters.GaugeMetricsMeter;
 import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
 
 import java.util.function.Function;
 
 import com.google.common.annotations.VisibleForTesting;
-import uk.gov.justice.services.metrics.micrometer.meters.GaugeMetricsMeter;
 
 public class EventStreamGaugeMeter implements GaugeMetricsMeter {
 

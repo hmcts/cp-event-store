@@ -10,6 +10,8 @@ import static uk.gov.justice.services.metrics.micrometer.meters.MetricsMeterName
 import static uk.gov.justice.services.metrics.micrometer.meters.MetricsMeterNames.UNBLOCKED_EVENT_STREAMS_GAUGE_NAME;
 import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.getValueOfField;
 
+import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
+
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -17,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.justice.services.metrics.micrometer.meters.SourceComponentPair;
 
 @ExtendWith(MockitoExtension.class)
 public class GaugeMeterFactoryTest {

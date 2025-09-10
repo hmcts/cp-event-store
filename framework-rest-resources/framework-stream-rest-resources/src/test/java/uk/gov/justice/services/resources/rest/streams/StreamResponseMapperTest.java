@@ -1,17 +1,19 @@
 package uk.gov.justice.services.resources.rest.streams;
 
-import java.util.List;
-import java.util.UUID;
-import org.junit.jupiter.api.Test;
-import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
-import uk.gov.justice.services.resources.rest.streams.model.StreamResponse;
-
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
+
+import uk.gov.justice.services.common.util.UtcClock;
+import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
+import uk.gov.justice.services.resources.rest.streams.model.StreamResponse;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
 
 class StreamResponseMapperTest {
 

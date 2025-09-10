@@ -1,5 +1,11 @@
 package uk.gov.justice.services.event.buffer.core.repository.streamerror;
 
+import static java.lang.String.format;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
+
+import uk.gov.justice.services.common.util.UtcClock;
+import uk.gov.justice.services.jdbc.persistence.JdbcRepositoryException;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -7,13 +13,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.ZonedDateTime;
 import java.util.UUID;
+
 import javax.inject.Inject;
-
-import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.jdbc.persistence.JdbcRepositoryException;
-
-import static java.lang.String.format;
-import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 public class StreamStatusErrorPersistence {
 

@@ -1,5 +1,11 @@
 package uk.gov.justice.services.resources.repository;
 
+import static java.lang.String.format;
+
+import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRowMapper;
+import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
+import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -7,12 +13,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import javax.inject.Inject;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRowMapper;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatus;
-import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
-import static java.lang.String.format;
+import javax.inject.Inject;
 
 @SuppressWarnings("java:S1192")
 public class StreamStatusReadRepository {

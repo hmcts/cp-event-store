@@ -1,10 +1,8 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing;
 
-import uk.gov.justice.services.eventsourcing.publishedevent.publish.PublishedEventDeQueuerAndPublisher;
 import uk.gov.justice.services.eventsourcing.publishedevent.publishing.PublisherTimerConfig;
 import uk.gov.justice.services.eventsourcing.util.jee.timer.StopWatchFactory;
 
-import javax.ejb.Asynchronous;
 import javax.inject.Inject;
 
 import org.apache.commons.lang3.time.StopWatch;

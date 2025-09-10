@@ -1,12 +1,12 @@
 package uk.gov.justice.services.event.buffer.core.repository.streamerror;
 
+import static java.util.Optional.ofNullable;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.UUID;
-
-import static java.util.Optional.ofNullable;
-import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
 
 public class StreamErrorDetailsRowMapper {
 

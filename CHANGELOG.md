@@ -4,7 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
-# [17.103.1-M6] - 2025-08-14
+
+# [17.103.2] - 2025-09-11
 ### Changed
 - Add limit 1 to ERRORS_EXIST_FOR_HASH_SQL
 - Temporarily disable coveralls whilst its site is down

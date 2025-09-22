@@ -6,7 +6,6 @@ import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
-import static uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueue.PublishQueueTableName.PRE_PUBLISH_QUEUE_TABLE;
 import static uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueue.PublishQueueTableName.PUBLISH_QUEUE_TABLE;
 
 import uk.gov.justice.services.common.util.UtcClock;
@@ -40,38 +39,6 @@ public class PublishQueuesDataAccessIT {
     @BeforeEach
     public void initDatabase() throws Exception {
         new EventStoreInitializer().initializeEventStore(eventStoreDataSource);
-    }
-
-    @Test
-    public void shouldPopEventsFromThePrePublishQueue() throws Exception {
-
-        final String tableName = "pre_publish_queue";
-
-        final UUID eventId_1 = randomUUID();
-        final UUID eventId_2 = randomUUID();
-        final UUID eventId_3 = randomUUID();
-
-        final ZonedDateTime queuedAt_1 = of(2021, 8, 23, 11, 11, 1, 0, UTC);
-        final ZonedDateTime queuedAt_2 = of(2021, 8, 23, 11, 11, 2, 0, UTC);
-        final ZonedDateTime queuedAt_3 = of(2021, 8, 23, 11, 11, 3, 0, UTC);
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
-        assertThat(publishQueuesDataAccess.popNextEventId(PRE_PUBLISH_QUEUE_TABLE).isPresent(), is(false));
-
-        publishQueuesDataAccess.addToQueue(eventId_1, queuedAt_1, PRE_PUBLISH_QUEUE_TABLE);
-        publishQueuesDataAccess.addToQueue(eventId_2, queuedAt_2, PRE_PUBLISH_QUEUE_TABLE);
-        publishQueuesDataAccess.addToQueue(eventId_3, queuedAt_3, PRE_PUBLISH_QUEUE_TABLE);
-
-        assertThat(publishQueuesDataAccess.getSizeOfQueue(PRE_PUBLISH_QUEUE_TABLE), is(3));
-        assertThat(publishQueuesDataAccess.popNextEventId(PRE_PUBLISH_QUEUE_TABLE).get(), is(eventId_1));
-        assertThat(publishQueuesDataAccess.getSizeOfQueue(PRE_PUBLISH_QUEUE_TABLE), is(2));
-        assertThat(publishQueuesDataAccess.popNextEventId(PRE_PUBLISH_QUEUE_TABLE).get(), is(eventId_2));
-        assertThat(publishQueuesDataAccess.getSizeOfQueue(PRE_PUBLISH_QUEUE_TABLE), is(1));
-        assertThat(publishQueuesDataAccess.popNextEventId(PRE_PUBLISH_QUEUE_TABLE).get(), is(eventId_3));
-        assertThat(publishQueuesDataAccess.getSizeOfQueue(PRE_PUBLISH_QUEUE_TABLE), is(0));
-
-        assertThat(publishQueuesDataAccess.popNextEventId(PRE_PUBLISH_QUEUE_TABLE).isPresent(), is(false));
     }
 
     @Test

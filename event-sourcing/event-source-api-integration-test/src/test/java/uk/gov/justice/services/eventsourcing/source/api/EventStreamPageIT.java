@@ -40,7 +40,6 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.AnsiSQLEventLogInse
 import uk.gov.justice.services.eventsourcing.repository.jdbc.EventInsertionStrategy;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.JdbcBasedEventRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.PostgresSQLEventLogInsertionStrategy;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.PrePublishQueueRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueueRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueuesDataAccess;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
@@ -238,7 +237,6 @@ public class EventStreamPageIT {
             ContextNameProvider.class,
             JndiBasedServiceContextNameProvider.class,
             PublishQueuesDataAccess.class,
-            PrePublishQueueRepository.class,
             PublishQueueRepository.class,
             OversizeMessageGuard.class,
             JmsMessagingConfiguration.class,

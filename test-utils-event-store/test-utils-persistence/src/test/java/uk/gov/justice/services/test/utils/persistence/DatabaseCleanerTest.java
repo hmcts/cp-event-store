@@ -64,15 +64,14 @@ public class DatabaseCleanerTest {
         when(testJdbcConnectionProvider.getEventStoreConnection(contextName)).thenReturn(connection);
         when(connection.prepareStatement(format(SQL_PATTERN, "event_log"))).thenReturn(preparedStatement);
         when(connection.prepareStatement(format(SQL_PATTERN, "event_stream"))).thenReturn(preparedStatement);
-        when(connection.prepareStatement(format(SQL_PATTERN, "pre_publish_queue"))).thenReturn(preparedStatement);
         when(connection.prepareStatement(format(SQL_PATTERN, "publish_queue"))).thenReturn(preparedStatement);
         when(connection.prepareStatement(format(SQL_PATTERN, "published_event"))).thenReturn(preparedStatement);
 
         databaseCleaner.cleanEventStoreTables(contextName);
 
-        verify(preparedStatement, times(5)).executeUpdate();
+        verify(preparedStatement, times(4)).executeUpdate();
         verify(connection).close();
-        verify(preparedStatement, times(5)).close();
+        verify(preparedStatement, times(4)).close();
     }
 
     @Test

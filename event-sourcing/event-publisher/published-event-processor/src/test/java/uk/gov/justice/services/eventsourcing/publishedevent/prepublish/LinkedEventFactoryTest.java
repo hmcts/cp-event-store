@@ -23,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class LinkedEventFactoryTest {
 
     @InjectMocks
-    private PublishedEventFactory publishedEventFactory;
+    private LinkedEventFactory linkedEventFactory;
 
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -59,7 +59,7 @@ public class LinkedEventFactoryTest {
         );
 
 
-        final LinkedEvent linkedEvent = publishedEventFactory.create(
+        final LinkedEvent linkedEvent = linkedEventFactory.create(
                 event,
                 updatedMetadata,
                 eventNumber,

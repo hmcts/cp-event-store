@@ -4,7 +4,7 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.event.Event;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
 import uk.gov.justice.services.messaging.Metadata;
 
-public class PublishedEventFactory {
+public class LinkedEventFactory {
 
     public LinkedEvent create(
             final Event event,

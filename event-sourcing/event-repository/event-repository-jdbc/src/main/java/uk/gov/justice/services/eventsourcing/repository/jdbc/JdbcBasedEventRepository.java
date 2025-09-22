@@ -1,6 +1,5 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc;
 
-import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.Event;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventJdbcRepository;
@@ -40,12 +39,6 @@ public class JdbcBasedEventRepository implements EventRepository {
 
     @Inject
     private EventStreamJdbcRepository eventStreamJdbcRepository;
-
-    @Inject
-    private PrePublishQueueRepository prePublishQueueRepository;
-
-    @Inject
-    private UtcClock clock;
 
     @Inject
     private Logger logger;
@@ -101,7 +94,6 @@ public class JdbcBasedEventRepository implements EventRepository {
             final Event event = eventConverter.eventOf(envelope);
             logger.trace("Storing event {} into stream {} at position {}", event.getName(), event.getStreamId(), event.getPositionInStream());
             eventJdbcRepository.insert(event);
-            prePublishQueueRepository.addToQueue(event.getId(), clock.now());
         } catch (InvalidPositionException ex) {
             throw new StoreEventRequestFailedException(String.format("Could not store event for position %d of stream %s",
                     envelope.metadata().position().orElse(null), envelope.metadata().streamId().orElse(null)), ex);

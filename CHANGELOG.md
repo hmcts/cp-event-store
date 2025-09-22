@@ -6,6 +6,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### [Unreleased]
 
 # [17.104.0-M3] - 2025-09-22
+### Changed
+- removed `SKIP LOCKED` when querying for earliest unlinked event in event_log table
 ### Removed
 - Removed `pre_publish_queue` table from event_store database
 

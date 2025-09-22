@@ -28,7 +28,7 @@ public class LinkEventsInEventLogDatabaseAccess {
     private static final String GET_EARLIEST_UNSEQUENCED_QUERY = """
             SELECT id, event_number, metadata FROM event_log
             WHERE previous_event_number is NULL
-            ORDER BY event_number LIMIT 1 FOR UPDATE SKIP LOCKED
+            ORDER BY event_number LIMIT 1 FOR UPDATE
             """;
 
     private static final String LINK_EVENTS_QUERY = """

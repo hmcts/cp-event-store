@@ -99,7 +99,6 @@ public class DatabaseCleaner {
             truncateTable("event_log", EVENT_STORE_DATABASE_NAME, connection);
             truncateTable("event_stream", EVENT_STORE_DATABASE_NAME, connection);
             truncateTable("publish_queue", EVENT_STORE_DATABASE_NAME, connection);
-            truncateTable("pre_publish_queue", EVENT_STORE_DATABASE_NAME, connection);
             truncateTable("published_event", EVENT_STORE_DATABASE_NAME, connection);
 
         } catch (SQLException e) {

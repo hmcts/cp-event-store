@@ -26,7 +26,6 @@ public class EventStoreHealthcheck implements Healthcheck {
             "event_log",
             "published_event",
             "publish_queue",
-            "pre_publish_queue",
             "snapshot");
 
     @Inject

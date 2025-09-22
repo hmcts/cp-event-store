@@ -7,8 +7,6 @@ import java.util.UUID;
 public interface PublishQueue {
     enum PublishQueueTableName {
 
-
-        PRE_PUBLISH_QUEUE_TABLE("pre_publish_queue"),
         PUBLISH_QUEUE_TABLE("publish_queue");
 
         private final String tableName;

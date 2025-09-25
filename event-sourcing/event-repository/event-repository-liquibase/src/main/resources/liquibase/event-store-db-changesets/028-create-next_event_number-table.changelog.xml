@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.3.xsd">
+
+    <changeSet id="event-store-028" author="TechPod"
+               logicalFilePath="liquibase/event-store-db-changesets/028-create-next_event_number-table.changelog.xml">
+
+
+        <createTable tableName="next_event_number">
+            <column name="id" type="CHARACTER(23)" >
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="next_value" type="BIGINT" />
+        </createTable>
+
+        <sql>
+        INSERT INTO next_event_number (id, next_value)
+        SELECT 'EVENT_NUMBER_SEQUENCE', coalesce(MAX (event_number), 0) AS next_value FROM event_log
+                ON CONFLICT (id) DO UPDATE SET next_value = excluded.next_value;
+        </sql>
+        <sql>
+            UPDATE next_event_number SET next_value = next_value + 1;
+        </sql>
+
+        <rollback>
+            <dropTable tableName="next_event_number" />
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

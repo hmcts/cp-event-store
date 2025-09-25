@@ -6,7 +6,6 @@ import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository;
 import uk.gov.justice.services.eventsourcing.publisher.jms.EventPublisher;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
@@ -22,10 +21,10 @@ public class LinkedEventPublisher {
     private EventPublisher eventPublisher;
 
     @Inject
-    private EventConverter eventConverter;
+    private EventPublishingRepository eventPublishingRepository;
 
     @Inject
-    private EventPublishingRepository eventPublishingRepository;
+    private LinkedJsonEnvelopeCreator linkedJsonEnvelopeCreator;
 
     @Transactional(REQUIRES_NEW)
     public boolean publishNextNewEvent() {
@@ -35,11 +34,12 @@ public class LinkedEventPublisher {
             final Optional<LinkedEvent> linkedEvent = eventPublishingRepository.findEventFromEventLog(eventId.get());
 
             if (linkedEvent.isPresent()) {
-                final JsonEnvelope jsonEnvelope = eventConverter.envelopeOf(linkedEvent.get());
-                eventPublisher.publish(jsonEnvelope);
+                final JsonEnvelope linkedJsonEnvelope = linkedJsonEnvelopeCreator.createLinkedJsonEnvelopeFrom(linkedEvent.get());
+                eventPublisher.publish(linkedJsonEnvelope);
                 eventPublishingRepository.removeFromPublishQueue(eventId.get());
 
                 return true;
+                
             } else {
                 throw new EventPublishingException(format("Failed to find LinkedEvent in event_log with id '%s' when id exists in publish_queue table", eventId.get()));
             }

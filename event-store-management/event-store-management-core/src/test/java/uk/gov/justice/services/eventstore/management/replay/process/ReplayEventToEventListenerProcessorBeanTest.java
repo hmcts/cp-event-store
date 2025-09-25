@@ -1,6 +1,7 @@
 package uk.gov.justice.services.eventstore.management.replay.process;
 
 import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -10,7 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.core.annotation.Component.EVENT_LISTENER;
 
-import uk.gov.justice.services.event.sourcing.subscription.manager.EventBufferProcessor;
+import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task.LinkedEventMetadataUpdater;
 import uk.gov.justice.services.event.sourcing.subscription.manager.LinkedEventSourceProvider;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -44,17 +45,23 @@ public class ReplayEventToEventListenerProcessorBeanTest {
     @Mock
     private EventConverter eventConverter;
 
+    @Mock
+    private LinkedEventMetadataUpdater linkedEventMetadataUpdater;
+
     @InjectMocks
     private ReplayEventToEventListenerProcessorBean replayEventToEventListenerProcessorBean;
 
     @Test
     public void shouldFetchLinkedEventAndInvokeEventProcessor() {
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
-        final LinkedEvent linkedEvent =  mock(LinkedEvent.class);
+        final LinkedEvent linkedEvent = mock(LinkedEvent.class);
+        final LinkedEvent updatedLinkedEvent = mock(LinkedEvent.class);
         final JsonEnvelope eventEnvelope = mock(JsonEnvelope.class);
+
         when(linkedEventSourceProvider.getLinkedEventSource(EVENT_SOURCE_NAME)).thenReturn(linkedEventSource);
-        when(linkedEventSource.findByEventId(COMMAND_RUNTIME_ID)).thenReturn(Optional.of(linkedEvent));
-        when(eventConverter.envelopeOf(linkedEvent)).thenReturn(eventEnvelope);
+        when(linkedEventSource.findByEventId(COMMAND_RUNTIME_ID)).thenReturn(of(linkedEvent));
+        when(linkedEventMetadataUpdater.addEventNumbersToMetadataOf(linkedEvent)).thenReturn(updatedLinkedEvent);
+        when(eventConverter.envelopeOf(updatedLinkedEvent)).thenReturn(eventEnvelope);
 
         replayEventToEventListenerProcessorBean.perform(REPLAY_EVENT_CONTEXT);
 

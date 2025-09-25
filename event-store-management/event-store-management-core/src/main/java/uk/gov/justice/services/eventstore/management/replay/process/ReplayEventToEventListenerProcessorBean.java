@@ -3,6 +3,7 @@ package uk.gov.justice.services.eventstore.management.replay.process;
 import static javax.ejb.TransactionManagementType.CONTAINER;
 import static javax.transaction.Transactional.TxType.NEVER;
 
+import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task.LinkedEventMetadataUpdater;
 import uk.gov.justice.services.event.sourcing.subscription.manager.LinkedEventSourceProvider;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -32,6 +33,8 @@ public class ReplayEventToEventListenerProcessorBean {
     @Inject
     private EventConverter eventConverter;
 
+    @Inject
+    private LinkedEventMetadataUpdater linkedEventMetadataUpdater;
 
     @Transactional(NEVER)
     public void perform(final ReplayEventContext replayEventContext) {
@@ -40,7 +43,8 @@ public class ReplayEventToEventListenerProcessorBean {
         final String component = replayEventContext.getComponentName();
 
         final LinkedEvent linkedEvent = fetchLinkedEvent(source, eventId);
-        process(source, component, linkedEvent);
+        final LinkedEvent updatedLinkedEvent = linkedEventMetadataUpdater.addEventNumbersToMetadataOf(linkedEvent);
+        process(source, component, updatedLinkedEvent);
     }
 
     private LinkedEvent fetchLinkedEvent(final String eventSourceName, final UUID eventId) {

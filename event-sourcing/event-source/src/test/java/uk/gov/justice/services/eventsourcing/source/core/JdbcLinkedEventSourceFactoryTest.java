@@ -27,7 +27,7 @@ public class JdbcLinkedEventSourceFactoryTest {
     private JdbcDataSourceProvider jdbcDataSourceProvider;
 
     @InjectMocks
-    private JdbcPublishedEventSourceFactory jdbcPublishedEventSourceFactory;
+    private JdbcLinkedEventSourceFactory jdbcLinkedEventSourceFactory;
 
     @Test
     public void shouldCreateJdbcBasedPublishedEventSource() throws Exception {
@@ -40,7 +40,7 @@ public class JdbcLinkedEventSourceFactoryTest {
         when(jdbcDataSourceProvider.getDataSource(jndiDatasource)).thenReturn(dataSource);
         when(multipleDataSourcePublishedEventRepositoryFactory.create(dataSource)).thenReturn(multipleDataSourceEventRepository);
 
-        final DefaultLinkedEventSource defaultPublishedEventSource = jdbcPublishedEventSourceFactory.create(jndiDatasource);
+        final DefaultLinkedEventSource defaultPublishedEventSource = jdbcLinkedEventSourceFactory.create(jndiDatasource);
 
         assertThat(getValueOfField(defaultPublishedEventSource, "multipleDataSourceEventRepository", MultipleDataSourceEventRepository.class), is(multipleDataSourceEventRepository));
     }

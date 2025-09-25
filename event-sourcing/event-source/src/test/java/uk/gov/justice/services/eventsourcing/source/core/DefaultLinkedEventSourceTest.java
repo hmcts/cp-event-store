@@ -9,8 +9,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MultipleDataSourceEventRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MultipleDataSourceEventRepository;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingEventRange;
 
 import java.util.List;
@@ -82,7 +82,7 @@ public class DefaultLinkedEventSourceTest {
         final Long latestEventNumber = 9827394873L;
         final LinkedEvent latestLinkedEvent = mock(LinkedEvent.class);
         when(latestLinkedEvent.getEventNumber()).thenReturn(of(latestEventNumber));
-        when(multipleDataSourceEventRepository.getLatestPublishedEvent()).thenReturn(of(latestLinkedEvent));
+        when(multipleDataSourceEventRepository.getLatestLinkedEvent()).thenReturn(of(latestLinkedEvent));
 
         assertThat(defaultPublishedEventSource.getHighestPublishedEventNumber(), is(latestEventNumber));
     }
@@ -92,7 +92,7 @@ public class DefaultLinkedEventSourceTest {
 
         final LinkedEvent latestLinkedEvent = mock(LinkedEvent.class);
         when(latestLinkedEvent.getEventNumber()).thenReturn(empty());
-        when(multipleDataSourceEventRepository.getLatestPublishedEvent()).thenReturn(of(latestLinkedEvent));
+        when(multipleDataSourceEventRepository.getLatestLinkedEvent()).thenReturn(of(latestLinkedEvent));
 
         assertThat(defaultPublishedEventSource.getHighestPublishedEventNumber(), is(0L));
     }
@@ -100,7 +100,7 @@ public class DefaultLinkedEventSourceTest {
     @Test
     public void shouldReturnZeroIfNoLatestPublishedEventFound() throws Exception {
 
-        when(multipleDataSourceEventRepository.getLatestPublishedEvent()).thenReturn(empty());
+        when(multipleDataSourceEventRepository.getLatestLinkedEvent()).thenReturn(empty());
 
         assertThat(defaultPublishedEventSource.getHighestPublishedEventNumber(), is(0L));
     }

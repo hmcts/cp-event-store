@@ -2,18 +2,13 @@ package uk.gov.justice.services.eventsourcing.eventpublishing;
 
 import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 
-import uk.gov.justice.services.common.converter.StringToJsonObjectConverter;
+import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventNumberSequenceDataAccess;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess;
-import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkableEventDetails;
-import uk.gov.justice.services.eventsourcing.publishedevent.prepublish.MetadataEventNumberUpdater;
-import uk.gov.justice.services.messaging.Metadata;
-import uk.gov.justice.services.messaging.spi.DefaultJsonEnvelopeProvider;
 
 import java.util.Optional;
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.json.JsonObject;
 import javax.transaction.Transactional;
 
 public class EventNumberLinker {
@@ -22,44 +17,23 @@ public class EventNumberLinker {
     private LinkEventsInEventLogDatabaseAccess linkEventsInEventLogDatabaseAccess;
 
     @Inject
-    private MetadataEventNumberUpdater metadataEventNumberUpdater;
-
-    @Inject
-    private DefaultJsonEnvelopeProvider defaultJsonEnvelopeProvider;
-
-    @Inject
-    private StringToJsonObjectConverter stringToJsonObjectConverter;
+    private EventNumberSequenceDataAccess eventNumberSequenceDataAccess;
 
     @Transactional(REQUIRES_NEW)
     public boolean findAndAndLinkNextUnlinkedEvent() {
 
-        final Optional<LinkableEventDetails> nextUnlinkedEvent =
-                linkEventsInEventLogDatabaseAccess.findNextUnlinkedEvent();
+        final Long newEventNumber = eventNumberSequenceDataAccess.lockAndGetNextAvailableEventNumber();
 
-        if (nextUnlinkedEvent.isPresent()) {
-            final LinkableEventDetails linkableEventDetails = nextUnlinkedEvent.get();
+        final Optional<UUID> idOfNextEventToLink = linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink();
+        if (idOfNextEventToLink.isPresent()) {
+            final Long previousEventNumber = linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable();
+            final UUID eventId = idOfNextEventToLink.get();
 
-            final Long eventNumber = linkableEventDetails.eventNumber();
-            final UUID eventId = linkableEventDetails.eventId();
-            final Long previousEventNumber = linkEventsInEventLogDatabaseAccess.findNextUnlinkedPreviousEventNumber();
-
-            final JsonObject metadataJsonObject = stringToJsonObjectConverter.convert(linkableEventDetails.metadata());
-            final Metadata metadata = defaultJsonEnvelopeProvider.metadataFrom(metadataJsonObject).build();
-            final Metadata updatedMetadata = metadataEventNumberUpdater.updateMetadataJson(
-                    metadata,
-                    previousEventNumber,
-                    eventNumber);
-
-            final String updatedMetadataJson = updatedMetadata.asJsonObject().toString();
-
-            linkEventsInEventLogDatabaseAccess.linkEventInEventLogTable(
-                    eventId,
-                    previousEventNumber,
-                    updatedMetadataJson);
-
+            linkEventsInEventLogDatabaseAccess.linkEvent(eventId, newEventNumber, previousEventNumber);
+            eventNumberSequenceDataAccess.updateNextAvailableEventNumberTo(newEventNumber + 1);
             linkEventsInEventLogDatabaseAccess.insertLinkedEventIntoPublishQueue(eventId);
         }
 
-        return nextUnlinkedEvent.isPresent();
+        return idOfNextEventToLink.isPresent();
     }
 }

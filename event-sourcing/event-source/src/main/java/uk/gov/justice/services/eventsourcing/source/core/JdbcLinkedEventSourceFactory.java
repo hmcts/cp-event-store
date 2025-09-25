@@ -9,7 +9,7 @@ import javax.inject.Inject;
 import javax.sql.DataSource;
 
 @ApplicationScoped
-public class JdbcPublishedEventSourceFactory {
+public class JdbcLinkedEventSourceFactory {
 
     @Inject
     private MultipleDataSourcePublishedEventRepositoryFactory multipleDataSourcePublishedEventRepositoryFactory;

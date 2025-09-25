@@ -35,7 +35,7 @@ public class SequenceSetter {
 
             return resultSet.getLong(1);
         }catch (final SQLException e) {
-            throw new DataAccessException(format("Failed to current value from '%s' sequence ", sequenceName), e);
+            throw new DataAccessException(format("Failed to get current value from '%s' sequence", sequenceName), e);
         }
     }
 
@@ -48,7 +48,7 @@ public class SequenceSetter {
 
             return resultSet.getLong(1);
         }catch (final SQLException e) {
-            throw new DataAccessException(format("Failed to current value from '%s' sequence ", sequenceName), e);
+            throw new DataAccessException(format("Failed to current value from '%s' sequence", sequenceName), e);
         }
     }
 }

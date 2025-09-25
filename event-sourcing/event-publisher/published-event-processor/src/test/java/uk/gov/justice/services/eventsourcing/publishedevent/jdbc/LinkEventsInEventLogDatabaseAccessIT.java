@@ -1,13 +1,15 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
-import static java.lang.Long.MIN_VALUE;
+import static java.util.Optional.of;
+import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
+import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.SELECT_HIGHEST_LINKED_EVENT_NUMBER_SQL;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
@@ -18,7 +20,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.ZonedDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -50,70 +51,30 @@ public class LinkEventsInEventLogDatabaseAccessIT {
     }
 
     @Test
-    public void shouldGetPreviousEventNumberOfZeroIfNoEventsExistInEventLog() throws Exception {
+    public void shouldAddEventNumbersToEventInEventLogTable() throws Exception {
 
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
 
-        assertThat(linkEventsInEventLogDatabaseAccess.findNextUnlinkedPreviousEventNumber(), is(0L));
+        final UUID eventId = randomUUID();
+        final Long eventNumber = 23L;
+        final Long previousEventNumber = 22L;
+        insertUnlinkedEventIntoEventLogTable(eventId, new UtcClock().now(), 1);
 
-    }
-
-    @Test
-    public void shouldFindTheNextUnlinkedPreviousEventNumber() throws Exception {
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
-        final Long expectedPreviousEventNumber = insertEventAndGetItsEventNumber();
-        insertNewEventWithoutPreviousEventNumber(1);
-
-        assertThat(linkEventsInEventLogDatabaseAccess.findNextUnlinkedPreviousEventNumber(), is(expectedPreviousEventNumber));
-    }
-
-    @Test
-    public void shouldFindTheEarliestEventWithoutPreviousEventNumber() throws Exception {
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
-        // add an event with previous event number
-        insertEventAndGetItsEventNumber();
-
-        final UUID firstUnlinkedEventId = insertNewEventWithoutPreviousEventNumber(1);
-        insertNewEventWithoutPreviousEventNumber(2);
-        insertNewEventWithoutPreviousEventNumber(3);
-
-        final Optional<LinkableEventDetails> nextUnlinkedEvent = linkEventsInEventLogDatabaseAccess.findNextUnlinkedEvent();
-
-        assertThat(nextUnlinkedEvent.isPresent(), is(true));
-
-        assertThat(nextUnlinkedEvent.get().eventId(), is(firstUnlinkedEventId));
-        assertThat(nextUnlinkedEvent.get().eventNumber(), is(notNullValue()));
-        assertThat(nextUnlinkedEvent.get().metadata(), is("some-event-metadata_1"));
-    }
-
-    @Test
-    public void shouldAddPreviousEventNumberAndUpdatedMetadataToUnlinkedEvent() throws Exception {
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
-        final Long previousEventNumber = insertEventAndGetItsEventNumber();
-        final UUID unlinkedEventId = insertNewEventWithoutPreviousEventNumber(1);
-        final String updatedMetadata = "new-metadata";
-
-        linkEventsInEventLogDatabaseAccess.linkEventInEventLogTable(unlinkedEventId, previousEventNumber, updatedMetadata);
+        linkEventsInEventLogDatabaseAccess.linkEvent(eventId, eventNumber, previousEventNumber);
 
         final String sql = """
-            SELECT previous_event_number, metadata FROM event_log WHERE id = ?
+            SELECT event_number, previous_event_number
+            FROM event_log
+            WHERE id = ?
         """;
-        try (final Connection connection = eventStoreDataSource.getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try(final Connection connection = eventStoreDataSource.getConnection();
+            final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-            preparedStatement.setObject(1, unlinkedEventId);
-
+            preparedStatement.setObject(1, eventId);
             try(final ResultSet resultSet = preparedStatement.executeQuery()) {
-
                 if (resultSet.next()) {
-                    assertThat(resultSet.getLong(1), is(previousEventNumber));
-                    assertThat(resultSet.getString(2), is(updatedMetadata));
+                    assertThat(resultSet.getLong("event_number"), is(eventNumber));
+                    assertThat(resultSet.getLong("previous_event_number"), is(previousEventNumber));
                 } else {
                     fail();
                 }
@@ -122,8 +83,57 @@ public class LinkEventsInEventLogDatabaseAccessIT {
     }
 
     @Test
+    public void shouldGetTheHighestCurrentlyAllocatedEventNumberFromEventLogTable() throws Exception {
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+
+        final long expectedHighestEventNumber = 4L;
+        final ZonedDateTime oneMinuteAgo = new UtcClock().now().minusMinutes(1);
+
+        insertLinkedEventIntoEventLogTable(randomUUID(), 1L, 0L, oneMinuteAgo.plusSeconds(1), 1);
+        insertLinkedEventIntoEventLogTable(randomUUID(), 2L, 1L, oneMinuteAgo.plusSeconds(2), 2);
+        insertLinkedEventIntoEventLogTable(randomUUID(), 3L, 2L, oneMinuteAgo.plusSeconds(3), 3);
+        insertLinkedEventIntoEventLogTable(randomUUID(), expectedHighestEventNumber, 3L, oneMinuteAgo.plusSeconds(4), 4);
+        insertUnlinkedEventIntoEventLogTable(randomUUID(), oneMinuteAgo.plusSeconds(5), 5);
+        insertUnlinkedEventIntoEventLogTable(randomUUID(), oneMinuteAgo.plusSeconds(6), 6);
+        insertUnlinkedEventIntoEventLogTable(randomUUID(), oneMinuteAgo.plusSeconds(7), 7);
+
+        assertThat(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable(), is(expectedHighestEventNumber));
+    }
+
+    @Test
+    public void shouldReturnCurrentHighestEventNumberOfZeroIfNoEventsInEventLogTable() throws Exception {
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+        
+        assertThat(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable(), is(0L));
+    }
+
+    @Test
+    public void shouldGetTheEventIdOfTheEventWithTheHighestEventNumber() throws Exception {
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+
+        final UUID eventIdToFind = fromString("327a085e-6d23-4925-8a9a-4fe0c4400004");
+
+        final ZonedDateTime oneMinuteAgo = new UtcClock().now().minusMinutes(1);
+
+        insertLinkedEventIntoEventLogTable(fromString("327a085e-6d23-4925-8a9a-4fe0c4400001"), 1L, 0L, oneMinuteAgo.plusSeconds(1), 1);
+        insertLinkedEventIntoEventLogTable(fromString("327a085e-6d23-4925-8a9a-4fe0c4400002"), 2L, 1L, oneMinuteAgo.plusSeconds(2), 2);
+        insertLinkedEventIntoEventLogTable(fromString("327a085e-6d23-4925-8a9a-4fe0c4400003"), 3L, 2L, oneMinuteAgo.plusSeconds(3), 3);
+
+        insertUnlinkedEventIntoEventLogTable(eventIdToFind, oneMinuteAgo.plusSeconds(4), 4);
+        insertUnlinkedEventIntoEventLogTable(fromString("327a085e-6d23-4925-8a9a-4fe0c4400005"), oneMinuteAgo.plusSeconds(5), 5);
+        insertUnlinkedEventIntoEventLogTable(fromString("327a085e-6d23-4925-8a9a-4fe0c4400006"), oneMinuteAgo.plusSeconds(6), 6);
+        insertUnlinkedEventIntoEventLogTable(fromString("327a085e-6d23-4925-8a9a-4fe0c4400007"), oneMinuteAgo.plusSeconds(7), 7);
+
+        assertThat(linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink(), is(of(eventIdToFind)));
+    }
+
+    @Test
     public void shouldAddEventToPublishQueue() throws Exception {
 
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+        
         final ZonedDateTime now = new UtcClock().now();
         final UUID eventId = randomUUID();
 
@@ -151,9 +161,10 @@ public class LinkEventsInEventLogDatabaseAccessIT {
        }
     }
 
-    private Long insertEventAndGetItsEventNumber() throws Exception {
-
-        final UUID eventId = randomUUID();
+    private void insertUnlinkedEventIntoEventLogTable(
+            final UUID eventId,
+            final ZonedDateTime dateCreated,
+            final int insertionOrder) throws Exception {
 
         final String insertSql = """
                 INSERT INTO event_log (
@@ -161,53 +172,33 @@ public class LinkEventsInEventLogDatabaseAccessIT {
                        stream_id,
                        position_in_stream,
                        name,
+                       date_created,
                        payload,
-                       metadata,
-                       previous_event_number)
+                       metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
+
         try (final Connection connection = eventStoreDataSource.getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(insertSql)) {
 
             preparedStatement.setObject(1, eventId);
             preparedStatement.setObject(2, randomUUID());
             preparedStatement.setLong(3, 1L);
-            preparedStatement.setString(4, "some-event-name-");
-            preparedStatement.setString(5, "some-event-payload");
-            preparedStatement.setString(6, "some-event-metadata");
-            preparedStatement.setLong(7, 0L);
+            preparedStatement.setString(4, "some-event-name-" + insertionOrder);
+            preparedStatement.setTimestamp(5, toSqlTimestamp(dateCreated));
+            preparedStatement.setString(6, "some-event-payload" + insertionOrder);
+            preparedStatement.setString(7, "some-event-metadata" + insertionOrder);
 
             preparedStatement.execute();
-
         }
-
-        final String getItsEventNumberSql = """
-                SELECT event_number FROM event_log WHERE id = ?
-                """;
-
-        try (final Connection connection = eventStoreDataSource.getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(getItsEventNumberSql)) {
-
-            preparedStatement.setObject(1, eventId);
-
-            try(final ResultSet resultSet = preparedStatement.executeQuery()) {
-
-                if (resultSet.next()) {
-                    return resultSet.getLong(1);
-                } else {
-                    fail();
-                }
-            }
-
-        }
-
-        // should never happen
-        return MIN_VALUE;
     }
 
-    private UUID insertNewEventWithoutPreviousEventNumber(final int insertionOrder) throws Exception {
-
-        final UUID eventId = randomUUID();
+    private void insertLinkedEventIntoEventLogTable(
+            final UUID eventId,
+            final Long eventNumber,
+            final Long previousEventNumber,
+            final ZonedDateTime dateCreated,
+            final int insertionOrder) throws Exception {
 
         final String insertSql = """
                 INSERT INTO event_log (
@@ -215,24 +206,28 @@ public class LinkEventsInEventLogDatabaseAccessIT {
                        stream_id,
                        position_in_stream,
                        name,
+                       date_created,
                        payload,
-                       metadata)
-                VALUES (?, ?, ?, ?, ?, ?)
+                       metadata,
+                       event_number,
+                       previous_event_number)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
+
         try (final Connection connection = eventStoreDataSource.getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(insertSql)) {
 
             preparedStatement.setObject(1, eventId);
             preparedStatement.setObject(2, randomUUID());
-            preparedStatement.setLong(3, 4L);
+            preparedStatement.setLong(3, insertionOrder);
             preparedStatement.setString(4, "some-event-name_" + insertionOrder);
-            preparedStatement.setString(5, "some-event-payload_" + insertionOrder);
-            preparedStatement.setString(6, "some-event-metadata_" + insertionOrder);
+            preparedStatement.setTimestamp(5, toSqlTimestamp(dateCreated));
+            preparedStatement.setString(6, "some-event-payload_" + insertionOrder);
+            preparedStatement.setString(7, "some-event-metadata_" + insertionOrder);
+            preparedStatement.setLong(8, eventNumber);
+            preparedStatement.setLong(9, previousEventNumber);
 
             preparedStatement.execute();
-
         }
-
-        return eventId;
     }
 }

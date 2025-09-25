@@ -19,7 +19,6 @@ import uk.gov.justice.services.jdbc.persistence.JdbcResultSetStreamer;
 import uk.gov.justice.services.jdbc.persistence.PreparedStatementWrapperFactory;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
-import uk.gov.justice.services.test.utils.persistence.SequenceSetter;
 import uk.gov.justice.services.test.utils.persistence.SettableEventStoreDataSourceProvider;
 
 import java.sql.SQLException;
@@ -139,31 +138,6 @@ public class EventJdbcRepositoryIT {
     }
 
     @Test
-    public void shouldReturnEventsByStreamIdOrderedByEventId() throws Exception {
-
-        new SequenceSetter().setSequenceTo(1, "event_sequence_seq", dataSource);
-
-        jdbcRepository.insert(eventBuilder().withName("event 1").build());
-        jdbcRepository.insert(eventBuilder().withName("event 2").build());
-        jdbcRepository.insert(eventBuilder().withName("event 3").build());
-        jdbcRepository.insert(eventBuilder().withName("event 4").build());
-
-        try (final Stream<Event> events = jdbcRepository.findAllOrderedByEventNumber()) {
-
-            final List<Event> eventList = events.collect(toList());
-            assertThat(eventList, hasSize(4));
-            assertThat(eventList.get(0).getName(), is("event 1"));
-            assertThat(eventList.get(0).getEventNumber().orElse(0L), is(1L));
-            assertThat(eventList.get(1).getName(), is("event 2"));
-            assertThat(eventList.get(1).getEventNumber().orElse(0L), is(2L));
-            assertThat(eventList.get(2).getName(), is("event 3"));
-            assertThat(eventList.get(2).getEventNumber().orElse(0L), is(3L));
-            assertThat(eventList.get(3).getName(), is("event 4"));
-            assertThat(eventList.get(3).getEventNumber().orElse(0L), is(4L));
-        }
-    }
-
-    @Test
     public void shouldStoreAndReturnDateCreated() throws InvalidPositionException {
 
         final Event event = eventBuilder().withPositionInStream(1L).build();
@@ -247,47 +221,7 @@ public class EventJdbcRepositoryIT {
     }
 
     @Test
-    public void shouldReturnEventsFromEventNumberByPage() throws Exception {
-
-        final int pageSize = 2;
-
-        jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(3L).build());
-        jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(4L).build());
-        jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(7L).build());
-
-        final List<Event> page_1 = jdbcRepository.findAllFromEventNumberUptoPageSize(0L, pageSize).collect(toList());
-        assertThat(page_1, hasSize(2));
-        assertThat(page_1.get(0).getPositionInStream(), is(3L));
-        assertThat(page_1.get(1).getPositionInStream(), is(4L));
-
-        final long nextEventNumber_1 = page_1.get(1).getEventNumber().get();
-        final List<Event> page_2 = jdbcRepository.findAllFromEventNumberUptoPageSize(nextEventNumber_1, pageSize).collect(toList());
-        assertThat(page_2, hasSize(1));
-        assertThat(page_2.get(0).getPositionInStream(), is(7L));
-
-        final Long eventNumber_2 = page_2.get(0).getEventNumber().get();
-        final List<Event> page_3 = jdbcRepository.findAllFromEventNumberUptoPageSize(eventNumber_2, pageSize).collect(toList());
-        assertThat(page_3, hasSize(0));
-    }
-
-    @Test
-    public void shouldReturnMaximumEventNumber() throws Exception {
-
-        new SequenceSetter().setSequenceTo(1, "event_sequence_seq", dataSource);
-
-        final long initialNumberOfEvents = jdbcRepository.getMaximumEventNumber();
-        assertThat(initialNumberOfEvents, is(0L));
-
-        jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(3L).build());
-        jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(4L).build());
-        jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(7L).build());
-
-        final long finalNumberOfEvents = jdbcRepository.getMaximumEventNumber();
-        assertThat(finalNumberOfEvents, is(3L));
-    }
-
-    @Test
-    public void shouldThrowExceptionOnDuplicateId() throws InvalidPositionException {
+    public void shouldThrowExceptionOnDuplicateId() {
         final UUID id = randomUUID();
 
         assertThrows(JdbcRepositoryException.class, () -> {

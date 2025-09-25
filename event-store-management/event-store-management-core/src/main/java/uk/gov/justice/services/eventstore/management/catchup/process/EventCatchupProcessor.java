@@ -5,8 +5,8 @@ import static javax.transaction.Transactional.TxType.NEVER;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.ConcurrentEventStreamConsumerManager;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MissingEventNumberException;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MissingEventNumberException;
 import uk.gov.justice.services.eventstore.management.commands.CatchupCommand;
 import uk.gov.justice.services.eventstore.management.events.catchup.CatchupCompletedForSubscriptionEvent;
 import uk.gov.justice.services.eventstore.management.events.catchup.SubscriptionCatchupDetails;
@@ -53,6 +53,8 @@ public class EventCatchupProcessor {
         final int totalEventsProcessed = events.mapToInt(event -> {
 
             final Long eventNumber = event.getEventNumber().orElseThrow(() -> new MissingEventNumberException(format("PublishedEvent with id '%s' is missing its event number", event.getId())));
+
+            // here
 
             if (eventNumber % 1000L == 0) {
                 logger.info(format("%s with Event Source: %s for Event Number: %d", catchupCommand.getName(), eventSourceName, eventNumber));

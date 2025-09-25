@@ -20,6 +20,9 @@ public class EventQueueConsumer {
     private EventStreamConsumptionResolver eventStreamConsumptionResolver;
 
     @Inject
+    private LinkedEventMetadataUpdater linkedEventMetadataUpdater;
+
+    @Inject
     private EventProcessingFailedHandler eventProcessingFailedHandler;
 
     public boolean consumeEventQueue(
@@ -32,7 +35,8 @@ public class EventQueueConsumer {
 
             final LinkedEvent linkedEvent = events.poll();
             try {
-                catchupEventProcessor.processWithEventBuffer(linkedEvent, subscriptionName);
+                final LinkedEvent linkedEventWithUpdatedMetadata = linkedEventMetadataUpdater.addEventNumbersToMetadataOf(linkedEvent);
+                catchupEventProcessor.processWithEventBuffer(linkedEventWithUpdatedMetadata, subscriptionName);
             } catch (final Exception e) {
                 eventProcessingFailedHandler.handleEventFailure(e, linkedEvent, subscriptionName, catchupCommand, commandId);
             } finally {

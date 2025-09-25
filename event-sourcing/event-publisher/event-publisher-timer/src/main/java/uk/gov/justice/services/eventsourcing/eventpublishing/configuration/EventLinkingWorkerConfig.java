@@ -2,7 +2,6 @@ package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 
 import static java.lang.Long.parseLong;
 
-import uk.gov.justice.services.common.configuration.GlobalValue;
 import uk.gov.justice.services.common.configuration.Value;
 
 import javax.inject.Inject;

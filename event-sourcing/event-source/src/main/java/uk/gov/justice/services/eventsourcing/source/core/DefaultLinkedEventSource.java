@@ -2,8 +2,8 @@ package uk.gov.justice.services.eventsourcing.source.core;
 
 import static javax.transaction.Transactional.TxType.REQUIRED;
 
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MultipleDataSourceEventRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MultipleDataSourceEventRepository;
 import uk.gov.justice.services.eventsourcing.source.api.service.core.LinkedEventSource;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingEventRange;
 
@@ -46,7 +46,7 @@ public class DefaultLinkedEventSource implements LinkedEventSource {
     @Override
     public Long getHighestPublishedEventNumber() {
         final Optional<LinkedEvent> latestPublishedEvent = multipleDataSourceEventRepository
-                .getLatestPublishedEvent();
+                .getLatestLinkedEvent();
 
         return latestPublishedEvent.map(publishedEvent -> publishedEvent
                         .getEventNumber()

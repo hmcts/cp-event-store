@@ -17,6 +17,7 @@ import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFac
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -70,7 +71,7 @@ public class EventPublishingRepositoryTest {
             assertThat(publishedEvent.get().getMetadata(), is("some-metadata-2"));
             assertThat(publishedEvent.get().getEventNumber(), is(of(2L)));
             assertThat(publishedEvent.get().getPreviousEventNumber(), is(1L));
-        }   else {
+        } else {
             fail();
         }
     }
@@ -79,17 +80,28 @@ public class EventPublishingRepositoryTest {
     public void shouldGetNextEventIdFromPublishQueue() throws Exception {
 
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+        final ZonedDateTime dateCreated_1 = new UtcClock().now().minusSeconds(60);
+        final ZonedDateTime dateCreated_2 = new UtcClock().now().minusSeconds(30);
+        final ZonedDateTime dateCreated_3 = new UtcClock().now().minusSeconds(15);
+        final UUID eventId_1 = randomUUID();
+        final UUID eventId_2 = randomUUID();
+        final UUID eventId_3 = randomUUID();
 
-        final UUID eventId = randomUUID();
-        insertIntoPublishQueue(eventId);
+        insertIntoPublishQueue(eventId_1, dateCreated_1);
+        insertIntoPublishQueue(eventId_2, dateCreated_2);
+        insertIntoPublishQueue(eventId_3, dateCreated_3);
 
-        final Optional<UUID> nextEventIdFromPublishQueue = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        final Optional<UUID> nextEventIdFromPublishQueue_1 = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        assertThat(nextEventIdFromPublishQueue_1, is(of(eventId_1)));
+        eventPublishingRepository.removeFromPublishQueue(eventId_1);
 
-        if (nextEventIdFromPublishQueue.isPresent()) {
-            assertThat(nextEventIdFromPublishQueue.get(), is(eventId));
-        } else {
-            fail();
-        }
+        final Optional<UUID> nextEventIdFromPublishQueue_2 = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        assertThat(nextEventIdFromPublishQueue_2, is(of(eventId_2)));
+        eventPublishingRepository.removeFromPublishQueue(eventId_2);
+
+        final Optional<UUID> nextEventIdFromPublishQueue_3 = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        assertThat(nextEventIdFromPublishQueue_3, is(of(eventId_3)));
+        eventPublishingRepository.removeFromPublishQueue(eventId_3);
     }
 
     @Test
@@ -102,10 +114,11 @@ public class EventPublishingRepositoryTest {
     @Test
     public void shouldDeleteEventIdFromPublishQueue() throws Exception {
 
+        final ZonedDateTime dateCreated = new UtcClock().now();
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
 
         final UUID eventId = randomUUID();
-        insertIntoPublishQueue(eventId);
+        insertIntoPublishQueue(eventId, dateCreated);
 
         final Optional<UUID> nextEventIdFromPublishQueue = eventPublishingRepository.getNextEventIdFromPublishQueue();
 
@@ -136,8 +149,8 @@ public class EventPublishingRepositoryTest {
                 VALUES (?, ?, ?, ?,  ?, ?, ?, ?, ?)
                 """;
 
-        try(final Connection connection = eventStoreDataSource.getConnection();
-            final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try (final Connection connection = eventStoreDataSource.getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
             preparedStatement.setObject(1, eventId);
             preparedStatement.setObject(2, streamId);
@@ -153,14 +166,14 @@ public class EventPublishingRepositoryTest {
         }
     }
 
-    private void insertIntoPublishQueue(final UUID eventId) throws Exception {
+    private void insertIntoPublishQueue(final UUID eventId, final ZonedDateTime dateCreated) throws Exception {
 
         final String sql = """
                 INSERT INTO publish_queue (event_log_id, date_queued)
                 VALUES (?, ?)
                 """;
-        try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-            final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setObject(1, eventId);
             preparedStatement.setTimestamp(2, toSqlTimestamp(new UtcClock().now()));
 

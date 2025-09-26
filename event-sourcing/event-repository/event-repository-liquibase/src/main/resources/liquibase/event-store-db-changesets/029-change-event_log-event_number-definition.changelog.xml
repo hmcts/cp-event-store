@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.3.xsd">
+
+    <changeSet id="event-store-029" author="TechPod"
+               logicalFilePath="liquibase/event-store-db-changesets/029-change-event_log-event_number-definition.changelog.xml">
+
+
+        <dropNotNullConstraint tableName="event_log" columnName="event_number"/>
+        <dropDefaultValue tableName="event_log" columnName="event_number"/>
+
+        <rollback>
+            <addDefaultValue tableName="event_log" columnName="event_number" defaultValueSequenceNext="event_sequence_seq"/>
+            <addNotNullConstraint tableName="event_log" columnName="event_number"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

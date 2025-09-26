@@ -67,6 +67,7 @@ public class LinkEventsInEventLogDatabaseAccess {
         }
     }
 
+    // should be deleted
     public Optional<LinkableEventDetails> findNextUnlinkedEvent() {
 
         try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
@@ -90,6 +91,15 @@ public class LinkEventsInEventLogDatabaseAccess {
         } catch (final SQLException e) {
             throw new EventNumberLinkingException("Failed to find next unlinked event in event_log table.", e);
         }
+    }
+
+    public Long findCurrentHighestEventNumberInEventLogTable() {
+        return 0L;
+    }
+
+    public Optional<UUID> findIdOfNextEventToLink() {
+
+        return empty();
     }
 
     public void linkEventInEventLogTable(
@@ -123,5 +133,10 @@ public class LinkEventsInEventLogDatabaseAccess {
         } catch (final SQLException e) {
             throw new EventNumberLinkingException(format("Failed to insert linked event into publish_queue table. eventId: '%s'", eventId), e);
         }
+    }
+
+    public void linkEvent(final UUID eventId, final Long eventNumber, final Long previousEventNumber) {
+        
+
     }
 }

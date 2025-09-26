@@ -35,13 +35,13 @@ public class LinkedEventSourceProducerTest {
     private EventSourceDefinitionRegistry eventSourceDefinitionRegistry;
 
     @Mock
-    private JdbcPublishedEventSourceFactory jdbcPublishedEventSourceFactory;
+    private JdbcLinkedEventSourceFactory jdbcLinkedEventSourceFactory;
 
     @Mock
     private QualifierAnnotationExtractor qualifierAnnotationExtractor;
 
     @InjectMocks
-    private PublishedEventSourceProducer publishedEventSourceProducer;
+    private LinkedEventSourceProducer linkedEventSourceProducer;
 
     @Test
     public void shouldCreateDefaultEventSourceDefinitionWhenEventSourceNameIsEmpty() throws Exception {
@@ -56,9 +56,9 @@ public class LinkedEventSourceProducerTest {
         final DefaultLinkedEventSource defaultPublishedEventSource = mock(DefaultLinkedEventSource.class);
 
         when(eventSourceDefinitionRegistry.getDefaultEventSourceDefinition()).thenReturn(eventSourceDefinition);
-        when(jdbcPublishedEventSourceFactory.create(eventSourceDefinition.getLocation().getDataSource().get())).thenReturn(defaultPublishedEventSource);
+        when(jdbcLinkedEventSourceFactory.create(eventSourceDefinition.getLocation().getDataSource().get())).thenReturn(defaultPublishedEventSource);
 
-        assertThat(publishedEventSourceProducer.publishedEventSource(), is(defaultPublishedEventSource));
+        assertThat(linkedEventSourceProducer.linkedEventSource(), is(defaultPublishedEventSource));
     }
 
     @Test
@@ -73,9 +73,9 @@ public class LinkedEventSourceProducerTest {
         final DefaultLinkedEventSource defaultPublishedEventSource = mock(DefaultLinkedEventSource.class);
 
         when(eventSourceDefinitionRegistry.getDefaultEventSourceDefinition()).thenReturn(eventSourceDefinition);
-        when(jdbcPublishedEventSourceFactory.create(eventSourceDefinition.getLocation().getDataSource().get())).thenReturn(defaultPublishedEventSource);
+        when(jdbcLinkedEventSourceFactory.create(eventSourceDefinition.getLocation().getDataSource().get())).thenReturn(defaultPublishedEventSource);
 
-        assertThat(publishedEventSourceProducer.publishedEventSource(), is(defaultPublishedEventSource));
+        assertThat(linkedEventSourceProducer.linkedEventSource(), is(defaultPublishedEventSource));
     }
 
     @Test
@@ -95,9 +95,9 @@ public class LinkedEventSourceProducerTest {
         when(eventSourceDefinitionRegistry.getEventSourceDefinitionFor(eventSourceName)).thenReturn(Optional.of(eventSourceDefinition));
         when(eventSourceDefinition.getLocation()).thenReturn(location);
         when(location.getDataSource()).thenReturn(of(dataSource));
-        when(jdbcPublishedEventSourceFactory.create(dataSource)).thenReturn(defaultPublishedEventSource);
+        when(jdbcLinkedEventSourceFactory.create(dataSource)).thenReturn(defaultPublishedEventSource);
 
-        assertThat(publishedEventSourceProducer.publishedEventSource(injectionPoint), is(defaultPublishedEventSource));
+        assertThat(linkedEventSourceProducer.linkedEventSource(injectionPoint), is(defaultPublishedEventSource));
     }
 
     @Test
@@ -113,13 +113,13 @@ public class LinkedEventSourceProducerTest {
         when(eventSourceDefinitionRegistry.getEventSourceDefinitionFor(eventSourceName)).thenReturn(empty());
 
         try {
-            publishedEventSourceProducer.publishedEventSource(injectionPoint);
+            linkedEventSourceProducer.linkedEventSource(injectionPoint);
             fail();
         } catch (final CreationException expected) {
             assertThat(expected.getMessage(), is("Failed to find EventSource named 'my-event-source' in event-sources.yaml"));
         }
 
-        verifyNoInteractions(jdbcPublishedEventSourceFactory);
+        verifyNoInteractions(jdbcLinkedEventSourceFactory);
     }
 
     @Test
@@ -141,12 +141,12 @@ public class LinkedEventSourceProducerTest {
         when(eventSourceDefinition.getName()).thenReturn(dataSourceName);
 
         try {
-            publishedEventSourceProducer.publishedEventSource(injectionPoint);
+            linkedEventSourceProducer.linkedEventSource(injectionPoint);
             fail();
         } catch (final CreationException expected) {
             assertThat(expected.getMessage(), is("No DataSource specified for EventSource 'my-data-source' specified in event-sources.yaml"));
         }
 
-        verifyNoInteractions(jdbcPublishedEventSourceFactory);
+        verifyNoInteractions(jdbcLinkedEventSourceFactory);
     }
 }

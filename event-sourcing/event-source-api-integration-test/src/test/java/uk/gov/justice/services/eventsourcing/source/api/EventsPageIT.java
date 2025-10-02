@@ -40,7 +40,6 @@ import uk.gov.justice.services.eventsourcing.publisher.jms.EventPublisher;
 import uk.gov.justice.services.eventsourcing.publisher.jms.JmsEventPublisher;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.EventInsertionStrategy;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.JdbcBasedEventRepository;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.PostgresSQLEventLogInsertionStrategy;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueueRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueuesDataAccess;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.Event;
@@ -99,8 +98,6 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.UUID;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
 import com.jayway.jsonpath.JsonPath;
@@ -164,15 +161,6 @@ public class EventsPageIT {
                 .build();
     }
 
-    @ApplicationScoped
-    public static class TestEventInsertionStrategyProducer {
-
-        @Produces
-        public EventInsertionStrategy eventLogInsertionStrategy() {
-            return new PostgresSQLEventLogInsertionStrategy();
-        }
-    }
-
     @Module
     @Classes(cdi = true, value = {
             ObjectMapperProducer.class,
@@ -182,7 +170,7 @@ public class EventsPageIT {
             AccessController.class,
             TestSystemUserProvider.class,
             ForbiddenRequestExceptionMapper.class,
-            TestEventInsertionStrategyProducer.class,
+            EventInsertionStrategy.class,
             EventsPageService.class,
             LoggerProducer.class,
             PositionFactory.class,

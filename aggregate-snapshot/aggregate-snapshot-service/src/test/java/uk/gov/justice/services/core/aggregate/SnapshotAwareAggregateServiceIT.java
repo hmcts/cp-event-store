@@ -44,7 +44,6 @@ import uk.gov.justice.services.eventsource.DefaultEventDestinationResolver;
 import uk.gov.justice.services.eventsourcing.jdbc.snapshot.SnapshotJdbcRepository;
 import uk.gov.justice.services.eventsourcing.jdbc.snapshot.SnapshotRepository;
 import uk.gov.justice.services.eventsourcing.publisher.jms.JmsEventPublisher;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.AnsiSQLEventLogInsertionStrategy;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.EventInsertionStrategy;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.JdbcBasedEventRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueueRepository;
@@ -105,7 +104,6 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.naming.InitialContext;
 
@@ -167,7 +165,7 @@ public class SnapshotAwareAggregateServiceIT {
             DefaultObjectInputStreamStrategy.class,
             SnapshotJdbcRepository.class,
 
-            TestEventInsertionStrategyProducer.class,
+            EventInsertionStrategy.class,
             JdbcResultSetStreamer.class,
             PreparedStatementWrapperFactory.class,
             LoggerProducer.class,
@@ -581,15 +579,6 @@ public class SnapshotAwareAggregateServiceIT {
         @Override
         public String getServiceContextName() {
             return "test-component";
-        }
-    }
-
-    @ApplicationScoped
-    public static class TestEventInsertionStrategyProducer {
-
-        @Produces
-        public EventInsertionStrategy eventLogInsertionStrategy() {
-            return new AnsiSQLEventLogInsertionStrategy();
         }
     }
 }

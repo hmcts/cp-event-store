@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Removed
+- Removed `AnsiSQLEventInsertionStrategy` and `EventInsertionStrategyProducer`
 
 # [17.104.0-M4] - 2025-10-02
 ### Changed

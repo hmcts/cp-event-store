@@ -7,14 +7,11 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static uk.gov.justice.services.test.utils.events.EventBuilder.eventBuilder;
 
-import uk.gov.justice.services.eventsourcing.repository.jdbc.AnsiSQLEventLogInsertionStrategy;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.EventInsertionStrategy;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.exception.InvalidPositionException;
-import uk.gov.justice.services.jdbc.persistence.JdbcRepositoryException;
 import uk.gov.justice.services.jdbc.persistence.JdbcResultSetStreamer;
 import uk.gov.justice.services.jdbc.persistence.PreparedStatementWrapperFactory;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
@@ -49,7 +46,7 @@ public class EventJdbcRepositoryIT {
 
     @SuppressWarnings("unused")
     @Spy
-    private EventInsertionStrategy eventInsertionStrategy = new AnsiSQLEventLogInsertionStrategy();
+    private EventInsertionStrategy eventInsertionStrategy = new EventInsertionStrategy();
 
     @SuppressWarnings("unused")
     @Spy
@@ -219,26 +216,7 @@ public class EventJdbcRepositoryIT {
         assertThat(streamIdList, hasItem(streamId2));
         assertThat(streamIdList, hasItem(streamId3));
     }
-
-    @Test
-    public void shouldThrowExceptionOnDuplicateId() {
-        final UUID id = randomUUID();
-
-        assertThrows(JdbcRepositoryException.class, () -> {
-            jdbcRepository.insert(eventBuilder().withId(id).withPositionInStream(SEQUENCE_ID).build());
-            jdbcRepository.insert(eventBuilder().withId(id).withPositionInStream(SEQUENCE_ID + 1).build());
-        });
-    }
-
-    @Test
-    public void shouldThrowExceptionOnDuplicateSequenceId() throws InvalidPositionException {
-
-        assertThrows(JdbcRepositoryException.class, () -> {
-            jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(SEQUENCE_ID).build());
-            jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(SEQUENCE_ID).build());
-        });
-    }
-
+    
     @Test
     public void shouldClearStream() throws InvalidPositionException {
 

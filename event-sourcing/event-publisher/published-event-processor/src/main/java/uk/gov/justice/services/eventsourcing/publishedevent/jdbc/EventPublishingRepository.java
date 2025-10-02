@@ -85,6 +85,7 @@ public class EventPublishingRepository {
         final String sql = """
                 SELECT event_log_id
                 FROM publish_queue
+                ORDER BY date_queued
                 FOR UPDATE SKIP LOCKED
                 LIMIT 1
                 """;

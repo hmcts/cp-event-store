@@ -22,13 +22,13 @@ import javax.inject.Inject;
 @ApplicationScoped
 @Default
 @Priority(200)
-public class PublishedEventSourceProducer {
+public class LinkedEventSourceProducer {
 
     @Inject
     private EventSourceDefinitionRegistry eventSourceDefinitionRegistry;
 
     @Inject
-    private JdbcPublishedEventSourceFactory jdbcPublishedEventSourceFactory;
+    private JdbcLinkedEventSourceFactory jdbcLinkedEventSourceFactory;
 
     @Inject
     private QualifierAnnotationExtractor qualifierAnnotationExtractor;
@@ -40,7 +40,7 @@ public class PublishedEventSourceProducer {
      * @return {@link LinkedEventSource}
      */
     @Produces
-    public LinkedEventSource publishedEventSource() {
+    public LinkedEventSource linkedEventSource() {
         return createEventSourceFrom(eventSourceDefinitionRegistry.getDefaultEventSourceDefinition());
     }
 
@@ -54,7 +54,7 @@ public class PublishedEventSourceProducer {
      */
     @Produces
     @EventSourceName
-    public LinkedEventSource publishedEventSource(final InjectionPoint injectionPoint) {
+    public LinkedEventSource linkedEventSource(final InjectionPoint injectionPoint) {
 
         final String eventSourceName = qualifierAnnotationExtractor.getFrom(injectionPoint, EventSourceName.class).value();
         final Optional<EventSourceDefinition> eventSourceDefinition = eventSourceDefinitionRegistry.getEventSourceDefinitionFor(eventSourceName);
@@ -69,7 +69,7 @@ public class PublishedEventSourceProducer {
         final Optional<String> dataSourceOptional = location.getDataSource();
 
         return dataSourceOptional
-                .map(dataSource -> jdbcPublishedEventSourceFactory.create(dataSource))
+                .map(dataSource -> jdbcLinkedEventSourceFactory.create(dataSource))
                 .orElseThrow(() -> new CreationException(
                         format("No DataSource specified for EventSource '%s' specified in event-sources.yaml", eventSourceDefinition.getName())
                 ));

@@ -36,8 +36,10 @@ public class EventQueueConsumerTest {
     private EventStreamConsumptionResolver eventStreamConsumptionResolver;
 
     @Mock
-    private EventProcessingFailedHandler eventProcessingFailedHandler;
+    private LinkedEventMetadataUpdater linkedEventMetadataUpdater;
 
+    @Mock
+    private EventProcessingFailedHandler eventProcessingFailedHandler;
 
     @InjectMocks
     private EventQueueConsumer eventQueueConsumer;
@@ -51,8 +53,13 @@ public class EventQueueConsumerTest {
         final LinkedEvent event_1 = mock(LinkedEvent.class);
         final LinkedEvent event_2 = mock(LinkedEvent.class);
 
+        final LinkedEvent updatedLinkedEvent_1 = mock(LinkedEvent.class);
+        final LinkedEvent updatedLinkedEvent_2 = mock(LinkedEvent.class);
+
         final Queue<LinkedEvent> eventQueue = new ConcurrentLinkedQueue<>();
 
+        when(linkedEventMetadataUpdater.addEventNumbersToMetadataOf(event_1)).thenReturn(updatedLinkedEvent_1);
+        when(linkedEventMetadataUpdater.addEventNumbersToMetadataOf(event_2)).thenReturn(updatedLinkedEvent_2);
         when(eventStreamConsumptionResolver.isEventConsumptionComplete(new FinishedProcessingMessage(eventQueue))).thenReturn(true);
 
         eventQueue.add(event_1);
@@ -63,9 +70,9 @@ public class EventQueueConsumerTest {
 
         final InOrder inOrder = inOrder(catchupEventProcessor, eventStreamConsumptionResolver);
 
-        inOrder.verify(catchupEventProcessor).processWithEventBuffer(event_1, subscriptionName);
+        inOrder.verify(catchupEventProcessor).processWithEventBuffer(updatedLinkedEvent_1, subscriptionName);
         inOrder.verify(eventStreamConsumptionResolver).decrementEventsInProcessCount();
-        inOrder.verify(catchupEventProcessor).processWithEventBuffer(event_2, subscriptionName);
+        inOrder.verify(catchupEventProcessor).processWithEventBuffer(updatedLinkedEvent_2, subscriptionName);
         inOrder.verify(eventStreamConsumptionResolver).decrementEventsInProcessCount();
     }
 
@@ -77,10 +84,15 @@ public class EventQueueConsumerTest {
         final CatchupCommand catchupCommand = new EventCatchupCommand();
         final UUID commandId = randomUUID();
         final LinkedEvent event_1 = mock(LinkedEvent.class);
-        final String metadata = "{some: metadata}";
         final LinkedEvent event_2 = mock(LinkedEvent.class);
 
+        final LinkedEvent updatedLinkedEvent_1 = mock(LinkedEvent.class);
+        final LinkedEvent updatedLinkedEvent_2 = mock(LinkedEvent.class);
+
         final Queue<LinkedEvent> eventQueue = new ConcurrentLinkedQueue<>();
+
+        when(linkedEventMetadataUpdater.addEventNumbersToMetadataOf(event_1)).thenReturn(updatedLinkedEvent_1);
+        when(linkedEventMetadataUpdater.addEventNumbersToMetadataOf(event_2)).thenReturn(updatedLinkedEvent_2);
 
         when(eventStreamConsumptionResolver.isEventConsumptionComplete(new FinishedProcessingMessage(eventQueue))).thenReturn(true);
 
@@ -88,11 +100,11 @@ public class EventQueueConsumerTest {
         eventQueue.add(event_2);
         final String subscriptionName = "subscriptionName";
 
-        doThrow(nullPointerException).when(catchupEventProcessor).processWithEventBuffer(event_1, subscriptionName);
+        doThrow(nullPointerException).when(catchupEventProcessor).processWithEventBuffer(updatedLinkedEvent_1, subscriptionName);
 
         eventQueueConsumer.consumeEventQueue(commandId, eventQueue, subscriptionName, catchupCommand);
 
-        verify(catchupEventProcessor).processWithEventBuffer(event_2, subscriptionName);
+        verify(catchupEventProcessor).processWithEventBuffer(updatedLinkedEvent_2, subscriptionName);
 
         verify(eventProcessingFailedHandler).handleEventFailure(
                 nullPointerException,

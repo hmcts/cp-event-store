@@ -122,7 +122,7 @@ public class MultipleDataSourceEventRepository {
     }
 
     @SuppressWarnings("DuplicatedCode")
-    public Optional<LinkedEvent> getLatestPublishedEvent() {
+    public Optional<LinkedEvent> getLatestLinkedEvent() {
         try {
             try (final Connection connection = dataSource.getConnection();
                  final PreparedStatement preparedStatement = connection.prepareStatement(SQL_FIND_LATEST_LINKED_EVENT)) {

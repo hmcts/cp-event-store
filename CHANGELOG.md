@@ -5,6 +5,20 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.104.0-M4] - 2025-10-02
+### Changed
+- Refactored event publishing;
+  - Event numbers now calculated in EventLinkingTimerBean rather that on the insert of the event into event log
+  - Advisory locks are used during the calculation of event numbers rather than SELECT FOR UPDATE
+  - Metadata in event_log does not contain event numbers. These are added when the event is sent to the event listeners
+  - Catchup changed to add event numbers to event on publishing
+  - ReplayEventToEventListener changed to add event numbers to event on publishing
+  - Event numbers no longer use a database sequence but are calculated from the highest published event number
+### Added
+- New index on date_created in event_log
+### Removed
+  - Removed `event_sequence_seq` database sequence as it's no longer used 
+
 # [17.104.0-M3] - 2025-09-22
 ### Changed
 - removed `SKIP LOCKED` when querying for earliest unlinked event in event_log table

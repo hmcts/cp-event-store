@@ -141,7 +141,7 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
         insertLinkedEvent(event_4, connection);
         insertLinkedEvent(event_5, connection);
 
-        final Optional<LinkedEvent> latestPublishedEvent = multipleDataSourceEventRepository.getLatestPublishedEvent();
+        final Optional<LinkedEvent> latestPublishedEvent = multipleDataSourceEventRepository.getLatestLinkedEvent();
 
         if (latestPublishedEvent.isPresent()) {
             assertThat(latestPublishedEvent.get().getId(), is(event_5.getId()));
@@ -160,7 +160,7 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
 
     @Test
     public void shouldReturnEmptyWhenGettingLatestPublishedEventIfNoPublishedEventsExist() throws Exception {
-        assertThat(multipleDataSourceEventRepository.getLatestPublishedEvent(), is(empty()));
+        assertThat(multipleDataSourceEventRepository.getLatestLinkedEvent(), is(empty()));
     }
 
     private void insertLinkedEvent(final LinkedEvent linkedEvent, final Connection connection) throws SQLException {

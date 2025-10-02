@@ -1,6 +1,7 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.event;
 
 import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
 
 import java.time.ZonedDateTime;
 import java.util.Objects;
@@ -20,7 +21,7 @@ public class LinkedEvent extends Event {
             final ZonedDateTime createdAt,
             final Long eventNumber,
             final Long previousEventNumber) {
-        super(id, streamId, positionInStream, name, metadata, payload, createdAt, of(eventNumber));
+        super(id, streamId, positionInStream, name, metadata, payload, createdAt, ofNullable(eventNumber));
         this.previousEventNumber = previousEventNumber;
     }
 

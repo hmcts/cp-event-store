@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static uk.gov.justice.services.core.postgres.OpenEjbConfigurationBuilder.createOpenEjbConfigurationBuilder;
 
 import uk.gov.justice.services.cdi.LoggerProducer;
+import uk.gov.justice.services.common.converter.StringToJsonObjectConverter;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.DummyEventQueueProcessingConfig;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.ConcurrentEventStreamConsumerManager;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.EventStreamsInProgressList;
@@ -15,9 +16,13 @@ import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task.ConsumeEventQueueTaskManager;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task.EventProcessingFailedHandler;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task.EventQueueConsumer;
+import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.task.LinkedEventMetadataUpdater;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.util.DummyCatchupEventProcessor;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.util.TestCatchupBean;
+import uk.gov.justice.services.eventsourcing.publishedevent.prepublish.MetadataEventNumberUpdater;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
+import uk.gov.justice.services.messaging.spi.DefaultEnvelopeProvider;
+import uk.gov.justice.services.messaging.spi.DefaultJsonEnvelopeProvider;
 import uk.gov.justice.services.test.utils.core.messaging.Poller;
 
 import java.util.Optional;
@@ -61,7 +66,12 @@ public class EventStreamCatchupIT {
             EventsInProcessCounterProvider.class,
             DummyEventQueueProcessingConfig.class,
             EventQueueConsumer.class,
-            DummyEventErrorHandlingConfiguration.class
+            DummyEventErrorHandlingConfiguration.class,
+            LinkedEventMetadataUpdater.class,
+            MetadataEventNumberUpdater.class,
+            StringToJsonObjectConverter.class,
+            DefaultEnvelopeProvider.class,
+            DefaultJsonEnvelopeProvider.class
     })
     public WebApp war() {
         return new WebApp()

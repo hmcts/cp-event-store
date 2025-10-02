@@ -16,7 +16,6 @@ import static org.mockito.Mockito.when;
 import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository;
 import uk.gov.justice.services.eventsourcing.publisher.jms.EventPublisher;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
@@ -36,29 +35,30 @@ public class LinkedEventPublisherTest {
     private EventPublisher eventPublisher;
 
     @Mock
-    private EventConverter eventConverter;
+    private EventPublishingRepository eventPublishingRepository;
 
     @Mock
-    private EventPublishingRepository eventPublishingRepository;
+    private LinkedJsonEnvelopeCreator linkedJsonEnvelopeCreator;
 
     @InjectMocks
     private LinkedEventPublisher linkedEventPublisher;
 
     @Test
-    public void shouldGetNextEventIdFromPublishQueueFetchEventFromEventLogAndPublish() throws Exception {
-
+    public void shouldGetEventIdFromPublishQueueFindTheEventInEventLogAddPreviousAndNextEventNumberToMetadataAndPublish() throws Exception {
         final UUID eventId = randomUUID();
+
         final LinkedEvent linkedEvent = mock(LinkedEvent.class);
-        final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
+        final JsonEnvelope linkedJsonEnvelope = mock(JsonEnvelope.class);
 
         when(eventPublishingRepository.getNextEventIdFromPublishQueue()).thenReturn(of(eventId));
         when(eventPublishingRepository.findEventFromEventLog(eventId)).thenReturn(of(linkedEvent));
-        when(eventConverter.envelopeOf(linkedEvent)).thenReturn(jsonEnvelope);
+        when(linkedJsonEnvelopeCreator.createLinkedJsonEnvelopeFrom(linkedEvent)).thenReturn(linkedJsonEnvelope);
 
         assertThat(linkedEventPublisher.publishNextNewEvent(), is(true));
 
         final InOrder inOrder = inOrder(eventPublisher, eventPublishingRepository);
-        inOrder.verify(eventPublisher).publish(jsonEnvelope);
+
+        inOrder.verify(eventPublisher).publish(linkedJsonEnvelope);
         inOrder.verify(eventPublishingRepository).removeFromPublishQueue(eventId);
     }
 

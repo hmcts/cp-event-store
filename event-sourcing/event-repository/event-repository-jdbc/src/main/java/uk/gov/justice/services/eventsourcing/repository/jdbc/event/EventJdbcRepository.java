@@ -54,13 +54,10 @@ public class EventJdbcRepository {
     static final String SQL_FIND_BY_ID = "SELECT stream_id, position_in_stream, name, payload, metadata, date_created FROM event_log WHERE id = ?";
     static final String SQL_FIND_BY_STREAM_ID = "SELECT * FROM event_log WHERE stream_id=? ORDER BY position_in_stream ASC";
     static final String SQL_FIND_BY_STREAM_ID_AND_POSITION = "SELECT * FROM event_log WHERE stream_id=? AND position_in_stream>=? ORDER BY position_in_stream ASC";
-    static final String SQL_FIND_ALL_ORDERED_BY_EVENT_NUMBER = "SELECT * FROM event_log ORDER BY event_number ASC";
     static final String SQL_FIND_BY_STREAM_ID_AND_POSITION_BY_PAGE = "SELECT * FROM event_log WHERE stream_id=? AND position_in_stream>=? ORDER BY position_in_stream ASC LIMIT ?";
     static final String SQL_FIND_LATEST_POSITION = "SELECT MAX(position_in_stream) FROM event_log WHERE stream_id=?";
     static final String SQL_DISTINCT_STREAM_ID = "SELECT DISTINCT stream_id FROM event_log";
     static final String SQL_DELETE_STREAM = "DELETE FROM event_log t WHERE t.stream_id=?";
-    static final String SQL_FIND_FROM_EVENT_NUMBER_WITH_PAGE = "SELECT * FROM event_log WHERE event_number>? ORDER BY event_number ASC LIMIT ?";
-    static final String SQL_MAX_EVENT_NUMBER_FROM_EVENT_LOG = "SELECT MAX(event_number) from event_log";
 
     /*
      * Error Messages
@@ -208,70 +205,6 @@ public class EventJdbcRepository {
         } catch (final SQLException e) {
             logger.error(FAILED_TO_READ_STREAM, streamId, e);
             throw new JdbcRepositoryException(format(READING_STREAM_EXCEPTION, streamId), e);
-        }
-    }
-
-    /**
-     * Returns a Stream of all events in the event_log table ordered by event_number.
-     *
-     * @return a Stream of all events ordered by event_number
-     */
-    public Stream<Event> findAllOrderedByEventNumber() {
-
-        final DataSource defaultDataSource = eventStoreDataSourceProvider.getDefaultDataSource();
-        try {
-            final PreparedStatementWrapper preparedStatementWrapper = preparedStatementWrapperFactory.preparedStatementWrapperOf(
-                    defaultDataSource,
-                    SQL_FIND_ALL_ORDERED_BY_EVENT_NUMBER);
-
-            return jdbcResultSetStreamer.streamOf(preparedStatementWrapper, asEvent());
-
-        } catch (final SQLException e) {
-            logger.error("Failed to get stream of events", e);
-            throw new JdbcRepositoryException("Failed to get stream of events", e);
-        }
-    }
-
-    /**
-     * Returns a Stream of Events from the given event number (exclusive) to the given page size.
-     * This method returns all events greater than eventNumber, limited by the page size.
-     *
-     * @param eventNumber - return all events greater than
-     * @param pageSize    - limit the page size of the returned result
-     * @return Stream of Event
-     */
-    public Stream<Event> findAllFromEventNumberUptoPageSize(final Long eventNumber, final Integer pageSize) {
-
-        final DataSource dataSource = eventStoreDataSourceProvider.getDefaultDataSource();
-
-        try {
-            final PreparedStatementWrapper preparedStatementWrapper = preparedStatementWrapperFactory.preparedStatementWrapperOf(dataSource, SQL_FIND_FROM_EVENT_NUMBER_WITH_PAGE);
-            preparedStatementWrapper.setLong(1, eventNumber);
-            preparedStatementWrapper.setInt(2, pageSize);
-
-            return jdbcResultSetStreamer.streamOf(preparedStatementWrapper, asEvent());
-        } catch (final SQLException e) {
-            logger.error(format("Failed to read events from event_log from event number : '%s' with page size : '%s'", eventNumber, pageSize), e);
-            throw new JdbcRepositoryException(format("Failed to read events from event_log from event number : '%s' with page size : '%s'", eventNumber, pageSize), e);
-        }
-    }
-
-    public long getMaximumEventNumber() {
-        final DataSource dataSource = eventStoreDataSourceProvider.getDefaultDataSource();
-
-        try (final PreparedStatementWrapper preparedStatementWrapper = preparedStatementWrapperFactory.preparedStatementWrapperOf(dataSource, SQL_MAX_EVENT_NUMBER_FROM_EVENT_LOG)) {
-
-            final ResultSet resultSet = preparedStatementWrapper.executeQuery();
-
-            if (resultSet.next()) {
-                return resultSet.getLong(1);
-            }
-
-            throw new JdbcRepositoryException("Failed to find maximum value of event_number in event_log");
-
-        } catch (final SQLException e) {
-            logger.error("Failed to find maximum value of event_number in event_log", e);
-            throw new JdbcRepositoryException("Failed to find maximum value of event_number in event_log", e);
         }
     }
 

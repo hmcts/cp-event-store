@@ -12,12 +12,23 @@ import java.sql.SQLException;
 
 public class EventInsertionStrategy {
 
-    static final String SQL_INSERT_EVENT = "INSERT INTO event_log (id, stream_id, position_in_stream, name, metadata, payload, date_created) " +
-                                           "VALUES(?, ?, ?, ?, ?, ?, ?)  ON CONFLICT DO NOTHING";
-
+    // 'is_published' is false by default so not inserted here
+    static final String INSERT_EVENT_INTO_EVENT_LOG_SQL = """
+               INSERT INTO
+               event_log (
+                    id,
+                    stream_id,
+                    position_in_stream,
+                    name,
+                    metadata,
+                    payload,
+                    date_created)
+               VALUES(?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT DO NOTHING
+               """;
 
     public String insertStatement() {
-        return SQL_INSERT_EVENT ;
+        return INSERT_EVENT_INTO_EVENT_LOG_SQL;
     }
 
     public void insert(final PreparedStatementWrapper ps, final Event event) throws SQLException, InvalidPositionException {

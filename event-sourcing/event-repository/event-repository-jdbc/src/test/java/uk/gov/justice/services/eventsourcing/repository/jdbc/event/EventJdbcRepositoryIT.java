@@ -1,5 +1,7 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.event;
 
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -18,6 +20,9 @@ import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
 import uk.gov.justice.services.test.utils.persistence.SettableEventStoreDataSourceProvider;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +31,7 @@ import java.util.stream.Stream;
 
 import javax.sql.DataSource;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -216,7 +222,7 @@ public class EventJdbcRepositoryIT {
         assertThat(streamIdList, hasItem(streamId2));
         assertThat(streamIdList, hasItem(streamId3));
     }
-    
+
     @Test
     public void shouldClearStream() throws InvalidPositionException {
 
@@ -240,5 +246,42 @@ public class EventJdbcRepositoryIT {
 
         final Long deletedStreamLatestSequenceId = jdbcRepository.getStreamSize(STREAM_ID);
         assertThat(deletedStreamLatestSequenceId, equalTo(0L));
+    }
+
+    @Test
+    public void shouldSetIsPublishedFlag() throws Exception {
+
+        final Event event = eventBuilder().withStreamId(STREAM_ID).withPositionInStream(1L).build();
+
+        jdbcRepository.insert(event);
+
+        // is_published false by default
+        assertThat(getIsPublishedFlag(event.getId()), is(of(false)));
+
+        jdbcRepository.setIsPublishedFlag(event.getId(), true);
+        assertThat(getIsPublishedFlag(event.getId()), is(of(true)));
+
+        jdbcRepository.setIsPublishedFlag(event.getId(), false);
+        assertThat(getIsPublishedFlag(event.getId()), is(of(false)));
+    }
+
+    private Optional<Boolean> getIsPublishedFlag(final UUID eventId) throws Exception {
+
+        final String sql = """
+                    SELECT is_published
+                    FROM event_log
+                    WHERE id = ?
+                """;
+        try (final Connection connection = dataSource.getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setObject(1, eventId);
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return of(resultSet.getBoolean("is_published"));
+                }
+            }
+        }
+
+        return empty();
     }
 }

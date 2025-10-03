@@ -15,6 +15,7 @@ import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepo
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventJdbcRepository;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
 import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;
@@ -47,6 +48,9 @@ public class SubscriptionEventProcessor {
 
     @Inject
     private StreamErrorRepository streamErrorRepository;
+
+    @Inject
+    private EventJdbcRepository eventJdbcRepository;
 
     @Inject
     private EventProcessingStatusCalculator eventProcessingStatusCalculator;
@@ -107,8 +111,8 @@ public class SubscriptionEventProcessor {
                     newStreamStatusRepository.setUpToDate(true, streamId, source, component);
                 }
 
+                eventJdbcRepository.setIsPublishedFlag(eventId, true);
                 eventProcessed.set(true);
-
                 micrometerMetricsCounters.incrementEventsSucceededCount(source, component);
             } else {
                 micrometerMetricsCounters.incrementEventsIgnoredCount(source, component);

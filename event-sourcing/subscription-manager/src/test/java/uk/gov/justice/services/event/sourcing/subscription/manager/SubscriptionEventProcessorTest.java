@@ -32,6 +32,7 @@ import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepo
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventJdbcRepository;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
 import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;
@@ -69,6 +70,9 @@ public class SubscriptionEventProcessorTest {
 
     @Mock
     private StreamErrorRepository streamErrorRepository;
+
+    @Mock
+    private EventJdbcRepository eventJdbcRepository;
 
     @Mock
     private EventProcessingStatusCalculator eventProcessingStatusCalculator;
@@ -130,6 +134,7 @@ public class SubscriptionEventProcessorTest {
                 newEventBufferRepository,
                 newStreamStatusRepository,
                 streamErrorRepository,
+                eventJdbcRepository,
                 transactionHandler,
                 micrometerMetricsCounters);
 
@@ -144,6 +149,7 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
+        inOrder.verify(eventJdbcRepository).setIsPublishedFlag(metadata.id(), true);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
 
@@ -153,7 +159,7 @@ public class SubscriptionEventProcessorTest {
     }
 
     @Test
-    public void shoulMarkStreamAsFixedIfPreviousErrorExistsOnThatStream() throws Exception {
+    public void shouldMarkStreamAsFixedIfPreviousErrorExistsOnThatStream() throws Exception {
 
         final UUID eventId = randomUUID();
         final UUID streamId = randomUUID();
@@ -194,6 +200,7 @@ public class SubscriptionEventProcessorTest {
                 newEventBufferRepository,
                 newStreamStatusRepository,
                 streamErrorRepository,
+                eventJdbcRepository,
                 transactionHandler,
                 micrometerMetricsCounters);
 
@@ -208,6 +215,7 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
+        inOrder.verify(eventJdbcRepository).setIsPublishedFlag(metadata.id(), true);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
 
@@ -259,6 +267,7 @@ public class SubscriptionEventProcessorTest {
                 newEventBufferRepository,
                 newStreamStatusRepository,
                 streamErrorRepository,
+                eventJdbcRepository,
                 transactionHandler,
                 micrometerMetricsCounters);
 
@@ -274,6 +283,7 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(streamErrorRepository).markStreamAsFixed(previousStreamErrorId, streamId, source, component);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
+        inOrder.verify(eventJdbcRepository).setIsPublishedFlag(metadata.id(), true);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
 
@@ -323,6 +333,7 @@ public class SubscriptionEventProcessorTest {
                 newEventBufferRepository,
                 newStreamStatusRepository,
                 streamErrorRepository,
+                eventJdbcRepository,
                 transactionHandler,
                 micrometerMetricsCounters);
 
@@ -336,6 +347,7 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
+        inOrder.verify(eventJdbcRepository).setIsPublishedFlag(metadata.id(), true);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
 
@@ -592,6 +604,7 @@ public class SubscriptionEventProcessorTest {
         verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newEventBufferRepository, never()).remove(streamId, source, component, eventPositionInStream);
         verify(transactionHandler, never()).commit(userTransaction);
+        verify(eventJdbcRepository, never()).setIsPublishedFlag(metadata.id(), true);
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
         verify(micrometerMetricsCounters, never()).incrementEventsIgnoredCount(source, component);
     }
@@ -631,6 +644,7 @@ public class SubscriptionEventProcessorTest {
         final InOrder inOrder = inOrder(
                 transactionHandler,
                 streamErrorStatusHandler,
+                eventJdbcRepository,
                 micrometerMetricsCounters);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
@@ -638,6 +652,7 @@ public class SubscriptionEventProcessorTest {
 
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
         verify(micrometerMetricsCounters, never()).incrementEventsIgnoredCount(source, component);
+        verify(eventJdbcRepository, never()).setIsPublishedFlag(metadata.id(), true);
         verify(streamErrorStatusHandler, never()).onStreamProcessingFailure(any(), any(), any(), any(), any());
         verifyNoInteractions(eventProcessingStatusCalculator, interceptorChainProcessorProducer, newEventBufferRepository);
     }
@@ -683,6 +698,7 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(transactionHandler).rollback(userTransaction);
         inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, source, component, streamUpdateContext);
 
+        verify(eventJdbcRepository, never()).setIsPublishedFlag(metadata.id(), true);
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
         verify(micrometerMetricsCounters, never()).incrementEventsIgnoredCount(source, component);
         verifyNoInteractions(interceptorChainProcessorProducer, newEventBufferRepository);

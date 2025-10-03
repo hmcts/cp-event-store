@@ -58,6 +58,11 @@ public class EventJdbcRepository {
     static final String SQL_FIND_LATEST_POSITION = "SELECT MAX(position_in_stream) FROM event_log WHERE stream_id=?";
     static final String SQL_DISTINCT_STREAM_ID = "SELECT DISTINCT stream_id FROM event_log";
     static final String SQL_DELETE_STREAM = "DELETE FROM event_log t WHERE t.stream_id=?";
+    static final String SQL_UPDATE_IS_PUBLISHED_FLAG = """
+            UPDATE event_log
+            SET is_published = ?
+            WHERE id = ?
+            """;
 
     /*
      * Error Messages
@@ -292,6 +297,19 @@ public class EventJdbcRepository {
             }
         } catch (final SQLException e) {
             throw new JdbcRepositoryException(format(DELETING_STREAM_EXCEPTION, streamId), e);
+        }
+    }
+
+    public void setIsPublishedFlag(final UUID eventId, final boolean isPublished) {
+
+        try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
+            final PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE_IS_PUBLISHED_FLAG)) {
+            preparedStatement.setBoolean(1, isPublished);
+            preparedStatement.setObject(2, eventId);
+            preparedStatement.executeUpdate();
+
+        } catch (final SQLException e) {
+            throw new JdbcRepositoryException(format("Failed to update 'is_published' on event_log for event id '%s'", eventId), e);
         }
     }
 

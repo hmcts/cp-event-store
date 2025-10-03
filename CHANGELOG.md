@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- 'is_published' flag on event_log now set to true once an event has been successfully published
 ### Removed
 - Removed `AnsiSQLEventInsertionStrategy` and `EventInsertionStrategyProducer`
 

@@ -6,10 +6,14 @@ import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.services.eventsourcing.eventpublishing.EventNumberLinker.ADVISORY_LOCK_KEY;
 
-import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventNumberSequenceDataAccess;
+import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.AdvisoryLockDataAccess;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess;
 
 import java.util.UUID;
@@ -28,7 +32,7 @@ public class EventNumberLinkerTest {
     private LinkEventsInEventLogDatabaseAccess linkEventsInEventLogDatabaseAccess;
 
     @Mock
-    private EventNumberSequenceDataAccess eventNumberSequenceDataAccess;
+    private AdvisoryLockDataAccess advisoryLockDataAccess;
 
     @InjectMocks
     private EventNumberLinker eventNumberLinker;
@@ -36,33 +40,41 @@ public class EventNumberLinkerTest {
     @Test
     public void shouldFindAndLinkNextAvailableUnlinkedEventAndLinkInEventLogTable() throws Exception {
 
-        final Long newEventNumber = 23L;
         final Long previousEventNumber = 22L;
+        final Long newEventNumber = previousEventNumber + 1;
         final UUID eventId = randomUUID();
 
-        when(eventNumberSequenceDataAccess.lockAndGetNextAvailableEventNumber()).thenReturn(newEventNumber);
+        when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)).thenReturn(true);
         when(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable()).thenReturn(previousEventNumber);
         when(linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink()).thenReturn(of(eventId));
 
         assertThat(eventNumberLinker.findAndAndLinkNextUnlinkedEvent(), is(true));
 
-        final InOrder inOrder = inOrder(linkEventsInEventLogDatabaseAccess, eventNumberSequenceDataAccess);
+        final InOrder inOrder = inOrder(linkEventsInEventLogDatabaseAccess, advisoryLockDataAccess);
+        inOrder.verify(advisoryLockDataAccess).tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).linkEvent(eventId, newEventNumber, previousEventNumber);
-        inOrder.verify(eventNumberSequenceDataAccess).updateNextAvailableEventNumberTo(newEventNumber + 1);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).insertLinkedEventIntoPublishQueue(eventId);
+    }
+
+    @Test
+    public void shouldDoNothingIfAdvisoryLockNotAvailable() throws Exception {
+
+        when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)).thenReturn(false);
+
+        assertThat(eventNumberLinker.findAndAndLinkNextUnlinkedEvent(), is(false));
+
+        verifyNoInteractions(linkEventsInEventLogDatabaseAccess);
     }
 
     @Test
     public void shouldDoNothingIfNoUnlinkedEventsFound() throws Exception {
 
-        final Long newEventNumber = 23L;
-        
-        when(eventNumberSequenceDataAccess.lockAndGetNextAvailableEventNumber()).thenReturn(newEventNumber);
+        when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)).thenReturn(true);
         when(linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink()).thenReturn(empty());
 
         assertThat(eventNumberLinker.findAndAndLinkNextUnlinkedEvent(), is(false));
 
         verifyNoMoreInteractions(linkEventsInEventLogDatabaseAccess);
-        verifyNoMoreInteractions(eventNumberSequenceDataAccess);
+        verifyNoMoreInteractions(advisoryLockDataAccess);
     }
 }

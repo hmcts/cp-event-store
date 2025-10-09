@@ -9,6 +9,7 @@ import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFac
 
 import javax.sql.DataSource;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,24 +17,28 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class EventNumberSequenceDataAccessIT {
+public class AdvisoryLockDataAccessIT {
 
     @Spy
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
 
     @InjectMocks
-    private EventNumberSequenceDataAccess eventNumberSequenceDataAccess;
+    private AdvisoryLockDataAccess advisoryLockDataAccess;
 
     @Test
-    public void shouldLockReadAndUpdateNextEventNumberSequence() throws Exception {
+    public void shouldObtainBlockingTransactionalLock() throws Exception {
 
-        final Long nextEventNumber = 23L;
         final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
 
-        eventNumberSequenceDataAccess.updateNextAvailableEventNumberTo(nextEventNumber);
-        assertThat(eventNumberSequenceDataAccess.lockAndGetNextAvailableEventNumber(), is(nextEventNumber));
-        eventNumberSequenceDataAccess.updateNextAvailableEventNumberTo(nextEventNumber + 1);
-        assertThat(eventNumberSequenceDataAccess.lockAndGetNextAvailableEventNumber(), is(nextEventNumber + 1));
+        advisoryLockDataAccess.obtainBlockingTransactionLevelAdvisoryLock(23L);
+    }
+
+    @Test
+    public void shouldTryToObtainNonBlockingTransactionalLock() throws Exception {
+        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+
+        assertThat(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(23L), is(true));
     }
 }

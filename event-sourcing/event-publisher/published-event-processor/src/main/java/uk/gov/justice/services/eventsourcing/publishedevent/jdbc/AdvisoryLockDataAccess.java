@@ -2,7 +2,6 @@ package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
 import static java.lang.String.format;
 import static javax.transaction.Transactional.TxType.MANDATORY;
-import static javax.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 

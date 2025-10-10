@@ -37,7 +37,7 @@ public class LinkedEventPublisher {
                 final JsonEnvelope linkedJsonEnvelope = linkedJsonEnvelopeCreator.createLinkedJsonEnvelopeFrom(linkedEvent.get());
                 eventPublisher.publish(linkedJsonEnvelope);
                 eventPublishingRepository.removeFromPublishQueue(eventId.get());
-
+                eventPublishingRepository.setIsPublishedFlag(eventId.get(), true);
                 return true;
                 
             } else {

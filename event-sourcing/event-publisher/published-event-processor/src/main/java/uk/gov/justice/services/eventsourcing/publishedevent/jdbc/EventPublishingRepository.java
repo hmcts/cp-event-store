@@ -21,12 +21,12 @@ import javax.inject.Inject;
 
 public class EventPublishingRepository {
 
-    @Inject
-    private EventStoreDataSourceProvider eventStoreDataSourceProvider;
-
-    public Optional<LinkedEvent> findEventFromEventLog(final UUID eventId) {
-
-        final String sql = """
+    static final String UPDATE_IS_PUBLISHED_FLAG_SQL = """
+            UPDATE event_log
+            SET is_published = ?
+            WHERE id = ?
+            """;
+    static final String FIND_EVENT_FROM_EVENT_LOG_SQL = """
                 SELECT
                     stream_id,
                     position_in_stream,
@@ -39,9 +39,24 @@ public class EventPublishingRepository {
                 FROM event_log
                 WHERE id = ?
                 """;
+    static final String GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL = """
+                SELECT event_log_id
+                FROM publish_queue
+                ORDER BY date_queued
+                FOR UPDATE SKIP LOCKED
+                LIMIT 1
+                """;
+    static final String DELETE_FROM_PUBLISH_QUEUE_SQL = """
+                DELETE FROM publish_queue where event_log_id = ?
+                """;
+
+    @Inject
+    private EventStoreDataSourceProvider eventStoreDataSourceProvider;
+
+    public Optional<LinkedEvent> findEventFromEventLog(final UUID eventId) {
 
         try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+             final PreparedStatement preparedStatement = connection.prepareStatement(FIND_EVENT_FROM_EVENT_LOG_SQL)) {
 
             preparedStatement.setObject(1, eventId);
 
@@ -82,16 +97,8 @@ public class EventPublishingRepository {
 
     public Optional<UUID> getNextEventIdFromPublishQueue() {
 
-        final String sql = """
-                SELECT event_log_id
-                FROM publish_queue
-                ORDER BY date_queued
-                FOR UPDATE SKIP LOCKED
-                LIMIT 1
-                """;
-
         try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql);
+             final PreparedStatement preparedStatement = connection.prepareStatement(GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL);
              final ResultSet resultSet = preparedStatement.executeQuery()) {
 
             if (resultSet.next()) {
@@ -100,7 +107,7 @@ public class EventPublishingRepository {
             }
 
         } catch (final SQLException e) {
-            throw new EventPublishingException("Failed to find event id in publish_queue table", e);
+            throw new EventPublishingException("Failed to find next event id from publish_queue table", e);
         }
 
         return empty();
@@ -108,16 +115,25 @@ public class EventPublishingRepository {
 
     public void removeFromPublishQueue(final UUID eventId) {
 
-        final String sql = """
-                DELETE FROM publish_queue where event_log_id = ?
-                """;
-
         try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+             final PreparedStatement preparedStatement = connection.prepareStatement(DELETE_FROM_PUBLISH_QUEUE_SQL)) {
             preparedStatement.setObject(1, eventId);
             preparedStatement.executeUpdate();
         } catch (final SQLException e) {
             throw new EventPublishingException(format("Failed to delete from publish_queue table. eventId: '%s'", eventId), e);
+        }
+    }
+
+    public void setIsPublishedFlag(final UUID eventId, final boolean isPublished) {
+
+        try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
+            final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_IS_PUBLISHED_FLAG_SQL)) {
+            preparedStatement.setBoolean(1, isPublished);
+            preparedStatement.setObject(2, eventId);
+            preparedStatement.executeUpdate();
+
+        } catch (final SQLException e) {
+            throw new EventPublishingException(format("Failed to update 'is_published' on event_log for event id '%s'", eventId), e);
         }
     }
 }

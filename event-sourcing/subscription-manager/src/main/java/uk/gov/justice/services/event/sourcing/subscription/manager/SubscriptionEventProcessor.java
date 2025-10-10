@@ -50,9 +50,6 @@ public class SubscriptionEventProcessor {
     private StreamErrorRepository streamErrorRepository;
 
     @Inject
-    private EventJdbcRepository eventJdbcRepository;
-
-    @Inject
     private EventProcessingStatusCalculator eventProcessingStatusCalculator;
 
     @Inject
@@ -111,7 +108,6 @@ public class SubscriptionEventProcessor {
                     newStreamStatusRepository.setUpToDate(true, streamId, source, component);
                 }
 
-                eventJdbcRepository.setIsPublishedFlag(eventId, true);
                 eventProcessed.set(true);
                 micrometerMetricsCounters.incrementEventsSucceededCount(source, component);
             } else {

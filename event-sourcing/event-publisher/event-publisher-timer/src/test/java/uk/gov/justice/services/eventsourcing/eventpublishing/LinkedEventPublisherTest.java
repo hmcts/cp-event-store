@@ -52,7 +52,7 @@ public class LinkedEventPublisherTest {
         final LinkedEvent linkedEvent = mock(LinkedEvent.class);
         final JsonEnvelope linkedJsonEnvelope = mock(JsonEnvelope.class);
 
-        when(eventPublishingRepository.getNextEventIdFromPublishQueue()).thenReturn(of(eventId));
+        when(eventPublishingRepository.popNextEventIdFromPublishQueue()).thenReturn(of(eventId));
         when(eventPublishingRepository.findEventFromEventLog(eventId)).thenReturn(of(linkedEvent));
         when(linkedJsonEnvelopeCreator.createLinkedJsonEnvelopeFrom(linkedEvent)).thenReturn(linkedJsonEnvelope);
 
@@ -61,14 +61,13 @@ public class LinkedEventPublisherTest {
         final InOrder inOrder = inOrder(eventPublisher, eventPublishingRepository);
 
         inOrder.verify(eventPublisher).publish(linkedJsonEnvelope);
-        inOrder.verify(eventPublishingRepository).removeFromPublishQueue(eventId);
         inOrder.verify(eventPublishingRepository).setIsPublishedFlag(eventId, true);
     }
 
     @Test
     public void shouldDoNothingIfNoEventIdsFoundInPublishQueue() throws Exception {
 
-        when(eventPublishingRepository.getNextEventIdFromPublishQueue()).thenReturn(empty());
+        when(eventPublishingRepository.popNextEventIdFromPublishQueue()).thenReturn(empty());
 
         assertThat(linkedEventPublisher.publishNextNewEvent(), is(false));
 
@@ -81,7 +80,7 @@ public class LinkedEventPublisherTest {
 
         final UUID eventId = fromString("933248cd-a5d4-417c-b28c-709ab009ab50");
 
-        when(eventPublishingRepository.getNextEventIdFromPublishQueue()).thenReturn(of(eventId));
+        when(eventPublishingRepository.popNextEventIdFromPublishQueue()).thenReturn(of(eventId));
         when(eventPublishingRepository.findEventFromEventLog(eventId)).thenReturn(empty());
 
         final EventPublishingException eventPublishingException = assertThrows(

@@ -78,7 +78,7 @@ public class EventPublishingRepositoryIT {
     }
 
     @Test
-    public void shouldGetNextEventIdFromPublishQueue() throws Exception {
+    public void shouldPopNextEventIdFromPublishQueue() throws Exception {
 
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
         final ZonedDateTime dateCreated_1 = new UtcClock().now().minusSeconds(60);
@@ -92,24 +92,21 @@ public class EventPublishingRepositoryIT {
         insertIntoPublishQueue(eventId_2, dateCreated_2);
         insertIntoPublishQueue(eventId_3, dateCreated_3);
 
-        final Optional<UUID> nextEventIdFromPublishQueue_1 = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        final Optional<UUID> nextEventIdFromPublishQueue_1 = eventPublishingRepository.popNextEventIdFromPublishQueue();
         assertThat(nextEventIdFromPublishQueue_1, is(of(eventId_1)));
-        eventPublishingRepository.removeFromPublishQueue(eventId_1);
 
-        final Optional<UUID> nextEventIdFromPublishQueue_2 = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        final Optional<UUID> nextEventIdFromPublishQueue_2 = eventPublishingRepository.popNextEventIdFromPublishQueue();
         assertThat(nextEventIdFromPublishQueue_2, is(of(eventId_2)));
-        eventPublishingRepository.removeFromPublishQueue(eventId_2);
 
-        final Optional<UUID> nextEventIdFromPublishQueue_3 = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        final Optional<UUID> nextEventIdFromPublishQueue_3 = eventPublishingRepository.popNextEventIdFromPublishQueue();
         assertThat(nextEventIdFromPublishQueue_3, is(of(eventId_3)));
-        eventPublishingRepository.removeFromPublishQueue(eventId_3);
     }
 
     @Test
     public void shouldReturnEmptyIfNoEvenIdsInPublishQueue() throws Exception {
 
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-        assertThat(eventPublishingRepository.getNextEventIdFromPublishQueue(), is(empty()));
+        assertThat(eventPublishingRepository.popNextEventIdFromPublishQueue(), is(empty()));
     }
 
     @Test
@@ -121,7 +118,7 @@ public class EventPublishingRepositoryIT {
         final UUID eventId = randomUUID();
         insertIntoPublishQueue(eventId, dateCreated);
 
-        final Optional<UUID> nextEventIdFromPublishQueue = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        final Optional<UUID> nextEventIdFromPublishQueue = eventPublishingRepository.popNextEventIdFromPublishQueue();
 
         if (nextEventIdFromPublishQueue.isPresent()) {
             assertThat(nextEventIdFromPublishQueue.get(), is(eventId));
@@ -129,9 +126,7 @@ public class EventPublishingRepositoryIT {
             fail();
         }
 
-        eventPublishingRepository.removeFromPublishQueue(eventId);
-
-        assertThat(eventPublishingRepository.getNextEventIdFromPublishQueue(), is(empty()));
+        assertThat(eventPublishingRepository.popNextEventIdFromPublishQueue(), is(empty()));
     }
 
     @Test

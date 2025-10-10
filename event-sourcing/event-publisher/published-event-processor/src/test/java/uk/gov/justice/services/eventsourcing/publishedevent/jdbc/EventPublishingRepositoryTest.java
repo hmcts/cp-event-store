@@ -15,7 +15,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.DELETE_FROM_PUBLISH_QUEUE_SQL;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.FIND_EVENT_FROM_EVENT_LOG_SQL;
-import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL;
+import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.REMOVE_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.UPDATE_IS_PUBLISHED_FLAG_SQL;
 
 import uk.gov.justice.services.common.util.UtcClock;
@@ -94,7 +94,7 @@ public class EventPublishingRepositoryTest {
             assertThat(linkedEvent.get().getCreatedAt(), is(createdAt));
             assertThat(linkedEvent.get().getEventNumber(), is(of(eventNumber)));
             assertThat(linkedEvent.get().getPreviousEventNumber(), is(previousEventNumber));
-        }   else {
+        } else {
             fail();
         }
 
@@ -170,7 +170,7 @@ public class EventPublishingRepositoryTest {
     }
 
     @Test
-    public void shouldGetNextEventIdFromPublishQueue() throws Exception {
+    public void shouldPopNextEventIdFromPublishQueue() throws Exception {
 
         final UUID eventId = randomUUID();
 
@@ -181,12 +181,12 @@ public class EventPublishingRepositoryTest {
 
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
         when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
+        when(connection.prepareStatement(REMOVE_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
         when(resultSet.getObject(1, UUID.class)).thenReturn(eventId);
 
-        assertThat(eventPublishingRepository.getNextEventIdFromPublishQueue(), is(of(eventId)));
+        assertThat(eventPublishingRepository.popNextEventIdFromPublishQueue(), is(of(eventId)));
 
         final InOrder inOrder = inOrder(preparedStatement, resultSet, connection);
 
@@ -206,11 +206,11 @@ public class EventPublishingRepositoryTest {
 
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
         when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
+        when(connection.prepareStatement(REMOVE_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(false);
 
-        assertThat(eventPublishingRepository.getNextEventIdFromPublishQueue(), is(empty()));
+        assertThat(eventPublishingRepository.popNextEventIdFromPublishQueue(), is(empty()));
 
         final InOrder inOrder = inOrder(preparedStatement, resultSet, connection);
 
@@ -232,12 +232,12 @@ public class EventPublishingRepositoryTest {
 
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
         when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
+        when(connection.prepareStatement(REMOVE_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenThrow(sqlException);
 
         final EventPublishingException eventPublishingException = assertThrows(
                 EventPublishingException.class,
-                () -> eventPublishingRepository.getNextEventIdFromPublishQueue());
+                () -> eventPublishingRepository.popNextEventIdFromPublishQueue());
 
         assertThat(eventPublishingException.getCause(), is(sqlException));
         assertThat(eventPublishingException.getMessage(), is("Failed to find next event id from publish_queue table"));
@@ -245,59 +245,6 @@ public class EventPublishingRepositoryTest {
         final InOrder inOrder = inOrder(preparedStatement, connection);
 
         inOrder.verify(preparedStatement).executeQuery();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
-    @Test
-    public void shouldRemoveEventIdFromPublishQueue() throws Exception {
-
-        final UUID eventId = randomUUID();
-
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(DELETE_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
-
-        eventPublishingRepository.removeFromPublishQueue(eventId);
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-
-        inOrder.verify(preparedStatement).setObject(1, eventId);
-        inOrder.verify(preparedStatement).executeUpdate();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
-    @Test
-    public void shouldThrowEventPublishingExceptionIfRemovingEventIdFromPublishQueueFails() throws Exception {
-
-        final UUID eventId = fromString("4c0a8e20-df30-4603-b64e-9598b21b7b13");
-
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-        final SQLException sqlException = new SQLException("Ooops");
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(DELETE_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
-        doThrow(sqlException).when(preparedStatement).executeUpdate();
-
-        final EventPublishingException eventPublishingException = assertThrows(
-                EventPublishingException.class,
-                () -> eventPublishingRepository.removeFromPublishQueue(eventId));
-
-        assertThat(eventPublishingException.getCause(), is(sqlException));
-        assertThat(eventPublishingException.getMessage(), is("Failed to delete from publish_queue table. eventId: '4c0a8e20-df30-4603-b64e-9598b21b7b13'"));
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-
-        inOrder.verify(preparedStatement).setObject(1, eventId);
-        inOrder.verify(preparedStatement).executeUpdate();
         inOrder.verify(preparedStatement).close();
         inOrder.verify(connection).close();
     }

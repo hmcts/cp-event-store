@@ -13,11 +13,11 @@ public class EventLinkingWorkerConfig {
     private String timerStartWaitMilliseconds;
 
     @Inject
-    @Value(key = "event.linking.worker.timer.interval.milliseconds", defaultValue = "500")
+    @Value(key = "event.linking.worker.timer.interval.milliseconds", defaultValue = "100")
     private String timerIntervalMilliseconds;
 
     @Inject
-    @Value(key = "event.linking.worker.time.between.runs.milliseconds", defaultValue = "100")
+    @Value(key = "event.linking.worker.time.between.runs.milliseconds", defaultValue = "5")
     private String timeBetweenRunsMilliseconds;
 
     public long getTimerStartWaitMilliseconds() {

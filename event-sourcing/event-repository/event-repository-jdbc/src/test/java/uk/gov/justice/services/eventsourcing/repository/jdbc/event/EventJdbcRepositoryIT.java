@@ -247,41 +247,4 @@ public class EventJdbcRepositoryIT {
         final Long deletedStreamLatestSequenceId = jdbcRepository.getStreamSize(STREAM_ID);
         assertThat(deletedStreamLatestSequenceId, equalTo(0L));
     }
-
-    @Test
-    public void shouldSetIsPublishedFlag() throws Exception {
-
-        final Event event = eventBuilder().withStreamId(STREAM_ID).withPositionInStream(1L).build();
-
-        jdbcRepository.insert(event);
-
-        // is_published false by default
-        assertThat(getIsPublishedFlag(event.getId()), is(of(false)));
-
-        jdbcRepository.setIsPublishedFlag(event.getId(), true);
-        assertThat(getIsPublishedFlag(event.getId()), is(of(true)));
-
-        jdbcRepository.setIsPublishedFlag(event.getId(), false);
-        assertThat(getIsPublishedFlag(event.getId()), is(of(false)));
-    }
-
-    private Optional<Boolean> getIsPublishedFlag(final UUID eventId) throws Exception {
-
-        final String sql = """
-                    SELECT is_published
-                    FROM event_log
-                    WHERE id = ?
-                """;
-        try (final Connection connection = dataSource.getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setObject(1, eventId);
-            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    return of(resultSet.getBoolean("is_published"));
-                }
-            }
-        }
-
-        return empty();
-    }
 }

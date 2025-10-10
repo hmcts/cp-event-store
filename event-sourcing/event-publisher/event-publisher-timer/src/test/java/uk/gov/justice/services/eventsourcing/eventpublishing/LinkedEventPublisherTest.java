@@ -9,6 +9,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -60,6 +62,7 @@ public class LinkedEventPublisherTest {
 
         inOrder.verify(eventPublisher).publish(linkedJsonEnvelope);
         inOrder.verify(eventPublishingRepository).removeFromPublishQueue(eventId);
+        inOrder.verify(eventPublishingRepository).setIsPublishedFlag(eventId, true);
     }
 
     @Test
@@ -86,5 +89,7 @@ public class LinkedEventPublisherTest {
                 () -> linkedEventPublisher.publishNextNewEvent());
 
         assertThat(eventPublishingException.getMessage(), is("Failed to find LinkedEvent in event_log with id '933248cd-a5d4-417c-b28c-709ab009ab50' when id exists in publish_queue table"));
+
+        verify(eventPublishingRepository, never()).setIsPublishedFlag(eventId, true);
     }
 }

@@ -2,30 +2,40 @@ package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
+import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.DELETE_FROM_PUBLISH_QUEUE_SQL;
+import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.FIND_EVENT_FROM_EVENT_LOG_SQL;
+import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL;
+import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.UPDATE_IS_PUBLISHED_FLAG_SQL;
 
 import uk.gov.justice.services.common.util.UtcClock;
+import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
-import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
-import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,151 +43,317 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class EventPublishingRepositoryTest {
 
-    private final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
-
     @Mock
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
 
     @InjectMocks
     private EventPublishingRepository eventPublishingRepository;
 
-    @BeforeEach
-    public void initDatabase() throws Exception {
-        new DatabaseCleaner().cleanEventStoreTables("framework");
+    @Test
+    public void shouldFindEventInEventLogTable() throws Exception {
+
+        final UUID eventId = randomUUID();
+        final UUID streamId = randomUUID();
+        final long positionInStream = 23L;
+        final String name = "some-event-name";
+        final String metadata = "some-event-metadata";
+        final String payload = "some-event-payload";
+        final ZonedDateTime createdAt = new UtcClock().now();
+        final long eventNumber = 42L;
+        final long previousEventNumber = 41L;
+
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(FIND_EVENT_FROM_EVENT_LOG_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(true);
+
+        when(resultSet.getObject("stream_id", UUID.class)).thenReturn(streamId);
+        when(resultSet.getLong("position_in_stream")).thenReturn(positionInStream);
+        when(resultSet.getString("name")).thenReturn(name);
+        when(resultSet.getString("metadata")).thenReturn(metadata);
+        when(resultSet.getString("payload")).thenReturn(payload);
+        when(resultSet.getTimestamp("date_created")).thenReturn(toSqlTimestamp(createdAt));
+        when(resultSet.getLong("event_number")).thenReturn(eventNumber);
+        when(resultSet.getLong("previous_event_number")).thenReturn(previousEventNumber);
+
+        final Optional<LinkedEvent> linkedEvent = eventPublishingRepository.findEventFromEventLog(eventId);
+
+        if (linkedEvent.isPresent()) {
+            assertThat(linkedEvent.get().getId(), is(eventId));
+            assertThat(linkedEvent.get().getStreamId(), is(streamId));
+            assertThat(linkedEvent.get().getPositionInStream(), is(positionInStream));
+            assertThat(linkedEvent.get().getName(), is(name));
+            assertThat(linkedEvent.get().getMetadata(), is(metadata));
+            assertThat(linkedEvent.get().getPayload(), is(payload));
+            assertThat(linkedEvent.get().getCreatedAt(), is(createdAt));
+            assertThat(linkedEvent.get().getEventNumber(), is(of(eventNumber)));
+            assertThat(linkedEvent.get().getPreviousEventNumber(), is(previousEventNumber));
+        }   else {
+            fail();
+        }
+
+        final InOrder inOrder = inOrder(preparedStatement, resultSet, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, eventId);
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(resultSet).next();
+        inOrder.verify(resultSet).close();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
     }
 
     @Test
-    public void shouldGetLinkedEventFromEventLogTable() throws Exception {
+    public void shouldReturnEmptyIfNoEventFoundInEventLogTable() throws Exception {
 
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+        final UUID eventId = randomUUID();
 
-        final UUID eventId_1 = randomUUID();
-        final UUID eventId_2 = randomUUID();
-        final UUID eventId_3 = randomUUID();
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
 
-        final UUID streamId = randomUUID();
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(FIND_EVENT_FROM_EVENT_LOG_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(false);
 
-        insertEvent(eventId_1, streamId, 1);
-        insertEvent(eventId_2, streamId, 2);
-        insertEvent(eventId_3, streamId, 3);
+        final Optional<LinkedEvent> linkedEvent = eventPublishingRepository.findEventFromEventLog(eventId);
 
-        final Optional<LinkedEvent> publishedEvent = eventPublishingRepository.findEventFromEventLog(eventId_2);
+        assertThat(linkedEvent.isPresent(), is(false));
 
-        if (publishedEvent.isPresent()) {
-            assertThat(publishedEvent.get().getId(), is(eventId_2));
-            assertThat(publishedEvent.get().getStreamId(), is(streamId));
-            assertThat(publishedEvent.get().getPositionInStream(), is(2L));
-            assertThat(publishedEvent.get().getPayload(), is("some-payload-2"));
-            assertThat(publishedEvent.get().getMetadata(), is("some-metadata-2"));
-            assertThat(publishedEvent.get().getEventNumber(), is(of(2L)));
-            assertThat(publishedEvent.get().getPreviousEventNumber(), is(1L));
-        } else {
-            fail();
-        }
+        final InOrder inOrder = inOrder(preparedStatement, resultSet, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, eventId);
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(resultSet).next();
+        inOrder.verify(resultSet).close();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldThrowEventPublishingExceptionIfFindingEventInEventLogTableFails() throws Exception {
+
+        final UUID eventId = fromString("c3e788ef-ba19-4024-9535-53c755f17756");
+        final SQLException sqlException = new SQLException("Ooops");
+
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(FIND_EVENT_FROM_EVENT_LOG_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenThrow(sqlException);
+
+        final EventPublishingException eventPublishingException = assertThrows(
+                EventPublishingException.class,
+                () -> eventPublishingRepository.findEventFromEventLog(eventId));
+
+        assertThat(eventPublishingException.getCause(), is(sqlException));
+        assertThat(eventPublishingException.getMessage(), is("Failed to find event in event_log with id 'c3e788ef-ba19-4024-9535-53c755f17756'"));
+
+        final InOrder inOrder = inOrder(preparedStatement, resultSet, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, eventId);
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
     }
 
     @Test
     public void shouldGetNextEventIdFromPublishQueue() throws Exception {
 
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-        final ZonedDateTime dateCreated_1 = new UtcClock().now().minusSeconds(60);
-        final ZonedDateTime dateCreated_2 = new UtcClock().now().minusSeconds(30);
-        final ZonedDateTime dateCreated_3 = new UtcClock().now().minusSeconds(15);
-        final UUID eventId_1 = randomUUID();
-        final UUID eventId_2 = randomUUID();
-        final UUID eventId_3 = randomUUID();
+        final UUID eventId = randomUUID();
 
-        insertIntoPublishQueue(eventId_1, dateCreated_1);
-        insertIntoPublishQueue(eventId_2, dateCreated_2);
-        insertIntoPublishQueue(eventId_3, dateCreated_3);
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
 
-        final Optional<UUID> nextEventIdFromPublishQueue_1 = eventPublishingRepository.getNextEventIdFromPublishQueue();
-        assertThat(nextEventIdFromPublishQueue_1, is(of(eventId_1)));
-        eventPublishingRepository.removeFromPublishQueue(eventId_1);
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(true);
+        when(resultSet.getObject(1, UUID.class)).thenReturn(eventId);
 
-        final Optional<UUID> nextEventIdFromPublishQueue_2 = eventPublishingRepository.getNextEventIdFromPublishQueue();
-        assertThat(nextEventIdFromPublishQueue_2, is(of(eventId_2)));
-        eventPublishingRepository.removeFromPublishQueue(eventId_2);
+        assertThat(eventPublishingRepository.getNextEventIdFromPublishQueue(), is(of(eventId)));
 
-        final Optional<UUID> nextEventIdFromPublishQueue_3 = eventPublishingRepository.getNextEventIdFromPublishQueue();
-        assertThat(nextEventIdFromPublishQueue_3, is(of(eventId_3)));
-        eventPublishingRepository.removeFromPublishQueue(eventId_3);
+        final InOrder inOrder = inOrder(preparedStatement, resultSet, connection);
+
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(resultSet).close();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
     }
 
     @Test
-    public void shouldReturnEmptyIfNoEvenIdsInPublishQueue() throws Exception {
+    public void shouldReturnEmptyIfNoNextEventIdFoundInPublishQueue() throws Exception {
 
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(false);
+
         assertThat(eventPublishingRepository.getNextEventIdFromPublishQueue(), is(empty()));
+
+        final InOrder inOrder = inOrder(preparedStatement, resultSet, connection);
+
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(resultSet).close();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
     }
 
     @Test
-    public void shouldDeleteEventIdFromPublishQueue() throws Exception {
-
-        final ZonedDateTime dateCreated = new UtcClock().now();
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+    public void shouldThrowEventPublishingExceptionIfGettingNextEventIdFromPublishQueueFails() throws Exception {
 
         final UUID eventId = randomUUID();
-        insertIntoPublishQueue(eventId, dateCreated);
 
-        final Optional<UUID> nextEventIdFromPublishQueue = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final SQLException sqlException = new SQLException("Ooops");
 
-        if (nextEventIdFromPublishQueue.isPresent()) {
-            assertThat(nextEventIdFromPublishQueue.get(), is(eventId));
-        } else {
-            fail();
-        }
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenThrow(sqlException);
+
+        final EventPublishingException eventPublishingException = assertThrows(
+                EventPublishingException.class,
+                () -> eventPublishingRepository.getNextEventIdFromPublishQueue());
+
+        assertThat(eventPublishingException.getCause(), is(sqlException));
+        assertThat(eventPublishingException.getMessage(), is("Failed to find next event id from publish_queue table"));
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldRemoveEventIdFromPublishQueue() throws Exception {
+
+        final UUID eventId = randomUUID();
+
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(DELETE_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
 
         eventPublishingRepository.removeFromPublishQueue(eventId);
 
-        assertThat(eventPublishingRepository.getNextEventIdFromPublishQueue(), is(empty()));
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, eventId);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
     }
 
-    private void insertEvent(final UUID eventId, final UUID streamId, final int eventNumber) throws Exception {
+    @Test
+    public void shouldThrowEventPublishingExceptionIfRemovingEventIdFromPublishQueueFails() throws Exception {
 
-        final String sql = """
-                INSERT INTO event_log (
-                    id,
-                    stream_id,
-                    position_in_stream,
-                    name,
-                    payload,
-                    metadata,
-                    date_created,
-                    event_number,
-                    previous_event_number)
-                VALUES (?, ?, ?, ?,  ?, ?, ?, ?, ?)
-                """;
+        final UUID eventId = fromString("4c0a8e20-df30-4603-b64e-9598b21b7b13");
 
-        try (final Connection connection = eventStoreDataSource.getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final SQLException sqlException = new SQLException("Ooops");
 
-            preparedStatement.setObject(1, eventId);
-            preparedStatement.setObject(2, streamId);
-            preparedStatement.setLong(3, eventNumber);
-            preparedStatement.setString(4, "some-name-" + eventNumber);
-            preparedStatement.setString(5, "some-payload-" + eventNumber);
-            preparedStatement.setString(6, "some-metadata-" + eventNumber);
-            preparedStatement.setTimestamp(7, toSqlTimestamp(new UtcClock().now()));
-            preparedStatement.setLong(8, eventNumber);
-            preparedStatement.setLong(9, eventNumber - 1);
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(DELETE_FROM_PUBLISH_QUEUE_SQL)).thenReturn(preparedStatement);
+        doThrow(sqlException).when(preparedStatement).executeUpdate();
 
-            preparedStatement.execute();
-        }
+        final EventPublishingException eventPublishingException = assertThrows(
+                EventPublishingException.class,
+                () -> eventPublishingRepository.removeFromPublishQueue(eventId));
+
+        assertThat(eventPublishingException.getCause(), is(sqlException));
+        assertThat(eventPublishingException.getMessage(), is("Failed to delete from publish_queue table. eventId: '4c0a8e20-df30-4603-b64e-9598b21b7b13'"));
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, eventId);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
     }
 
-    private void insertIntoPublishQueue(final UUID eventId, final ZonedDateTime dateCreated) throws Exception {
+    @Test
+    public void shouldSetIsPublishedFlag() throws Exception {
 
-        final String sql = """
-                INSERT INTO publish_queue (event_log_id, date_queued)
-                VALUES (?, ?)
-                """;
-        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setObject(1, eventId);
-            preparedStatement.setTimestamp(2, toSqlTimestamp(new UtcClock().now()));
+        final UUID eventId = randomUUID();
+        final boolean isPublished = true;
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
-            preparedStatement.execute();
-        }
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(UPDATE_IS_PUBLISHED_FLAG_SQL)).thenReturn(preparedStatement);
+
+        eventPublishingRepository.setIsPublishedFlag(eventId, isPublished);
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setBoolean(1, isPublished);
+        inOrder.verify(preparedStatement).setObject(2, eventId);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldThrowEventPublishingExceptionIfSettingIsPublishedFlagFails() throws Exception {
+
+        final UUID eventId = fromString("1061c9ae-8f83-4d90-8f46-232127390e6a");
+        final boolean isPublished = true;
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final SQLException sqlException = new SQLException("Ooops");
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(UPDATE_IS_PUBLISHED_FLAG_SQL)).thenReturn(preparedStatement);
+        doThrow(sqlException).when(preparedStatement).executeUpdate();
+
+        final EventPublishingException eventPublishingException = assertThrows(
+                EventPublishingException.class,
+                () -> eventPublishingRepository.setIsPublishedFlag(eventId, isPublished));
+
+        assertThat(eventPublishingException.getCause(), is(sqlException));
+        assertThat(eventPublishingException.getMessage(), is("Failed to update 'is_published' on event_log for event id '1061c9ae-8f83-4d90-8f46-232127390e6a'"));
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setBoolean(1, isPublished);
+        inOrder.verify(preparedStatement).setObject(2, eventId);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
     }
 }

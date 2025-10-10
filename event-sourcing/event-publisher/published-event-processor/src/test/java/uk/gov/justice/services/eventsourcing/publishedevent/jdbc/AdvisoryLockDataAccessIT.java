@@ -9,7 +9,6 @@ import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFac
 
 import javax.sql.DataSource;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

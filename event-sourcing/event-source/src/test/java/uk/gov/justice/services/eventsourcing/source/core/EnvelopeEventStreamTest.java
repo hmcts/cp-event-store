@@ -3,7 +3,6 @@ package uk.gov.justice.services.eventsourcing.source.core;
 
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
-import static javax.json.Json.createObjectBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -14,6 +13,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
+import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
 
 import uk.gov.justice.services.eventsourcing.source.core.exception.EventStreamException;
 import uk.gov.justice.services.messaging.JsonEnvelope;
@@ -229,7 +229,7 @@ public class EnvelopeEventStreamTest {
                         .withId(randomUUID())
                         .withName("name")
                         .withStreamId(randomUUID()),
-                createObjectBuilder());
+                jsonBuilderFactory.createObjectBuilder());
     }
 
     private JsonEnvelope jsonEnvelopeWithVersion(final long version) {
@@ -239,6 +239,6 @@ public class EnvelopeEventStreamTest {
                         .withName("name")
                         .withStreamId(randomUUID())
                         .withVersion(version),
-                createObjectBuilder());
+                jsonBuilderFactory.createObjectBuilder());
     }
 }

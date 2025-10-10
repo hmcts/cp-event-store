@@ -1,7 +1,6 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.event;
 
 import static java.time.ZoneOffset.UTC;
-import static javax.json.Json.createObjectBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -9,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.skyscreamer.jsonassert.JSONAssert.assertEquals;
 import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
+import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
 
 import uk.gov.justice.services.common.converter.StringToJsonObjectConverter;
 import uk.gov.justice.services.common.converter.ZonedDateTimes;
@@ -64,7 +64,7 @@ public class EventConverterTest {
                         .withStreamId(STREAM_ID)
                         .withVersion(SEQUENCE_ID)
                         .createdAt(clock.now()),
-                createObjectBuilder().add(PAYLOAD_FIELD_NAME, PAYLOAD_FIELD_VALUE));
+                jsonBuilderFactory.createObjectBuilder().add(PAYLOAD_FIELD_NAME, PAYLOAD_FIELD_VALUE));
         Event event = eventConverter.eventOf(envelope);
 
         assertThat(event.getId(), equalTo(ID));
@@ -78,12 +78,12 @@ public class EventConverterTest {
 
     @Test
     public void shouldThrowExceptionOnNullStreamId() throws Exception {
-        assertThrows(InvalidStreamIdException.class, () -> eventConverter.eventOf(envelopeFrom(metadataBuilder().withId(ID).withName(NAME), createObjectBuilder())));
+        assertThrows(InvalidStreamIdException.class, () -> eventConverter.eventOf(envelopeFrom(metadataBuilder().withId(ID).withName(NAME), jsonBuilderFactory.createObjectBuilder())));
     }
 
     @Test
     public void shouldThrowExceptionOnMissingCreatedAt() throws Exception {
-        assertThrows(IllegalArgumentException.class, () -> eventConverter.eventOf((envelopeFrom(metadataBuilder().withId(ID).withName(NAME).withStreamId(STREAM_ID), createObjectBuilder()))));
+        assertThrows(IllegalArgumentException.class, () -> eventConverter.eventOf((envelopeFrom(metadataBuilder().withId(ID).withName(NAME).withStreamId(STREAM_ID), jsonBuilderFactory.createObjectBuilder()))));
     }
 
     @Test

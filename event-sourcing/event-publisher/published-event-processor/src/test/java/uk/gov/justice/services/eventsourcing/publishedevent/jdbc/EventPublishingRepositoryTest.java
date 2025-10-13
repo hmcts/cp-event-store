@@ -13,7 +13,6 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
-import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.DELETE_FROM_PUBLISH_QUEUE_SQL;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.FIND_EVENT_FROM_EVENT_LOG_SQL;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.REMOVE_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository.UPDATE_IS_PUBLISHED_FLAG_SQL;

@@ -29,17 +29,15 @@ public class LinkedEventPublisher {
     @Transactional(REQUIRES_NEW)
     public boolean publishNextNewEvent() {
 
-        final Optional<UUID> eventId = eventPublishingRepository.getNextEventIdFromPublishQueue();
+        final Optional<UUID> eventId = eventPublishingRepository.popNextEventIdFromPublishQueue();
         if (eventId.isPresent()) {
             final Optional<LinkedEvent> linkedEvent = eventPublishingRepository.findEventFromEventLog(eventId.get());
 
             if (linkedEvent.isPresent()) {
                 final JsonEnvelope linkedJsonEnvelope = linkedJsonEnvelopeCreator.createLinkedJsonEnvelopeFrom(linkedEvent.get());
                 eventPublisher.publish(linkedJsonEnvelope);
-                eventPublishingRepository.removeFromPublishQueue(eventId.get());
                 eventPublishingRepository.setIsPublishedFlag(eventId.get(), true);
                 return true;
-                
             } else {
                 throw new EventPublishingException(format("Failed to find LinkedEvent in event_log with id '%s' when id exists in publish_queue table", eventId.get()));
             }

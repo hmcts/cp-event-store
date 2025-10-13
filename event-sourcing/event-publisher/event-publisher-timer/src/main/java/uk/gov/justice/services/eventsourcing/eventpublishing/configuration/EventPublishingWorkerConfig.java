@@ -15,11 +15,11 @@ public class EventPublishingWorkerConfig {
     private String timerStartWaitMilliseconds;
 
     @Inject
-    @Value(key = "event.publishing.worker.timer.interval.milliseconds", defaultValue = "500")
+    @Value(key = "event.publishing.worker.timer.interval.milliseconds", defaultValue = "100")
     private String timerIntervalMilliseconds;
 
     @Inject
-    @Value(key = "event.publishing.worker.time.between.runs.milliseconds", defaultValue = "100")
+    @Value(key = "event.publishing.worker.time.between.runs.milliseconds", defaultValue = "5")
     private String timeBetweenRunsMilliseconds;
 
     public long getTimerStartWaitMilliseconds() {

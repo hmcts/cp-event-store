@@ -39,12 +39,16 @@ public class EventPublishingRepository {
                 FROM event_log
                 WHERE id = ?
                 """;
-    static final String GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL = """
-                SELECT event_log_id
-                FROM publish_queue
-                ORDER BY date_queued
-                FOR UPDATE SKIP LOCKED
-                LIMIT 1
+    static final String REMOVE_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL = """
+                DELETE FROM publish_queue
+                WHERE event_log_id = (
+                    SELECT event_log_id
+                    FROM publish_queue
+                    ORDER BY date_queued
+                    LIMIT 1
+                    FOR UPDATE SKIP LOCKED
+                )
+                RETURNING event_log_id
                 """;
     static final String DELETE_FROM_PUBLISH_QUEUE_SQL = """
                 DELETE FROM publish_queue where event_log_id = ?
@@ -95,10 +99,10 @@ public class EventPublishingRepository {
         return empty();
     }
 
-    public Optional<UUID> getNextEventIdFromPublishQueue() {
+    public Optional<UUID> popNextEventIdFromPublishQueue() {
 
         try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(GET_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL);
+             final PreparedStatement preparedStatement = connection.prepareStatement(REMOVE_NEXT_EVENT_ID_FROM_PUBLISH_QUEUE_SQL);
              final ResultSet resultSet = preparedStatement.executeQuery()) {
 
             if (resultSet.next()) {
@@ -111,17 +115,6 @@ public class EventPublishingRepository {
         }
 
         return empty();
-    }
-
-    public void removeFromPublishQueue(final UUID eventId) {
-
-        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(DELETE_FROM_PUBLISH_QUEUE_SQL)) {
-            preparedStatement.setObject(1, eventId);
-            preparedStatement.executeUpdate();
-        } catch (final SQLException e) {
-            throw new EventPublishingException(format("Failed to delete from publish_queue table. eventId: '%s'", eventId), e);
-        }
     }
 
     public void setIsPublishedFlag(final UUID eventId, final boolean isPublished) {

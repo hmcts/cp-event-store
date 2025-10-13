@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- Used JsonFactory instead of Json.create methods
 
 # [17.103.6-M2] - 2025-11-11
 - Update to framework 17.103.1-M1 for:
@@ -24,6 +26,12 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
   to work with MI contexts
 
 # [17.103.2] - 2025-09-11
+### Changed
+- Add limit 1 to ERRORS_EXIST_FOR_HASH_SQL
+- Temporarily disable coveralls whilst its site is down
+- TagProvider now uses `EventSourceNameCalculator` to calculate `source` so it will align with `stream_status.source`.
+
+# [17.103.1-M6] - 2025-08-14
 ### Changed
 - Add limit 1 to ERRORS_EXIST_FOR_HASH_SQL
 - Temporarily disable coveralls whilst its site is down

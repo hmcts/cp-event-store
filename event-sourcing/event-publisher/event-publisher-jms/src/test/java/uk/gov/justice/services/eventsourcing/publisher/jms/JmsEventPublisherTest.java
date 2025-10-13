@@ -1,10 +1,10 @@
 package uk.gov.justice.services.eventsourcing.publisher.jms;
 
 import static java.util.UUID.randomUUID;
-import static javax.json.Json.createObjectBuilder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
+import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
 
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.jms.JmsEnvelopeSender;
@@ -42,7 +42,7 @@ public class JmsEventPublisherTest {
                 metadataBuilder()
                         .withName(EVENT_NAME)
                         .withId(randomUUID()),
-                createObjectBuilder().build()
+                jsonBuilderFactory.createObjectBuilder().build()
         );
 
         when(eventDestinationResolver.destinationNameOf(EVENT_NAME)).thenReturn(DESTINATION_NAME);

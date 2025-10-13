@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.104.0-M5] - 2025-10-13
 ### Changed
 - use popNextEventIdFromPublishQueue to pop event number from publish_queue table
 - Used JsonFactory instead of Json.create methods as per https://github.com/jakartaee/jsonp-api/issues/154

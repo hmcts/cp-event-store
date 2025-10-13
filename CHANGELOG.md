@@ -5,6 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 ### Changed
+- use popNextEventIdFromPublishQueue to pop event number from publish_queue table
 - Used JsonFactory instead of Json.create methods as per https://github.com/jakartaee/jsonp-api/issues/154
 - 'is_published' flag on event_log now set to true once an event has been successfully published
 ### Removed

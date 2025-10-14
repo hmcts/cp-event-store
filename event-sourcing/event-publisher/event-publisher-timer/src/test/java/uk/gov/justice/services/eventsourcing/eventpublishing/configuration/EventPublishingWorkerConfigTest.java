@@ -44,4 +44,14 @@ public class EventPublishingWorkerConfigTest {
 
         assertThat(eventPublishingWorkerConfig.getTimeBetweenRunsMilliseconds(), is(milliseconds));
     }
+
+    @Test
+    public void shouldGetPublishEventToPublishedEventTable() throws Exception {
+
+        assertThat(eventPublishingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable(), is(false));
+
+        setField(eventPublishingWorkerConfig, "insertEventIntoPublishedEventTable", "true");
+
+        assertThat(eventPublishingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable(), is(true));
+    }
 }

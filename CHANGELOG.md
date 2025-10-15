@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.104.0-M6] - 2025-10-15
 ### Added
 - Event publishing now also saves events into deprecated published_event table for compatibility with previous event publishing
 - New JNDI value `event.publishing.add.event.to.published.event.table.on.publish` to control whether event is also inserted into published_event table. This value is true by default.

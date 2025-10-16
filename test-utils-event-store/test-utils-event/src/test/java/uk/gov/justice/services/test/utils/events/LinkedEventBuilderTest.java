@@ -3,7 +3,7 @@ package uk.gov.justice.services.test.utils.events;
 import static java.util.UUID.fromString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static uk.gov.justice.services.test.utils.events.LinkedEventBuilder.publishedEventBuilder;
+import static uk.gov.justice.services.test.utils.events.LinkedEventBuilder.linkedEventBuilder;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -35,7 +35,7 @@ public class LinkedEventBuilderTest {
                         "\"id\":\"ca530ced-b905-43b4-ab77-196bb2b8273b\"," +
                         "\"source\":\"EVENT_LISTENER\"}";
 
-        final LinkedEvent linkedEvent = publishedEventBuilder()
+        final LinkedEvent linkedEvent = linkedEventBuilder()
                 .withId(eventId)
                 .withName(eventName)
                 .withStreamId(streamId)
@@ -73,7 +73,7 @@ public class LinkedEventBuilderTest {
         final String payload = "payload";
         final String metadata = "metadata";
 
-        final LinkedEvent linkedEvent = publishedEventBuilder()
+        final LinkedEvent linkedEvent = linkedEventBuilder()
                 .withId(eventId)
                 .withName(eventName)
                 .withStreamId(streamId)

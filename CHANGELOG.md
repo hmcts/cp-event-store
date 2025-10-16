@@ -4,6 +4,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+- Catchup now calculates previousEventNumber for each event from the previous row in 
+    the event_log table rather than the previous_event_number column.
+    This is to allow catchup to run with the new publishing where the previous_event_number
+    has not yet been migrated and inserted 
 
 # [17.104.0-M6] - 2025-10-15
 ### Added

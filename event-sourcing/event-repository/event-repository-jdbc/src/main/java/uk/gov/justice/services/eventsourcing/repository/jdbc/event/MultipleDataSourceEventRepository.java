@@ -26,14 +26,34 @@ import javax.sql.DataSource;
 public class MultipleDataSourceEventRepository {
 
     private static final String SQL_FIND_ALL_SINCE = "SELECT * FROM event_log WHERE event_number > ? ORDER BY event_number ASC";
-    private static final String SQL_FIND_RANGE = "SELECT * FROM event_log WHERE event_number >= ? AND event_number < ? ORDER BY event_number ASC";
     private static final String SQL_FIND_BY_ID = "SELECT * FROM event_log WHERE id = ?";
     private static final String SQL_FIND_LATEST_LINKED_EVENT = """
-        SELECT id, stream_id, position_in_stream, name, payload, metadata, date_created, event_number, previous_event_number 
-        FROM event_log 
-        ORDER BY event_number DESC 
-        LIMIT 1""";
-
+            SELECT id, stream_id, position_in_stream, name, payload, metadata, date_created, event_number, previous_event_number 
+            FROM event_log 
+            ORDER BY event_number DESC 
+            LIMIT 1""";
+    private static final String SQL_FIND_RANGE = """
+                SELECT
+                    e.id,
+                    e.stream_id,
+                    e.position_in_stream,
+                    e.name,
+                    e.payload,
+                    e.metadata,
+                    e.date_created,
+                    e.event_number,
+                    COALESCE(
+                        previous_event_number,
+                        LAG(e.event_number) OVER (ORDER BY e.event_number),
+                        (SELECT MAX(event_number)
+                            FROM event_log
+                            WHERE event_number < ?)
+                        ) AS previous_event_number
+                FROM event_log e
+                WHERE e.event_number >= ?
+                AND e.event_number < ?
+                ORDER BY e.event_number;
+                """;
 
     private static final String ID = "id";
     private static final String STREAM_ID = "stream_id";
@@ -87,10 +107,13 @@ public class MultipleDataSourceEventRepository {
     public Stream<LinkedEvent> findEventRange(final long fromEventNumber, final long toEventNumber) {
 
         try {
-            final PreparedStatementWrapper psWrapper = preparedStatementWrapperFactory.preparedStatementWrapperOf(dataSource, SQL_FIND_RANGE);
+            final PreparedStatementWrapper psWrapper = preparedStatementWrapperFactory.preparedStatementWrapperOf(
+                    dataSource,
+                    SQL_FIND_RANGE);
 
             psWrapper.setLong(1, fromEventNumber);
-            psWrapper.setLong(2, toEventNumber);
+            psWrapper.setLong(2, fromEventNumber);
+            psWrapper.setLong(3, toEventNumber);
 
             return jdbcResultSetStreamer.streamOf(psWrapper, asEvent());
         } catch (final SQLException e) {

@@ -24,11 +24,11 @@ public class LinkedEventBuilder {
     private String payloadJSON;
     private ZonedDateTime timestamp = new UtcClock().now().truncatedTo(MILLIS);
     private Long eventNumber = 23L;
-    private Long previousEventNumber = 22L;
+    private Long previousEventNumber;
 
     protected LinkedEventBuilder() {}
 
-    public static LinkedEventBuilder publishedEventBuilder() {
+    public static LinkedEventBuilder linkedEventBuilder() {
         return new LinkedEventBuilder();
     }
 

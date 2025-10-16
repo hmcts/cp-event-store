@@ -4,7 +4,7 @@ import static java.util.Collections.emptyList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static uk.gov.justice.services.test.utils.events.EventBuilder.eventBuilder;
-import static uk.gov.justice.services.test.utils.events.LinkedEventBuilder.publishedEventBuilder;
+import static uk.gov.justice.services.test.utils.events.LinkedEventBuilder.linkedEventBuilder;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.Event;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -135,17 +135,17 @@ public class EventStoreDataAccessIT {
 
         assertThat(eventStoreDataAccess.findAllPublishedEvents(), is(emptyList()));
 
-        final LinkedEvent linkedEvent_1 = publishedEventBuilder()
+        final LinkedEvent linkedEvent_1 = linkedEventBuilder()
                 .withName("published event 1")
                 .withPreviousEventNumber(0)
                 .withEventNumber(1)
                 .build();
-        final LinkedEvent linkedEvent_2 = publishedEventBuilder()
+        final LinkedEvent linkedEvent_2 = linkedEventBuilder()
                 .withName("published event 2")
                 .withPreviousEventNumber(1)
                 .withEventNumber(2)
                 .build();
-        final LinkedEvent linkedEvent_3 = publishedEventBuilder()
+        final LinkedEvent linkedEvent_3 = linkedEventBuilder()
                 .withName("published event 3")
                 .withPreviousEventNumber(2)
                 .withEventNumber(3)
@@ -170,17 +170,17 @@ public class EventStoreDataAccessIT {
 
         assertThat(eventStoreDataAccess.findAllPublishedEvents(), is(emptyList()));
 
-        final LinkedEvent linkedEvent_1 = publishedEventBuilder()
+        final LinkedEvent linkedEvent_1 = linkedEventBuilder()
                 .withName("published event 1")
                 .withPreviousEventNumber(0)
                 .withEventNumber(1)
                 .build();
-        final LinkedEvent linkedEvent_2 = publishedEventBuilder()
+        final LinkedEvent linkedEvent_2 = linkedEventBuilder()
                 .withName("published event 2")
                 .withPreviousEventNumber(1)
                 .withEventNumber(2)
                 .build();
-        final LinkedEvent linkedEvent_3 = publishedEventBuilder()
+        final LinkedEvent linkedEvent_3 = linkedEventBuilder()
                 .withName("published event 3")
                 .withPreviousEventNumber(2)
                 .withEventNumber(3)

@@ -1,14 +1,14 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.event;
 
 import static java.util.Optional.empty;
-import static java.util.stream.Collectors.toList;
+import static java.util.Optional.of;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
-import static uk.gov.justice.services.test.utils.events.LinkedEventBuilder.publishedEventBuilder;
+import static uk.gov.justice.services.test.utils.events.LinkedEventBuilder.linkedEventBuilder;
 
 import uk.gov.justice.services.jdbc.persistence.JdbcResultSetStreamer;
 import uk.gov.justice.services.jdbc.persistence.PreparedStatementWrapperFactory;
@@ -55,11 +55,11 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
     @Test
     public void shouldGetEventsSinceEventNumber() throws Exception {
 
-        final LinkedEvent event_1 = publishedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).build();
-        final LinkedEvent event_2 = publishedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).build();
-        final LinkedEvent event_3 = publishedEventBuilder().withPreviousEventNumber(2).withEventNumber(3).build();
-        final LinkedEvent event_4 = publishedEventBuilder().withPreviousEventNumber(3).withEventNumber(4).build();
-        final LinkedEvent event_5 = publishedEventBuilder().withPreviousEventNumber(4).withEventNumber(5).build();
+        final LinkedEvent event_1 = linkedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).build();
+        final LinkedEvent event_2 = linkedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).build();
+        final LinkedEvent event_3 = linkedEventBuilder().withPreviousEventNumber(2).withEventNumber(3).build();
+        final LinkedEvent event_4 = linkedEventBuilder().withPreviousEventNumber(3).withEventNumber(4).build();
+        final LinkedEvent event_5 = linkedEventBuilder().withPreviousEventNumber(4).withEventNumber(5).build();
 
         final Connection connection = dataSource.getConnection();
 
@@ -69,8 +69,9 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
         insertLinkedEvent(event_4, connection);
         insertLinkedEvent(event_5, connection);
 
-        final List<LinkedEvent> linkedEvents = multipleDataSourceEventRepository.findEventsSince(3)
-                .collect(toList());
+        final List<LinkedEvent> linkedEvents = multipleDataSourceEventRepository
+                .findEventsSince(3)
+                .toList();
 
         assertThat(linkedEvents.size(), is(2));
 
@@ -81,11 +82,15 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
     @Test
     public void shouldGetEventRange() throws Exception {
 
-        final LinkedEvent event_1 = publishedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).build();
-        final LinkedEvent event_2 = publishedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).build();
-        final LinkedEvent event_3 = publishedEventBuilder().withPreviousEventNumber(2).withEventNumber(3).build();
-        final LinkedEvent event_4 = publishedEventBuilder().withPreviousEventNumber(3).withEventNumber(4).build();
-        final LinkedEvent event_5 = publishedEventBuilder().withPreviousEventNumber(4).withEventNumber(5).build();
+        final LinkedEvent event_1 = linkedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).build();
+        final LinkedEvent event_2 = linkedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).build();
+        final LinkedEvent event_3 = linkedEventBuilder().withPreviousEventNumber(2).withEventNumber(3).build();
+        final LinkedEvent event_4 = linkedEventBuilder().withPreviousEventNumber(3).withEventNumber(4).build();
+        final LinkedEvent event_5 = linkedEventBuilder().withPreviousEventNumber(4).withEventNumber(5).build();
+        final LinkedEvent event_6 = linkedEventBuilder().withPreviousEventNumber(5).withEventNumber(6).build();
+        final LinkedEvent event_7 = linkedEventBuilder().withPreviousEventNumber(6).withEventNumber(7).build();
+        final LinkedEvent event_8 = linkedEventBuilder().withPreviousEventNumber(7).withEventNumber(8).build();
+        final LinkedEvent event_9 = linkedEventBuilder().withPreviousEventNumber(8).withEventNumber(9).build();
 
         final Connection connection = dataSource.getConnection();
 
@@ -94,21 +99,116 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
         insertLinkedEvent(event_3, connection);
         insertLinkedEvent(event_4, connection);
         insertLinkedEvent(event_5, connection);
+        insertLinkedEvent(event_6, connection);
+        insertLinkedEvent(event_7, connection);
+        insertLinkedEvent(event_8, connection);
+        insertLinkedEvent(event_9, connection);
 
-        final List<LinkedEvent> linkedEvents = multipleDataSourceEventRepository.findEventRange(1, 4)
-                .collect(toList());
+        final List<LinkedEvent> linkedEvents = multipleDataSourceEventRepository
+                .findEventRange(5,9)
+                .toList();
 
-        assertThat(linkedEvents.size(), is(3));
+        assertThat(linkedEvents.size(), is(4));
+
+        assertThat(linkedEvents.get(0).getId(), is(event_5.getId()));
+        assertThat(linkedEvents.get(0).getEventNumber(), is(of(5L)));
+        assertThat(linkedEvents.get(0).getPreviousEventNumber(), is(4L));
+
+        assertThat(linkedEvents.get(1).getId(), is(event_6.getId()));
+        assertThat(linkedEvents.get(1).getEventNumber(), is(of(6L)));
+        assertThat(linkedEvents.get(1).getPreviousEventNumber(), is(5L));
+
+        assertThat(linkedEvents.get(2).getId(), is(event_7.getId()));
+        assertThat(linkedEvents.get(2).getEventNumber(), is(of(7L)));
+        assertThat(linkedEvents.get(2).getPreviousEventNumber(), is(6L));
+
+        assertThat(linkedEvents.get(3).getId(), is(event_8.getId()));
+        assertThat(linkedEvents.get(3).getEventNumber(), is(of(8L)));
+        assertThat(linkedEvents.get(3).getPreviousEventNumber(), is(7L));
+    }
+
+    @Test
+    public void shouldHandleFirstPreviousEventNumberOfZeroWhenGettingEventRange() throws Exception {
+
+        final LinkedEvent event_1 = linkedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).build();
+        final LinkedEvent event_2 = linkedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).build();
+
+        final Connection connection = dataSource.getConnection();
+
+        insertLinkedEvent(event_1, connection);
+        insertLinkedEvent(event_2, connection);
+
+        final List<LinkedEvent> linkedEvents = multipleDataSourceEventRepository
+                .findEventRange(1, 9)
+                .toList();
+
+        assertThat(linkedEvents.size(), is(2));
 
         assertThat(linkedEvents.get(0).getId(), is(event_1.getId()));
+        assertThat(linkedEvents.get(0).getEventNumber(), is(of(1L)));
+        assertThat(linkedEvents.get(0).getPreviousEventNumber(), is(0L));
+
         assertThat(linkedEvents.get(1).getId(), is(event_2.getId()));
-        assertThat(linkedEvents.get(2).getId(), is(event_3.getId()));
+        assertThat(linkedEvents.get(1).getEventNumber(), is(of(2L)));
+        assertThat(linkedEvents.get(1).getPreviousEventNumber(), is(1L));
+    }
+
+    @Test
+    public void shouldHandleMissingPreviousEventNumbersWheGettingEventRange() throws Exception {
+
+        // Setting previous event numbers here to avoid null pointers...
+        final LinkedEvent event_1 = linkedEventBuilder().withPreviousEventNumber(-1L).withEventNumber(1).build();
+        final LinkedEvent event_2 = linkedEventBuilder().withPreviousEventNumber(-1L).withEventNumber(2).build();
+        final LinkedEvent event_3 = linkedEventBuilder().withPreviousEventNumber(-1L).withEventNumber(3).build();
+        final LinkedEvent event_4 = linkedEventBuilder().withPreviousEventNumber(-1L).withEventNumber(4).build();
+        final LinkedEvent event_5 = linkedEventBuilder().withPreviousEventNumber(-1L).withEventNumber(5).build();
+        final LinkedEvent event_6 = linkedEventBuilder().withPreviousEventNumber(-1L).withEventNumber(6).build();
+        final LinkedEvent event_7 = linkedEventBuilder().withPreviousEventNumber(-1L).withEventNumber(7).build();
+        final LinkedEvent event_8 = linkedEventBuilder().withPreviousEventNumber(-1L).withEventNumber(8).build();
+        final LinkedEvent event_9 = linkedEventBuilder().withPreviousEventNumber(-1L).withEventNumber(9).build();
+
+        final Connection connection = dataSource.getConnection();
+
+        insertLinkedEvent(event_1, connection);
+        insertLinkedEvent(event_2, connection);
+        insertLinkedEvent(event_3, connection);
+        insertLinkedEvent(event_4, connection);
+        insertLinkedEvent(event_5, connection);
+        insertLinkedEvent(event_6, connection);
+        insertLinkedEvent(event_7, connection);
+        insertLinkedEvent(event_8, connection);
+        insertLinkedEvent(event_9, connection);
+
+        // ...and then deleting the event numbers
+        setPreviousEventNumbersToNull(connection);
+
+        final List<LinkedEvent> linkedEvents = multipleDataSourceEventRepository
+                .findEventRange(5,9)
+                .toList();
+
+        assertThat(linkedEvents.size(), is(4));
+
+        assertThat(linkedEvents.get(0).getId(), is(event_5.getId()));
+        assertThat(linkedEvents.get(0).getEventNumber(), is(of(5L)));
+        assertThat(linkedEvents.get(0).getPreviousEventNumber(), is(4L));
+
+        assertThat(linkedEvents.get(1).getId(), is(event_6.getId()));
+        assertThat(linkedEvents.get(1).getEventNumber(), is(of(6L)));
+        assertThat(linkedEvents.get(1).getPreviousEventNumber(), is(5L));
+
+        assertThat(linkedEvents.get(2).getId(), is(event_7.getId()));
+        assertThat(linkedEvents.get(2).getEventNumber(), is(of(7L)));
+        assertThat(linkedEvents.get(2).getPreviousEventNumber(), is(6L));
+
+        assertThat(linkedEvents.get(3).getId(), is(event_8.getId()));
+        assertThat(linkedEvents.get(3).getEventNumber(), is(of(8L)));
+        assertThat(linkedEvents.get(3).getPreviousEventNumber(), is(7L));
     }
 
     @Test
     public void fetchByEventIdShouldReturnEventIfExists() throws Exception {
         final Connection connection = dataSource.getConnection();
-        final LinkedEvent event = publishedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).build();
+        final LinkedEvent event = linkedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).build();
         insertLinkedEvent(event, connection);
 
         final Optional<LinkedEvent> fetchedEvent = multipleDataSourceEventRepository.findByEventId(event.getId());
@@ -127,11 +227,11 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
     @Test
     public void shouldGetLatestEvent() throws Exception {
 
-        final LinkedEvent event_1 = publishedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).build();
-        final LinkedEvent event_2 = publishedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).build();
-        final LinkedEvent event_3 = publishedEventBuilder().withPreviousEventNumber(2).withEventNumber(3).build();
-        final LinkedEvent event_4 = publishedEventBuilder().withPreviousEventNumber(3).withEventNumber(4).build();
-        final LinkedEvent event_5 = publishedEventBuilder().withPreviousEventNumber(4).withEventNumber(5).build();
+        final LinkedEvent event_1 = linkedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).build();
+        final LinkedEvent event_2 = linkedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).build();
+        final LinkedEvent event_3 = linkedEventBuilder().withPreviousEventNumber(2).withEventNumber(3).build();
+        final LinkedEvent event_4 = linkedEventBuilder().withPreviousEventNumber(3).withEventNumber(4).build();
+        final LinkedEvent event_5 = linkedEventBuilder().withPreviousEventNumber(4).withEventNumber(5).build();
 
         final Connection connection = dataSource.getConnection();
         
@@ -180,6 +280,17 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
             preparedStatement.setLong(8, linkedEvent.getEventNumber().orElseThrow(() -> new MissingEventNumberException("Event with id '%s' does not have an event number")));
             preparedStatement.setLong(9, linkedEvent.getPreviousEventNumber());
 
+            preparedStatement.execute();
+        }
+    }
+
+    private void setPreviousEventNumbersToNull(final Connection connection) throws SQLException {
+
+        final String sql = """
+           UPDATE event_log
+           SET previous_event_number = NULL
+           """;
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.execute();
         }
     }

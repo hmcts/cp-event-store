@@ -33,27 +33,27 @@ public class MultipleDataSourceEventRepository {
             ORDER BY event_number DESC 
             LIMIT 1""";
     private static final String SQL_FIND_RANGE = """
-                SELECT
-                    e.id,
-                    e.stream_id,
-                    e.position_in_stream,
-                    e.name,
-                    e.payload,
-                    e.metadata,
-                    e.date_created,
-                    e.event_number,
-                    COALESCE(
-                        previous_event_number,
-                        LAG(e.event_number) OVER (ORDER BY e.event_number),
-                        (SELECT MAX(event_number)
-                            FROM event_log
-                            WHERE event_number < ?)
-                        ) AS previous_event_number
-                FROM event_log e
-                WHERE e.event_number >= ?
-                AND e.event_number < ?
-                ORDER BY e.event_number;
-                """;
+            SELECT
+                e.id,
+                e.stream_id,
+                e.position_in_stream,
+                e.name,
+                e.payload,
+                e.metadata,
+                e.date_created,
+                e.event_number,
+                COALESCE(
+                    previous_event_number,
+                    LAG(e.event_number) OVER (ORDER BY e.event_number),
+                    (SELECT MAX(event_number)
+                    FROM event_log
+                    WHERE event_number < e.event_number)
+                ) AS previous_event_number
+            FROM event_log e
+            WHERE e.event_number >= ?
+            AND e.event_number < ?
+            ORDER BY e.event_number;
+            """;
 
     private static final String ID = "id";
     private static final String STREAM_ID = "stream_id";
@@ -112,8 +112,7 @@ public class MultipleDataSourceEventRepository {
                     SQL_FIND_RANGE);
 
             psWrapper.setLong(1, fromEventNumber);
-            psWrapper.setLong(2, fromEventNumber);
-            psWrapper.setLong(3, toEventNumber);
+            psWrapper.setLong(2, toEventNumber);
 
             return jdbcResultSetStreamer.streamOf(psWrapper, asEvent());
         } catch (final SQLException e) {

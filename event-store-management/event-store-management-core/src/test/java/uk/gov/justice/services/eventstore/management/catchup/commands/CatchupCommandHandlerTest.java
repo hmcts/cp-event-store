@@ -3,6 +3,7 @@ package uk.gov.justice.services.eventstore.management.catchup.commands;
 import static java.time.ZoneOffset.UTC;
 import static java.time.ZonedDateTime.of;
 import static java.util.UUID.randomUUID;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.jmx.api.parameters.JmxCommandRuntimeParameters.withNoCommandParameters;
@@ -11,6 +12,7 @@ import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventstore.management.commands.EventCatchupCommand;
 import uk.gov.justice.services.eventstore.management.commands.IndexerCatchupCommand;
 import uk.gov.justice.services.eventstore.management.events.catchup.CatchupRequestedEvent;
+import uk.gov.justice.services.jmx.api.parameters.JmxCommandRuntimeParameters;
 
 import java.time.ZonedDateTime;
 import java.util.UUID;
@@ -31,7 +33,7 @@ public class CatchupCommandHandlerTest {
     private Event<CatchupRequestedEvent> catchupRequestedEventFirer;
 
     @Mock
-    private UtcClock clock;
+    private CatchupRequestedEventFactory catchupRequestedEventFactory;
 
     @Mock
     private Logger logger;
@@ -43,16 +45,19 @@ public class CatchupCommandHandlerTest {
     public void shouldFireEventCatchup() throws Exception {
 
         final UUID commandId = randomUUID();
-
         final EventCatchupCommand eventCatchupCommand = new EventCatchupCommand();
         final ZonedDateTime now = of(2019, 8, 23, 11, 22, 1, 0, UTC);
 
-        when(clock.now()).thenReturn(now);
+        final JmxCommandRuntimeParameters jmxCommandRuntimeParameters = mock(JmxCommandRuntimeParameters.class);
+        final CatchupRequestedEvent catchupRequestedEvent = mock(CatchupRequestedEvent.class);
 
-        catchupCommandHandler.catchupEvents(eventCatchupCommand, commandId, withNoCommandParameters());
+        when(catchupRequestedEventFactory.create(eventCatchupCommand, commandId, jmxCommandRuntimeParameters)).thenReturn(catchupRequestedEvent);
+        when(catchupRequestedEvent.getCatchupRequestedAt()).thenReturn(now);
+
+        catchupCommandHandler.catchupEvents(eventCatchupCommand, commandId, jmxCommandRuntimeParameters);
 
         verify(logger).info("Received command 'CATCHUP' at 11:22:01 AM");
-        verify(catchupRequestedEventFirer).fire(new CatchupRequestedEvent(commandId, eventCatchupCommand, now));
+        verify(catchupRequestedEventFirer).fire(catchupRequestedEvent);
     }
 
     @Test
@@ -62,11 +67,15 @@ public class CatchupCommandHandlerTest {
         final IndexerCatchupCommand indexerCatchupCommand = new IndexerCatchupCommand();
         final ZonedDateTime now = of(2019, 8, 23, 11, 22, 1, 0, UTC);
 
-        when(clock.now()).thenReturn(now);
+        final JmxCommandRuntimeParameters jmxCommandRuntimeParameters = mock(JmxCommandRuntimeParameters.class);
+        final CatchupRequestedEvent catchupRequestedEvent = mock(CatchupRequestedEvent.class);
 
-        catchupCommandHandler.catchupSearchIndexes(indexerCatchupCommand, commandId, withNoCommandParameters());
+        when(catchupRequestedEventFactory.create(indexerCatchupCommand, commandId, jmxCommandRuntimeParameters)).thenReturn(catchupRequestedEvent);
+        when(catchupRequestedEvent.getCatchupRequestedAt()).thenReturn(now);
+
+        catchupCommandHandler.catchupSearchIndexes(indexerCatchupCommand, commandId, jmxCommandRuntimeParameters);
 
         verify(logger).info("Received command 'INDEXER_CATCHUP' at 11:22:01 AM");
-        verify(catchupRequestedEventFirer).fire(new CatchupRequestedEvent(commandId, indexerCatchupCommand, now));
+        verify(catchupRequestedEventFirer).fire(catchupRequestedEvent);
     }
 }

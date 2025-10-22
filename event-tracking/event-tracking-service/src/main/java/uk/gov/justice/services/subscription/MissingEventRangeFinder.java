@@ -25,6 +25,7 @@ public class MissingEventRangeFinder {
     public LinkedList<MissingEventRange> getRangesOfMissingEvents(
             final String eventSourceName,
             final String componentName,
+            final Long runFromEventNumber,
             final Long highestPublishedEventNumber) {
 
         final EventNumberAccumulator eventNumberAccumulator = new EventNumberAccumulator();

@@ -17,12 +17,14 @@ public class ProcessedEventStreamer {
 
     public Stream<ProcessedEvent> getProcessedEventStream(final String source, final String component) {
 
+        final Long runFromEventNumber = 1L;
         final Long processedEventFetchBatchSize = processedEventStreamerConfiguration.getProcessedEventFetchBatchSize();
         final ProcessedEventStreamSpliterator processedEventStreamSpliterator = processedEventStreamSpliteratorFactory
                 .getProcessedEventStreamSpliterator(
                         source,
                         component,
-                        processedEventFetchBatchSize);
+                        processedEventFetchBatchSize,
+                        runFromEventNumber);
 
         return spliteratorStreamFactory.createStreamFrom(processedEventStreamSpliterator);
     }

@@ -60,6 +60,7 @@ public class ProcessedEventStreamSpliteratorIT {
         final String componentName = "EVENT_LISTENER";
         final Long batchSize = 5L;
         final long numberOfEventsToCreate = 17L;
+        final Long runFromEventNumber = 1L;
 
         for (int i = 0; i < numberOfEventsToCreate; i++) {
             final ProcessedEvent processedEvent = new ProcessedEvent(randomUUID(), i, i + 1, source, componentName);
@@ -67,7 +68,7 @@ public class ProcessedEventStreamSpliteratorIT {
         }
 
         try (final Stream<ProcessedEvent> processedEventStream = stream(
-                new ProcessedEventStreamSpliterator(source, componentName, batchSize, processedEventTrackingRepository),
+                new ProcessedEventStreamSpliterator(source, componentName, batchSize, runFromEventNumber, processedEventTrackingRepository),
                 false)) {
             final List<ProcessedEvent> processedEvents = processedEventStream.toList();
             long currentEventNumber = numberOfEventsToCreate;

@@ -64,7 +64,7 @@ public class EventCatchupProcessorTest {
         final String subscriptionName = "subscriptionName";
         final String eventSourceName = "example.event.source";
         final String componentName = "EVENT_LISTENER";
-        final long eventNumberFrom = 999L;
+        final long runFromEventNumber = 999L;
 
         final ZonedDateTime catchupStartedAt = new UtcClock().now();
         final ZonedDateTime catchupCompletedAt = catchupStartedAt.plusMinutes(23);
@@ -76,7 +76,8 @@ public class EventCatchupProcessorTest {
                 commandId,
                 componentName,
                 subscriptionCatchupDetails,
-                catchupCommand);
+                catchupCommand,
+                runFromEventNumber);
 
         final LinkedEvent linkedEvent_1 = mock(LinkedEvent.class);
         final LinkedEvent linkedEvent_2 = mock(LinkedEvent.class);
@@ -84,11 +85,11 @@ public class EventCatchupProcessorTest {
 
         final List<LinkedEvent> events = asList(linkedEvent_1, linkedEvent_2, linkedEvent_3);
 
-        when(missingEventStreamer.getMissingEvents(eventSourceName, componentName)).thenReturn(events.stream());
+        when(missingEventStreamer.getMissingEvents(eventSourceName, componentName, runFromEventNumber)).thenReturn(events.stream());
 
-        when(linkedEvent_1.getEventNumber()).thenReturn(of(eventNumberFrom + 1L));
-        when(linkedEvent_2.getEventNumber()).thenReturn(of(eventNumberFrom + 2L));
-        when(linkedEvent_3.getEventNumber()).thenReturn(of(eventNumberFrom + 3L));
+        when(linkedEvent_1.getEventNumber()).thenReturn(of(runFromEventNumber + 1L));
+        when(linkedEvent_2.getEventNumber()).thenReturn(of(runFromEventNumber + 2L));
+        when(linkedEvent_3.getEventNumber()).thenReturn(of(runFromEventNumber + 3L));
 
         when(subscriptionCatchupDetails.getSubscriptionName()).thenReturn(subscriptionName);
         when(subscriptionCatchupDetails.getEventSourceName()).thenReturn(eventSourceName);
@@ -117,7 +118,7 @@ public class EventCatchupProcessorTest {
                 events.size()));
 
         verify(logger).info("Finding all missing events for event source 'example.event.source', component 'EVENT_LISTENER");
-        verify(logger).info("CATCHUP with Event Source: example.event.source for Event Number: " + (eventNumberFrom + 1L));
+        verify(logger).info("CATCHUP with Event Source: example.event.source for Event Number: " + (runFromEventNumber + 1L));
         verify(logger).info("3 active PublishedEvents queued for publishing");
         verify(logger).info("Waiting for publishing consumer completion...");
     }
@@ -129,11 +130,8 @@ public class EventCatchupProcessorTest {
         final String subscriptionName = "subscriptionName";
         final String eventSourceName = "event source";
         final String componentName = "EVENT_LISTENER";
-        final long eventNumberFrom = 999L;
+        final long runFromEventNumber = 23L;
         final UUID idOfEventWithNoEventNumber = fromString("937f9fd6-3679-4bc2-a73c-6a7b18a651e1");
-
-        final ZonedDateTime catchupStartedAt = new UtcClock().now();
-        final ZonedDateTime catchupCompletedAt = catchupStartedAt.plusMinutes(23);
 
         final SubscriptionCatchupDetails subscriptionCatchupDetails = mock(SubscriptionCatchupDetails.class);
         final CatchupCommand catchupCommand = mock(CatchupCommand.class);
@@ -142,7 +140,8 @@ public class EventCatchupProcessorTest {
                 commandId,
                 componentName,
                 subscriptionCatchupDetails,
-                catchupCommand);
+                catchupCommand,
+                runFromEventNumber);
 
         final LinkedEvent linkedEvent_1 = mock(LinkedEvent.class);
         final LinkedEvent linkedEvent_2 = mock(LinkedEvent.class);
@@ -150,10 +149,10 @@ public class EventCatchupProcessorTest {
 
         final List<LinkedEvent> events = asList(linkedEvent_1, linkedEvent_2, linkedEvent_3);
 
-        when(missingEventStreamer.getMissingEvents(eventSourceName, componentName)).thenReturn(events.stream());
+        when(missingEventStreamer.getMissingEvents(eventSourceName, componentName, runFromEventNumber)).thenReturn(events.stream());
 
-        when(linkedEvent_1.getEventNumber()).thenReturn(of(eventNumberFrom + 1L));
-        when(linkedEvent_2.getEventNumber()).thenReturn(of(eventNumberFrom + 2L));
+        when(linkedEvent_1.getEventNumber()).thenReturn(of(runFromEventNumber + 1));
+        when(linkedEvent_2.getEventNumber()).thenReturn(of(runFromEventNumber + 2));
         when(linkedEvent_3.getEventNumber()).thenReturn(empty());
         when(linkedEvent_3.getId()).thenReturn(idOfEventWithNoEventNumber);
 
@@ -166,7 +165,7 @@ public class EventCatchupProcessorTest {
             eventCatchupProcessor.performEventCatchup(catchupSubscriptionContext);
             fail();
         } catch (final MissingEventNumberException expected) {
-            assertThat(expected.getMessage(), is("PublishedEvent with id '937f9fd6-3679-4bc2-a73c-6a7b18a651e1' is missing its event number"));
+            assertThat(expected.getMessage(), is("Event with id '937f9fd6-3679-4bc2-a73c-6a7b18a651e1' is missing its event number"));
         }
     }
 }

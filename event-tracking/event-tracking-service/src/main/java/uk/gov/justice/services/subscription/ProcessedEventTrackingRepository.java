@@ -43,14 +43,19 @@ public class ProcessedEventTrackingRepository {
                     "AND component = ? " +
                     "ORDER BY event_number DESC";
 
-    private static final String SELECT_LESS_THAN_EVENT_NUMBER_IN_DESCENDING_ORDER_SQL =
-            "SELECT event_id, event_number, previous_event_number " +
-                    "FROM processed_event " +
-                    "WHERE source = ? " +
-                    "AND component = ? " +
-                    "AND event_number < ? " +
-                    "ORDER BY event_number DESC " +
-                    "LIMIT ?";
+    private static final String SELECT_LESS_THAN_EVENT_NUMBER_IN_DESCENDING_ORDER_SQL = """
+        SELECT 
+            event_id,
+            event_number,
+            previous_event_number
+        FROM processed_event
+        WHERE event_number >= ?  
+        AND event_number < ?
+        AND source = ?
+        AND component = ?
+        ORDER BY event_number DESC
+        LIMIT ?
+       """;
 
     @Inject
     private JdbcResultSetStreamer jdbcResultSetStreamer;
@@ -81,6 +86,7 @@ public class ProcessedEventTrackingRepository {
         }
     }
 
+    // only used in integration tests
     @Transactional(REQUIRED)
     public Stream<ProcessedEvent> getAllProcessedEventsDescendingOrder(final String source, final String componentName) {
 
@@ -109,8 +115,9 @@ public class ProcessedEventTrackingRepository {
     }
 
     @Transactional(REQUIRES_NEW)
-    public List<ProcessedEvent> getProcessedEventsLessThanEventNumberInDescendingOrder(
-            final Long fromEventNumber,
+    public List<ProcessedEvent> getProcessedEventsInBatchesInDescendingOrder(
+            final long runFromEventNumberInclusive,
+            final Long toEventNumberExclusive,
             final Long batchSize,
             final String source,
             final String componentName) {
@@ -120,10 +127,11 @@ public class ProcessedEventTrackingRepository {
         try(final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
             final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_LESS_THAN_EVENT_NUMBER_IN_DESCENDING_ORDER_SQL)) {
 
-            preparedStatement.setString(1, source);
-            preparedStatement.setString(2, componentName);
-            preparedStatement.setLong(3, fromEventNumber);
-            preparedStatement.setLong(4, batchSize);
+            preparedStatement.setLong(1, runFromEventNumberInclusive);
+            preparedStatement.setLong(2, toEventNumberExclusive);
+            preparedStatement.setString(3, source);
+            preparedStatement.setString(4, componentName);
+            preparedStatement.setLong(5, batchSize);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {

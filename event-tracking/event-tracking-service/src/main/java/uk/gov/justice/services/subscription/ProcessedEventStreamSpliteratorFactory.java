@@ -10,12 +10,14 @@ public class ProcessedEventStreamSpliteratorFactory {
     public ProcessedEventStreamSpliterator getProcessedEventStreamSpliterator(
             final String source,
             final String component,
-            final Long processedEventFetchBatchSize) {
+            final Long processedEventFetchBatchSize,
+            final Long runFromEventNumber) {
         
         return new ProcessedEventStreamSpliterator(
                 source,
                 component,
                 processedEventFetchBatchSize,
+                runFromEventNumber,
                 processedEventTrackingRepository
         );
     }}

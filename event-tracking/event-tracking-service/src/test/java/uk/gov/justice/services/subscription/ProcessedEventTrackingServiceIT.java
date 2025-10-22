@@ -88,6 +88,7 @@ public class ProcessedEventTrackingServiceIT {
         final Long highestPublishedEventNumber = 23L;
         final Long highestExclusiveEventNumber = highestPublishedEventNumber + 1;
         final long batchSize = 5L;
+        final long runFromEventNumber = 1L;
 
         // insert events missing event 4 and events 7, 8 and 9
         insertEventsWithSomeMissing(source, componentName);
@@ -95,7 +96,7 @@ public class ProcessedEventTrackingServiceIT {
         when(processedEventStreamerConfiguration.getProcessedEventFetchBatchSize()).thenReturn(batchSize);
 
         final List<MissingEventRange> missingEventRanges = processedEventTrackingService
-                .getAllMissingEvents(source, componentName, highestPublishedEventNumber)
+                .getAllMissingEvents(source, componentName, runFromEventNumber, highestPublishedEventNumber)
                 .toList();
 
         assertThat(missingEventRanges.size(), is(3));

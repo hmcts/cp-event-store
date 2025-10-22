@@ -4,6 +4,14 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.104.0-M7] - 2025-10-23
+### Added
+- Catchup can now be run with the id of the event you wish to run catchup from. Catchup
+  will ignore events before this event and only catchup this event and events with higher 
+  event numbers. The event id should be sent to jmx using the `--commandRuntimeId` switch.
+  If no eventId is sent then catchup will run from the first event as normal
+### Changed
 - Catchup now calculates previousEventNumber for each event from the previous row in 
     the event_log table rather than the previous_event_number column.
     This is to allow catchup to run with the new publishing where the previous_event_number

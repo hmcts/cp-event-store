@@ -82,7 +82,7 @@ public class MissingEventRangeFinderTest {
         when(processedEventTrackingRepository.getLatestProcessedEvent(source, componentName)).thenReturn(of(latestProcessedEvent));
         when(processedEventStreamer.getProcessedEventStream(source, componentName)).thenReturn(processedEventTrackItemStream);
 
-        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber);
+        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber, highestPublishedEventNumber);
 
         assertThat(missingEventRanges.size(), is(2));
 
@@ -136,7 +136,7 @@ public class MissingEventRangeFinderTest {
         when(processedEventTrackingRepository.getLatestProcessedEvent(source, componentName)).thenReturn(of(processedEvent));
         when(processedEventStreamer.getProcessedEventStream(source, componentName)).thenReturn(processedEventTrackItemStream);
 
-        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber);
+        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber, highestPublishedEventNumber);
 
         assertThat(missingEventRanges.size(), is(3));
 
@@ -161,7 +161,7 @@ public class MissingEventRangeFinderTest {
         when(processedEventTrackingRepository.getLatestProcessedEvent(source, componentName)).thenReturn(Optional.empty());
         when(processedEventStreamer.getProcessedEventStream(source, componentName)).thenReturn(empty());
 
-        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber);
+        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber, highestPublishedEventNumber);
 
         assertThat(missingEventRanges.size(), is(1));
 
@@ -217,7 +217,7 @@ public class MissingEventRangeFinderTest {
         when(processedEventTrackingRepository.getLatestProcessedEvent(source, componentName)).thenReturn(of(latestProcessedEvent));
         when(processedEventStreamer.getProcessedEventStream(source, componentName)).thenReturn(processedEventTrackItemStream);
 
-        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber);
+        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber, highestPublishedEventNumber);
         assertThat(missingEventRanges.size(), is(1));
 
         assertThat(missingEventRanges.get(0).getMissingEventFrom(), is(5L));
@@ -256,7 +256,7 @@ public class MissingEventRangeFinderTest {
         when(processedEventTrackingRepository.getLatestProcessedEvent(source, componentName)).thenReturn(of(latestProcessedEvent));
         when(processedEventStreamer.getProcessedEventStream(source, componentName)).thenReturn(processedEventTrackItemStream);
 
-        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber);
+        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber, highestPublishedEventNumber);
 
         assertThat(missingEventRanges.size(), is(1));
 
@@ -302,7 +302,7 @@ public class MissingEventRangeFinderTest {
         when(processedEventTrackingRepository.getLatestProcessedEvent(source, componentName)).thenReturn(of(latestProcessedEvent));
         when(processedEventStreamer.getProcessedEventStream(source, componentName)).thenReturn(processedEventTrackItemStream);
 
-        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber);
+        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber, highestPublishedEventNumber);
 
         assertThat(missingEventRanges.size(), is(2));
 
@@ -344,7 +344,7 @@ public class MissingEventRangeFinderTest {
         when(processedEventTrackingRepository.getLatestProcessedEvent(source, componentName)).thenReturn(of(latestProcessedEvent));
         when(processedEventStreamer.getProcessedEventStream(source, componentName)).thenReturn(processedEventTrackItemStream);
 
-        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber);
+        final List<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(source, componentName, highestPublishedEventNumber, highestPublishedEventNumber);
 
         assertThat(missingEventRanges.size(), is(2));
 

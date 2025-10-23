@@ -45,7 +45,7 @@ public class ProcessedEventStreamerTest {
                 .thenReturn(processedEventStreamSpliterator);
         when(spliteratorStreamFactory.createStreamFrom(processedEventStreamSpliterator)).thenReturn(Stream.of(processedEvent));
 
-        final List<ProcessedEvent> processedEvents = processedEventStreamer.getProcessedEventStream(source, componentName).toList();
+        final List<ProcessedEvent> processedEvents = processedEventStreamer.getProcessedEventStream(source, componentName, runFromEventNumber).toList();
 
         assertThat(processedEvents.size(), is(1));
         assertThat(processedEvents.get(0), is(processedEvent));

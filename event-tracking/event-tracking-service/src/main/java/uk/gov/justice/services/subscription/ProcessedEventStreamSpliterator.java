@@ -72,8 +72,8 @@ public class ProcessedEventStreamSpliterator extends AbstractSpliterator<Process
         }
 
         // if there are no events left in the process event iterator, yet we haven't reached the final
-        // event (event number 1), then fetch the next list of processed events as an iterator
-        if (currentEventNumber > 0) {
+        // event (event number 1 or runFromEventNumber), then fetch the next list of processed events as an iterator
+        if (currentEventNumber >= runFromEventNumber) {
             if(LOGGER.isInfoEnabled()) {
                 LOGGER.info("Making fetch of processed events table to load {} events into memory ", batchSize);
             }

@@ -5,7 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
-# [17.104.0-M7] - 2025-10-23
+# [17.104.0-M7] - 2025-10-24
 ### Added
 - Catchup can now be run with the id of the event you wish to run catchup from. Catchup
   will ignore events before this event and only catchup this event and events with higher 

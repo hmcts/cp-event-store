@@ -15,9 +15,11 @@ public class ProcessedEventStreamer {
     @Inject
     private SpliteratorStreamFactory spliteratorStreamFactory;
 
-    public Stream<ProcessedEvent> getProcessedEventStream(final String source, final String component) {
+    public Stream<ProcessedEvent> getProcessedEventStream(
+            final String source,
+            final String component,
+            final Long runFromEventNumber) {
 
-        final Long runFromEventNumber = 1L;
         final Long processedEventFetchBatchSize = processedEventStreamerConfiguration.getProcessedEventFetchBatchSize();
         final ProcessedEventStreamSpliterator processedEventStreamSpliterator = processedEventStreamSpliteratorFactory
                 .getProcessedEventStreamSpliterator(

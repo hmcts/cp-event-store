@@ -1,5 +1,6 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
+import static java.lang.String.format;
 import static java.util.Optional.of;
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository.FIND_ALL_SQL;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository.INSERT_INTO_PUBLISHED_EVENT_SQL;
+import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository.SET_EVENT_NUMBER_SEQUENCE_SQL;
 import static uk.gov.justice.services.messaging.spi.DefaultJsonMetadata.metadataBuilder;
 
 import uk.gov.justice.services.common.util.UtcClock;
@@ -450,6 +452,63 @@ public class CompatibilityModePublishedEventRepositoryTest {
         final InOrder inOrder = inOrder(resultSet, preparedStatement, connection);
 
         inOrder.verify(resultSet).close();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldSetTheEventNumberDatabaseSequence() throws Exception {
+
+        final long eventNumber = 23L;
+
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        final String sql = format(SET_EVENT_NUMBER_SEQUENCE_SQL, eventNumber);
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(sql)).thenReturn(preparedStatement);
+
+        compatibilityModePublishedEventRepository.setEventNumberSequenceTo(eventNumber);
+
+        final InOrder inOrder = inOrder(connection, preparedStatement);
+
+        inOrder.verify(connection).prepareStatement(sql);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldThrowEventPublishingExceptionIfSettingTheEventNumberDatabaseSequenceFails() throws Exception {
+
+        final long eventNumber = 23L;
+        final SQLException sqlException = new SQLException("Ooops");
+
+        final DataSource dataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        final String sql = format(SET_EVENT_NUMBER_SEQUENCE_SQL, eventNumber);
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(sql)).thenReturn(preparedStatement);
+        doThrow(sqlException).when(preparedStatement).executeUpdate();
+
+        final EventPublishingException eventPublishingException = assertThrows(
+                EventPublishingException.class,
+                () -> compatibilityModePublishedEventRepository.setEventNumberSequenceTo(eventNumber));
+
+        assertThat(eventPublishingException.getCause(), is(sqlException));
+        assertThat(eventPublishingException.getMessage(), is("Failed to set event number sequence 'event_sequence_seq' to 23"));
+
+        final InOrder inOrder = inOrder(connection, preparedStatement);
+
+        inOrder.verify(connection).prepareStatement(sql);
+        inOrder.verify(preparedStatement).executeUpdate();
         inOrder.verify(preparedStatement).close();
         inOrder.verify(connection).close();
     }

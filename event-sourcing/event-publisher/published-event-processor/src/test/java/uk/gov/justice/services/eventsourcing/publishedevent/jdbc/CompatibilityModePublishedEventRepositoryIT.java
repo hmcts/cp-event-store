@@ -17,6 +17,10 @@ import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -140,5 +144,42 @@ public class CompatibilityModePublishedEventRepositoryIT {
         assertThat(foundEvents.get(0).getCreatedAt(), is(createdAt));
         assertThat(foundEvents.get(0).getEventNumber(), is(of(eventNumber)));
         assertThat(foundEvents.get(0).getPreviousEventNumber(), is(previousEventNumber));
+    }
+
+    @Test
+    public void shouldName() throws Exception {
+
+        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+
+
+        final Long currentSequenceNumber = getCurrentSequenceNumber();
+        final Long newSequenceNumber = currentSequenceNumber + 23;
+
+        compatibilityModePublishedEventRepository.setEventNumberSequenceTo(newSequenceNumber);
+
+        assertThat(getCurrentSequenceNumber(), is(newSequenceNumber));
+
+        compatibilityModePublishedEventRepository.setEventNumberSequenceTo(currentSequenceNumber);
+        assertThat(getCurrentSequenceNumber(), is(currentSequenceNumber));
+
+    }
+
+    private Long getCurrentSequenceNumber() throws SQLException {
+
+        final String sql = """
+                SELECT last_value FROM event_sequence_seq;
+                """;
+        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
+        try(final Connection connection = eventStoreDataSource.getConnection();
+            final PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            final ResultSet resultSet = preparedStatement.executeQuery()) {
+
+            if (resultSet.next()) {
+                return resultSet.getLong(1);
+            }
+
+            throw new RuntimeException("Failed to get last value from 'event_sequence_seq' sequence");
+        }
     }
 }

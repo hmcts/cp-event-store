@@ -9,6 +9,7 @@ import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityMo
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository;
 import uk.gov.justice.services.eventsourcing.publisher.jms.EventPublisher;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MissingEventNumberException;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import java.util.Optional;
@@ -51,6 +52,10 @@ public class LinkedEventPublisher {
                 // and published_event table is deleted
                 if(eventPublishingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable()) {
                     compatibilityModePublishedEventRepository.insertIntoPublishedEvent(linkedJsonEnvelope);
+                    final Long eventNumber = linkedEvent
+                            .getEventNumber()
+                            .orElseThrow(() -> new MissingEventNumberException(format("Event with id '%s' has null event_number in event_log table", eventId.get())));
+                    compatibilityModePublishedEventRepository.setEventNumberSequenceTo(eventNumber);
                 }
                 
                 return true;

@@ -57,7 +57,7 @@ public class CompatibilityModePublishedEventRepository {
                 FROM PUBLISHED_EVENT
                 """;
     static final String SET_EVENT_NUMBER_SEQUENCE_SQL = """
-        ALTER SEQUENCE event_sequence_seq RESTART WITH %d
+        SELECT setval('event_sequence_seq', ?);
         """;
 
     @Inject
@@ -99,10 +99,10 @@ public class CompatibilityModePublishedEventRepository {
 
     @Transactional(MANDATORY)
     public void setEventNumberSequenceTo(final Long eventNumber) {
-        final String sql = format(SET_EVENT_NUMBER_SEQUENCE_SQL, eventNumber);
         try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.executeUpdate();
+             final PreparedStatement preparedStatement = connection.prepareStatement(SET_EVENT_NUMBER_SEQUENCE_SQL)) {
+            preparedStatement.setLong(1,eventNumber);
+            preparedStatement.execute();
         } catch (final SQLException e) {
             throw new EventPublishingException(format("Failed to set event number sequence 'event_sequence_seq' to %d", eventNumber), e);
         }

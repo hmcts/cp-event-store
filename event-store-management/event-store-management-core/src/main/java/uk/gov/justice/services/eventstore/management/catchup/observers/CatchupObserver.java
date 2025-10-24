@@ -22,6 +22,7 @@ import uk.gov.justice.services.jmx.state.events.SystemCommandStateChangedEvent;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -63,6 +64,7 @@ public class CatchupObserver {
     public void onCatchupRequested(@Observes final CatchupRequestedEvent catchupRequestedEvent) {
         final UUID commandId = catchupRequestedEvent.getCommandId();
         final CatchupCommand catchupCommand = catchupRequestedEvent.getCatchupCommand();
+        final Optional<UUID> runFromEventId = catchupRequestedEvent.getRunFromEventId();
 
         final ZonedDateTime catchupStartedAt = clock.now();
 
@@ -80,7 +82,7 @@ public class CatchupObserver {
 
         logger.info(message);
 
-        eventCatchupRunner.runEventCatchup(commandId, catchupCommand);
+        eventCatchupRunner.runEventCatchup(commandId, catchupCommand, runFromEventId);
     }
 
     public void onCatchupStarted(@Observes final CatchupStartedEvent catchupStartedEvent) {

@@ -25,7 +25,7 @@ public class CatchupCommandHandler {
     private Event<CatchupRequestedEvent> catchupRequestedEventFirer;
 
     @Inject
-    private UtcClock clock;
+    private CatchupRequestedEventFactory catchupRequestedEventFactory;
 
     @Inject
     private Logger logger;
@@ -34,28 +34,30 @@ public class CatchupCommandHandler {
     public void catchupEvents(
             final CatchupCommand catchupCommand,
             final UUID commandId,
-            @SuppressWarnings("unused")
             final JmxCommandRuntimeParameters jmxCommandRuntimeParameters) {
-        doCatchup(catchupCommand, commandId);
+        doCatchup(catchupCommand, commandId, jmxCommandRuntimeParameters);
     }
 
     @HandlesSystemCommand(INDEXER_CATCHUP)
     public void catchupSearchIndexes(
             final IndexerCatchupCommand indexerCatchupCommand,
             final UUID commandId,
-            @SuppressWarnings("unused")
             final JmxCommandRuntimeParameters jmxCommandRuntimeParameters) {
-        doCatchup(indexerCatchupCommand, commandId);
+        doCatchup(indexerCatchupCommand, commandId, jmxCommandRuntimeParameters);
     }
 
-    private void doCatchup(final CatchupCommand catchupCommand, final UUID commandId) {
-        final ZonedDateTime now = clock.now();
+    private void doCatchup(
+            final CatchupCommand catchupCommand,
+            final UUID commandId,
+            final JmxCommandRuntimeParameters jmxCommandRuntimeParameters) {
 
-        logger.info(format("Received command '%s' at %tr", catchupCommand, now));
-        final CatchupRequestedEvent catchupRequestedEvent = new CatchupRequestedEvent(
-                commandId,
+        final CatchupRequestedEvent catchupRequestedEvent = catchupRequestedEventFactory.create(
                 catchupCommand,
-                now);
+                commandId,
+                jmxCommandRuntimeParameters
+        );
+
+        logger.info(format("Received command '%s' at %tr", catchupCommand, catchupRequestedEvent.getCatchupRequestedAt()));
 
         catchupRequestedEventFirer.fire(catchupRequestedEvent);
     }

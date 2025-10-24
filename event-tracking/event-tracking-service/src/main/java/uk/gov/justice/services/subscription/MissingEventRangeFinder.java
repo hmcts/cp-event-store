@@ -25,6 +25,7 @@ public class MissingEventRangeFinder {
     public LinkedList<MissingEventRange> getRangesOfMissingEvents(
             final String eventSourceName,
             final String componentName,
+            final Long runFromEventNumber,
             final Long highestPublishedEventNumber) {
 
         final EventNumberAccumulator eventNumberAccumulator = new EventNumberAccumulator();
@@ -37,9 +38,13 @@ public class MissingEventRangeFinder {
             notSeenEventsRange(1L, highestPublishedEventNumber, eventNumberAccumulator);
         }
 
-        try (final Stream<ProcessedEvent> allProcessedEventsStream = processedEventStreamer.getProcessedEventStream(eventSourceName, componentName)) {
-            allProcessedEventsStream
-                    .forEach(processedEventTrackItem -> findMissingRange(processedEventTrackItem, eventNumberAccumulator));
+        try (final Stream<ProcessedEvent> allProcessedEventsStream = processedEventStreamer.getProcessedEventStream(
+                eventSourceName,
+                componentName,
+                runFromEventNumber)) {
+            allProcessedEventsStream.forEach(
+                    processedEventTrackItem -> findMissingRange(processedEventTrackItem, eventNumberAccumulator)
+            );
         }
 
         if (eventNumberAccumulator.isInitialised() && eventNumberAccumulator.getLastPreviousEventNumber() != FIRST_POSSIBLE_EVENT_NUMBER) {

@@ -61,9 +61,18 @@ public class ProcessedEventTrackingService {
         processedEventTrackingRepository.save(processedEvent);
     }
 
-    public Stream<MissingEventRange> getAllMissingEvents(final String eventSourceName, final String componentName, final Long highestPublishedEventNumber) {
+    public Stream<MissingEventRange> getAllMissingEvents(
+            final String eventSourceName,
+            final String componentName,
+            final Long runFromEventNumber,
+            final Long highestPublishedEventNumber) {
 
-        final LinkedList<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(eventSourceName, componentName, highestPublishedEventNumber);
+        final LinkedList<MissingEventRange> missingEventRanges = missingEventRangeFinder.getRangesOfMissingEvents(
+                eventSourceName,
+                componentName,
+                runFromEventNumber,
+                highestPublishedEventNumber);
+        
         final List<MissingEventRange> normalizedEventRanges = eventRangeNormalizer.normalize(missingEventRanges);
 
         if (logger.isInfoEnabled()) {

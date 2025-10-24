@@ -465,18 +465,17 @@ public class CompatibilityModePublishedEventRepositoryTest {
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
-        final String sql = format(SET_EVENT_NUMBER_SEQUENCE_SQL, eventNumber);
-
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
         when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(sql)).thenReturn(preparedStatement);
+        when(connection.prepareStatement(SET_EVENT_NUMBER_SEQUENCE_SQL)).thenReturn(preparedStatement);
 
         compatibilityModePublishedEventRepository.setEventNumberSequenceTo(eventNumber);
 
         final InOrder inOrder = inOrder(connection, preparedStatement);
 
-        inOrder.verify(connection).prepareStatement(sql);
-        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(connection).prepareStatement(SET_EVENT_NUMBER_SEQUENCE_SQL);
+        inOrder.verify(preparedStatement).setLong(1, eventNumber);
+        inOrder.verify(preparedStatement).execute();
         inOrder.verify(preparedStatement).close();
         inOrder.verify(connection).close();
     }

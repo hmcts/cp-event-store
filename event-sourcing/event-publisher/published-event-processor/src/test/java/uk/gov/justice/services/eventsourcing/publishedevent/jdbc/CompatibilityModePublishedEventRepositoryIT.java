@@ -147,7 +147,7 @@ public class CompatibilityModePublishedEventRepositoryIT {
     }
 
     @Test
-    public void shouldName() throws Exception {
+    public void shouldSetTheEventNumberSequenceToTheCurrentEvenNumber() throws Exception {
 
         final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);

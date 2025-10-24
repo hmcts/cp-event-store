@@ -495,7 +495,7 @@ public class CompatibilityModePublishedEventRepositoryTest {
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
         when(dataSource.getConnection()).thenReturn(connection);
         when(connection.prepareStatement(sql)).thenReturn(preparedStatement);
-        doThrow(sqlException).when(preparedStatement).executeUpdate();
+        doThrow(sqlException).when(preparedStatement).execute();
 
         final EventPublishingException eventPublishingException = assertThrows(
                 EventPublishingException.class,
@@ -507,7 +507,7 @@ public class CompatibilityModePublishedEventRepositoryTest {
         final InOrder inOrder = inOrder(connection, preparedStatement);
 
         inOrder.verify(connection).prepareStatement(sql);
-        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).execute();
         inOrder.verify(preparedStatement).close();
         inOrder.verify(connection).close();
     }

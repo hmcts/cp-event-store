@@ -5,7 +5,7 @@
     <parent>
         <artifactId>event-store-management</artifactId>
         <groupId>uk.gov.justice.event-store</groupId>
-        <version>17.104.0-M8</version>
+        <version>17.104.0-M9-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 

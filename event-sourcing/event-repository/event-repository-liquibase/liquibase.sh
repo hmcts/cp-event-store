@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 CONTEXT_NAME=framework
-EVENT_STORE_VERSION=17.104.0-M5-SNAPSHOT
+EVENT_STORE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
 #fail script on error
 set -e

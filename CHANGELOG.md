@@ -11,11 +11,14 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
   will ignore events before this event and only catchup this event and events with higher 
   event numbers. The event id should be sent to jmx using the `--commandRuntimeId` switch.
   If no eventId is sent then catchup will run from the first event as normal
+- Re-introduced the event-number database sequence in case we need to roll back, in which case the 
+  sequence will be up to date
 ### Changed
 - Catchup now calculates previousEventNumber for each event from the previous row in 
     the event_log table rather than the previous_event_number column.
     This is to allow catchup to run with the new publishing where the previous_event_number
-    has not yet been migrated and inserted 
+    has not yet been migrated and inserted
+- The event-number sequence is clicked forward by one each time we publish a new event
 
 # [17.104.0-M6] - 2025-10-15
 ### Added

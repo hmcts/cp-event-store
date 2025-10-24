@@ -56,6 +56,9 @@ public class CompatibilityModePublishedEventRepository {
                     previous_event_number
                 FROM PUBLISHED_EVENT
                 """;
+    static final String SET_EVENT_NUMBER_SEQUENCE_SQL = """
+        SELECT setval('event_sequence_seq', ?);
+        """;
 
     @Inject
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
@@ -91,6 +94,17 @@ public class CompatibilityModePublishedEventRepository {
 
         } catch (final SQLException e) {
             throw new EventPublishingException(format("Failed to insert JsonEnvelope with id '%s' into published_event table", evenId), e);
+        }
+    }
+
+    @Transactional(MANDATORY)
+    public void setEventNumberSequenceTo(final Long eventNumber) {
+        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(SET_EVENT_NUMBER_SEQUENCE_SQL)) {
+            preparedStatement.setLong(1,eventNumber);
+            preparedStatement.execute();
+        } catch (final SQLException e) {
+            throw new EventPublishingException(format("Failed to set event number sequence 'event_sequence_seq' to %d", eventNumber), e);
         }
     }
 

@@ -2,6 +2,7 @@ package uk.gov.justice.services.eventstore.management.catchup.process;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -17,6 +18,7 @@ import uk.gov.justice.services.eventstore.management.events.catchup.CatchupStart
 import uk.gov.justice.services.eventstore.management.events.catchup.SubscriptionCatchupDetails;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.enterprise.event.Event;
@@ -53,6 +55,7 @@ public class EventCatchupRunnerTest {
     public void shouldRunEventCatchupForEachSubscription() throws Exception {
 
         final UUID commandId = randomUUID();
+        final Optional<UUID> runFromEventId = of(randomUUID());
 
         final SubscriptionCatchupDetails subscriptionCatchupDefinition_1 = mock(SubscriptionCatchupDetails.class);
         final SubscriptionCatchupDetails subscriptionCatchupDefinition_2 = mock(SubscriptionCatchupDetails.class);
@@ -62,7 +65,7 @@ public class EventCatchupRunnerTest {
 
         when(subscriptionCatchupProvider.getBySubscription(catchupCommand)).thenReturn(subscriptionCatchupDefinitions);
 
-        eventCatchupRunner.runEventCatchup(commandId, catchupCommand);
+        eventCatchupRunner.runEventCatchup(commandId, catchupCommand, runFromEventId);
 
         final InOrder inOrder = inOrder(catchupStartedEventFirer, eventCatchupByComponentRunner);
 
@@ -73,8 +76,8 @@ public class EventCatchupRunnerTest {
                 clock.now()
         ));
 
-        inOrder.verify(eventCatchupByComponentRunner).runEventCatchupForComponent(subscriptionCatchupDefinition_1, commandId, catchupCommand);
-        inOrder.verify(eventCatchupByComponentRunner).runEventCatchupForComponent(subscriptionCatchupDefinition_2, commandId, catchupCommand);
+        inOrder.verify(eventCatchupByComponentRunner).runEventCatchupForComponent(subscriptionCatchupDefinition_1, commandId, catchupCommand, runFromEventId);
+        inOrder.verify(eventCatchupByComponentRunner).runEventCatchupForComponent(subscriptionCatchupDefinition_2, commandId, catchupCommand, runFromEventId);
     }
 
     @Test
@@ -82,6 +85,7 @@ public class EventCatchupRunnerTest {
 
         final UUID commandId = randomUUID();
         final RuntimeException runtimeException = new RuntimeException();
+        final Optional<UUID> runFromEventId = of(randomUUID());
 
         final String subscriptionName = "subscription_1";
         final SubscriptionCatchupDetails subscriptionCatchupDefinition_1 = mock(SubscriptionCatchupDetails.class);
@@ -90,10 +94,10 @@ public class EventCatchupRunnerTest {
         final CatchupCommand catchupCommand = new EventCatchupCommand();
 
         when(subscriptionCatchupProvider.getBySubscription(catchupCommand)).thenReturn(subscriptionCatchupDefinitions);
-        doThrow(runtimeException).when(eventCatchupByComponentRunner).runEventCatchupForComponent(subscriptionCatchupDefinition_1, commandId, catchupCommand);
+        doThrow(runtimeException).when(eventCatchupByComponentRunner).runEventCatchupForComponent(subscriptionCatchupDefinition_1, commandId, catchupCommand, runFromEventId);
         when(subscriptionCatchupDefinition_1.getSubscriptionName()).thenReturn(subscriptionName);
 
-        eventCatchupRunner.runEventCatchup(commandId, catchupCommand);
+        eventCatchupRunner.runEventCatchup(commandId, catchupCommand, runFromEventId);
 
         final InOrder inOrder = inOrder(catchupStartedEventFirer, eventProcessingFailedHandler);
 

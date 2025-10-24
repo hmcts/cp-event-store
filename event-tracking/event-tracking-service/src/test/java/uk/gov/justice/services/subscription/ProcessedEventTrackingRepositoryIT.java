@@ -1,5 +1,6 @@
 package uk.gov.justice.services.subscription;
 
+import static java.lang.Long.MAX_VALUE;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.is;
@@ -120,32 +121,34 @@ public class ProcessedEventTrackingRepositoryIT {
         final String componentName = "EVENT_LISTENER";
         final Long batchSize = 5L;
         final long numberOfEventsToCreate = 17L;
+        final Long runFromEventNumber = 1L;
 
         for (int i = 0; i < numberOfEventsToCreate; i++) {
             final ProcessedEvent processedEvent = new ProcessedEvent(randomUUID(), i, i + 1, source, componentName);
             processedEventTrackingRepository.save(processedEvent);
         }
 
-        long fromEventNumber = Long.MAX_VALUE;
+        long toEventNumber = MAX_VALUE;
 
         final List<ProcessedEvent> allProcessedEvents = new ArrayList<>();
 
-        while (fromEventNumber > 1) {
-            final List<ProcessedEvent> processedEvents = processedEventTrackingRepository.getProcessedEventsLessThanEventNumberInDescendingOrder(
-                            fromEventNumber,
-                            batchSize,
-                            source,
-                            componentName);
+        while (toEventNumber > 1) {
+            final List<ProcessedEvent> processedEvents = processedEventTrackingRepository.getProcessedEventsInBatchesInDescendingOrder(
+                    runFromEventNumber,
+                    toEventNumber,
+                    batchSize,
+                    source,
+                    componentName);
 
 
-            if (fromEventNumber > batchSize) {
+            if (toEventNumber > batchSize) {
                 assertThat((long) processedEvents.size(), is(batchSize));
             } else {
-                assertThat((long) processedEvents.size(), is(fromEventNumber - 1));
+                assertThat((long) processedEvents.size(), is(toEventNumber - 1));
             }
 
             final ProcessedEvent finalEvent = processedEvents.get(processedEvents.size() - 1);
-            fromEventNumber = finalEvent.getEventNumber();
+            toEventNumber = finalEvent.getEventNumber();
 
             allProcessedEvents.addAll(processedEvents);
         }
@@ -159,6 +162,52 @@ public class ProcessedEventTrackingRepositoryIT {
             assertThat(processedEvent.getPreviousEventNumber(), is(currentEventNumber - 1));
             currentEventNumber--;
         }
+    }
+
+    @Test
+    public void shouldGetProcessedEventsFromTheSpecifiedEventNumber() throws Exception {
+        final String source = "example-context";
+        final String componentName = "EVENT_LISTENER";
+        final Long batchSize = 100L;
+        final long numberOfEventsToCreate = 17L;
+        final Long runFromEventNumber = 7L;
+        final long toEventNumber = MAX_VALUE;
+
+        for (int i = 0; i < numberOfEventsToCreate; i++) {
+            final ProcessedEvent processedEvent = new ProcessedEvent(randomUUID(), i, i + 1, source, componentName);
+            processedEventTrackingRepository.save(processedEvent);
+        }
+
+        final List<ProcessedEvent> processedEvents = processedEventTrackingRepository.getProcessedEventsInBatchesInDescendingOrder(
+                runFromEventNumber,
+                toEventNumber,
+                batchSize,
+                source,
+                componentName);
+
+        assertThat(processedEvents.size(), is(11));
+
+        assertThat(processedEvents.get(0).getEventNumber(), is(17L));
+        assertThat(processedEvents.get(0).getPreviousEventNumber(), is(16L));
+        assertThat(processedEvents.get(1).getEventNumber(), is(16L));
+        assertThat(processedEvents.get(1).getPreviousEventNumber(), is(15L));
+        assertThat(processedEvents.get(2).getEventNumber(), is(15L));
+        assertThat(processedEvents.get(2).getPreviousEventNumber(), is(14L));
+        assertThat(processedEvents.get(3).getEventNumber(), is(14L));
+        assertThat(processedEvents.get(3).getPreviousEventNumber(), is(13L));
+        assertThat(processedEvents.get(4).getEventNumber(), is(13L));
+        assertThat(processedEvents.get(4).getPreviousEventNumber(), is(12L));
+        assertThat(processedEvents.get(5).getEventNumber(), is(12L));
+        assertThat(processedEvents.get(5).getPreviousEventNumber(), is(11L));
+        assertThat(processedEvents.get(6).getEventNumber(), is(11L));
+        assertThat(processedEvents.get(6).getPreviousEventNumber(), is(10L));
+        assertThat(processedEvents.get(7).getEventNumber(), is(10L));
+        assertThat(processedEvents.get(7).getPreviousEventNumber(), is(9L));
+        assertThat(processedEvents.get(8).getEventNumber(), is(9L));
+        assertThat(processedEvents.get(8).getPreviousEventNumber(), is(8L));
+        assertThat(processedEvents.get(9).getEventNumber(), is(8L));
+        assertThat(processedEvents.get(9).getPreviousEventNumber(), is(7L));
+
     }
 
     @Test

@@ -27,16 +27,19 @@ public class ProcessedEventStreamSpliteratorFactoryTest {
         final String source = "source";
         final String component = "component";
         final long batchSize = 23L;
+        final long runFromEventNumber = 4L;
 
         final ProcessedEventStreamSpliterator processedEventStreamSpliterator = processedEventStreamSpliteratorFactory.getProcessedEventStreamSpliterator(
                 source,
                 component,
-                batchSize);
+                batchSize,
+                runFromEventNumber);
 
         assertThat(processedEventStreamSpliterator, is(notNullValue()));
         assertThat(getValueOfField(processedEventStreamSpliterator, "source", String.class), is(source));
         assertThat(getValueOfField(processedEventStreamSpliterator, "component", String.class), is(component));
         assertThat(getValueOfField(processedEventStreamSpliterator, "batchSize", Long.class), is(batchSize));
         assertThat(getValueOfField(processedEventStreamSpliterator, "processedEventTrackingRepository", ProcessedEventTrackingRepository.class), is(processedEventTrackingRepository));
+        assertThat(getValueOfField(processedEventStreamSpliterator, "runFromEventNumber", Long.class), is(runFromEventNumber));
     }
 }

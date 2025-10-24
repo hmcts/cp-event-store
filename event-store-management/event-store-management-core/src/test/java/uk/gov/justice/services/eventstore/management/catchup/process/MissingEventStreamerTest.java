@@ -1,6 +1,5 @@
 package uk.gov.justice.services.eventstore.management.catchup.process;
 
-import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -39,6 +38,7 @@ public class MissingEventStreamerTest {
         final String componentName = "EVENT_LISTENER";
         final String eventSourceName = "event source name";
         final Long highestPublishedEventNumber = 23L;
+        final Long runFromEventNumber = 4L;
 
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
 
@@ -59,12 +59,15 @@ public class MissingEventStreamerTest {
 
         when(linkedEventSourceProvider.getLinkedEventSource(eventSourceName)).thenReturn(linkedEventSource);
         when(linkedEventSource.getHighestPublishedEventNumber()).thenReturn(highestPublishedEventNumber);
-        when(processedEventTrackingService.getAllMissingEvents(eventSourceName, componentName, highestPublishedEventNumber)).thenReturn(missingEventRangeStream);
+        when(processedEventTrackingService.getAllMissingEvents(eventSourceName, componentName, runFromEventNumber, highestPublishedEventNumber)).thenReturn(missingEventRangeStream);
         when(linkedEventSource.findEventRange(missingEventRange_1)).thenReturn(publishedEventStream_1);
         when(linkedEventSource.findEventRange(missingEventRange_2)).thenReturn(publishedEventStream_2);
 
-        final List<LinkedEvent> missingEvents = missingEventStreamer.getMissingEvents(eventSourceName, componentName)
-                .collect(toList());
+        final List<LinkedEvent> missingEvents = missingEventStreamer.getMissingEvents(
+                        eventSourceName,
+                        componentName,
+                        runFromEventNumber)
+                .toList();
 
         assertThat(missingEvents.size(), is(4));
         assertThat(missingEvents.get(0), is(linkedEvent_2));

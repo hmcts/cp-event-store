@@ -46,16 +46,14 @@ public class EventCatchupProcessor {
         final String eventSourceName = subscriptionCatchupDefinition.getEventSourceName();
         final String componentName = catchupSubscriptionContext.getComponentName();
         final CatchupCommand catchupCommand = catchupSubscriptionContext.getCatchupCommand();
+        final Long runFromEventNumber = catchupSubscriptionContext.getRunFromEventNumber();
 
         logger.info(format("Finding all missing events for event source '%s', component '%s", eventSourceName, componentName));
-        final Stream<LinkedEvent> events = missingEventStreamer.getMissingEvents(eventSourceName, componentName);
+        final Stream<LinkedEvent> events = missingEventStreamer.getMissingEvents(eventSourceName, componentName, runFromEventNumber);
 
         final int totalEventsProcessed = events.mapToInt(event -> {
 
-            final Long eventNumber = event.getEventNumber().orElseThrow(() -> new MissingEventNumberException(format("PublishedEvent with id '%s' is missing its event number", event.getId())));
-
-            // here
-
+            final Long eventNumber = event.getEventNumber().orElseThrow(() -> new MissingEventNumberException(format("Event with id '%s' is missing its event number", event.getId())));
             if (eventNumber % 1000L == 0) {
                 logger.info(format("%s with Event Source: %s for Event Number: %d", catchupCommand.getName(), eventSourceName, eventNumber));
             }

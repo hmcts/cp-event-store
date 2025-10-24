@@ -34,6 +34,7 @@ import uk.gov.justice.services.jmx.state.events.SystemCommandStateChangedEvent;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.enterprise.event.Event;
@@ -88,13 +89,15 @@ public class CatchupObserverTest {
     public void shouldStartCatchupOnCatchupRequested() throws Exception {
 
         final UUID commandId = randomUUID();
+        final UUID runFromEventId = randomUUID();
         final ZonedDateTime catchupStartedAt = of(2019, 2, 23, 17, 12, 23, 0, UTC);
 
         final EventCatchupCommand eventCatchupCommand = new EventCatchupCommand();
         final CatchupRequestedEvent catchupRequestedEvent = new CatchupRequestedEvent(
                 commandId,
                 eventCatchupCommand,
-                catchupStartedAt
+                catchupStartedAt,
+                runFromEventId
         );
 
         when(clock.now()).thenReturn(catchupStartedAt);
@@ -113,7 +116,7 @@ public class CatchupObserverTest {
         inOrder.verify(catchupErrorStateManager).clear(eventCatchupCommand);
         inOrder.verify(systemCommandStateChangedEventFirer).fire(systemCommandStateChangedEventCaptor.capture());
         inOrder.verify(logger).info("CATCHUP requested at 2019-02-23T17:12:23Z");
-        inOrder.verify(eventCatchupRunner).runEventCatchup(commandId, eventCatchupCommand);
+        inOrder.verify(eventCatchupRunner).runEventCatchup(commandId, eventCatchupCommand, Optional.of(runFromEventId));
 
         final SystemCommandStateChangedEvent stateChangedEvent = systemCommandStateChangedEventCaptor.getValue();
 

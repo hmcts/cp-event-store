@@ -4,7 +4,6 @@ import static java.util.Arrays.asList;
 import static java.util.Optional.of;
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
-import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -137,6 +136,7 @@ public class ProcessedEventTrackingServiceTest {
         final String eventSourceName = "example-context";
         final String componentName = "EVENT_LISTENER";
         final Long highestPublishedEventNumber = 10L;
+        final Long runFromEventNumber = 1L;
         final String missingEventRangeString = "...some missing events...";
 
         final MissingEventRange missingEventRange_1 = new MissingEventRange(4L, 7L);
@@ -144,14 +144,18 @@ public class ProcessedEventTrackingServiceTest {
 
         final LinkedList<MissingEventRange> missingEventRangeList = new LinkedList<>(asList(missingEventRange_1, missingEventRange_2));
 
-        when(missingEventRangeFinder.getRangesOfMissingEvents(eventSourceName, componentName, highestPublishedEventNumber)).thenReturn(missingEventRangeList);
+        when(missingEventRangeFinder.getRangesOfMissingEvents(eventSourceName, componentName, runFromEventNumber, highestPublishedEventNumber)).thenReturn(missingEventRangeList);
         when(eventRangeNormalizer.normalize(missingEventRangeList)).thenReturn(missingEventRangeList);
         when(missingEventRangeStringifier.createMissingEventRangeStringFrom(missingEventRangeList)).thenReturn(missingEventRangeString);
         when(logger.isInfoEnabled()).thenReturn(true);
 
         final List<MissingEventRange> missingEventRanges = processedEventTrackingService
-                .getAllMissingEvents(eventSourceName, componentName, highestPublishedEventNumber)
-                .collect(toList());
+                .getAllMissingEvents(
+                        eventSourceName,
+                        componentName,
+                        runFromEventNumber,
+                        highestPublishedEventNumber)
+                .toList();
 
         assertThat(missingEventRanges.size(), is(2));
         assertThat(missingEventRanges.get(0), is(missingEventRange_1));

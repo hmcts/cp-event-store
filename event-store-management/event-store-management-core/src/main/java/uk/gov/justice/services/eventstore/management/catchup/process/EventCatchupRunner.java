@@ -7,6 +7,7 @@ import uk.gov.justice.services.eventstore.management.events.catchup.CatchupStart
 import uk.gov.justice.services.eventstore.management.events.catchup.SubscriptionCatchupDetails;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.enterprise.event.Event;
@@ -29,7 +30,10 @@ public class EventCatchupRunner {
     @Inject
     private EventProcessingFailedHandler eventProcessingFailedHandler;
 
-    public void runEventCatchup(final UUID commandId, final CatchupCommand catchupCommand) {
+    public void runEventCatchup(
+            final UUID commandId,
+            final CatchupCommand catchupCommand,
+            final Optional<UUID> runFromEventId) {
 
         final List<SubscriptionCatchupDetails> subscriptionCatchupDefinitions = subscriptionCatchupProvider.getBySubscription(catchupCommand);
 
@@ -42,16 +46,21 @@ public class EventCatchupRunner {
 
         subscriptionCatchupDefinitions
                 .forEach(subscriptionCatchupDetails ->
-                        catchupSubscription(subscriptionCatchupDetails, commandId, catchupCommand));
+                        catchupSubscription(subscriptionCatchupDetails, commandId, catchupCommand, runFromEventId));
     }
 
-    private void catchupSubscription(final SubscriptionCatchupDetails subscriptionCatchupDetails, final UUID commandId, final CatchupCommand catchupCommand) {
+    private void catchupSubscription(
+            final SubscriptionCatchupDetails subscriptionCatchupDetails,
+            final UUID commandId,
+            final CatchupCommand catchupCommand,
+            final Optional<UUID> runFromEventId) {
 
         try {
             eventCatchupByComponentRunner.runEventCatchupForComponent(
                     subscriptionCatchupDetails,
                     commandId,
-                    catchupCommand);
+                    catchupCommand,
+                    runFromEventId);
         } catch (final Exception e) {
             eventProcessingFailedHandler.handleSubscriptionFailure(e, subscriptionCatchupDetails.getSubscriptionName(), commandId, catchupCommand);
         }

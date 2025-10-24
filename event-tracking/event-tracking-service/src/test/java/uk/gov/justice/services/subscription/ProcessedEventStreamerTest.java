@@ -35,16 +35,17 @@ public class ProcessedEventStreamerTest {
         final Long batchSize = 10_000L;
         final String source = "THE_SOURCE";
         final String componentName = "EVENT_LISTENER";
+        final Long runFromEventNumber = 1L;
 
         final ProcessedEvent processedEvent = mock(ProcessedEvent.class);
         final ProcessedEventStreamSpliterator processedEventStreamSpliterator = mock(ProcessedEventStreamSpliterator.class);
 
         when(processedEventStreamerConfiguration.getProcessedEventFetchBatchSize()).thenReturn(batchSize);
-        when(processedEventStreamSpliteratorFactory.getProcessedEventStreamSpliterator(source, componentName, batchSize))
+        when(processedEventStreamSpliteratorFactory.getProcessedEventStreamSpliterator(source, componentName, batchSize, runFromEventNumber))
                 .thenReturn(processedEventStreamSpliterator);
         when(spliteratorStreamFactory.createStreamFrom(processedEventStreamSpliterator)).thenReturn(Stream.of(processedEvent));
 
-        final List<ProcessedEvent> processedEvents = processedEventStreamer.getProcessedEventStream(source, componentName).toList();
+        final List<ProcessedEvent> processedEvents = processedEventStreamer.getProcessedEventStream(source, componentName, runFromEventNumber).toList();
 
         assertThat(processedEvents.size(), is(1));
         assertThat(processedEvents.get(0), is(processedEvent));

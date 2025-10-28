@@ -1,96 +1,162 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc;
 
+import static java.util.UUID.fromString;
+import static java.util.UUID.randomUUID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.Event;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.exception.InvalidPositionException;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.exception.OptimisticLockingRetryException;
 import uk.gov.justice.services.jdbc.persistence.PreparedStatementWrapper;
 
+import java.sql.Timestamp;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class EventInsertionStrategyTest {
 
-    private static final int INSERTED = 1;
-    private static final int CONFLICT_OCCURRED = 0;
-
-    private static final UUID ID = UUID.randomUUID();
-    private static final UUID STREAM_ID = UUID.randomUUID();
-    private static final long SEQUENCE_ID = 1L;
-    private static final String NAME = "Name";
-    private static final String METADATA = "metadata";
-    private static final String PAYLOAD = "payload";
-    final ZonedDateTime createdAt = new UtcClock().now();
-
-    @Mock
-    private Event event;
-
-    @Mock
-    private PreparedStatementWrapper preparedStatement;
-
     @InjectMocks
     private EventInsertionStrategy eventInsertionStrategy;
 
     @Test
-    public void shouldExecutePreparedStatementAndCompleteIfRowIsInserted() throws Exception {
-        when(event.getId()).thenReturn(ID);
-        when(event.getStreamId()).thenReturn(STREAM_ID);
-        when(event.getPositionInStream()).thenReturn(SEQUENCE_ID);
-        when(event.getName()).thenReturn(NAME);
-        when(event.getMetadata()).thenReturn(METADATA);
-        when(event.getPayload()).thenReturn(PAYLOAD);
-        when(preparedStatement.executeUpdate()).thenReturn(INSERTED);
-        when(event.getCreatedAt()).thenReturn(createdAt);
+    public void shouldUseTheCorrectInsertStatement() throws Exception {
 
-        eventInsertionStrategy.insert(preparedStatement, event);
+        final String expectedSql = """
+            INSERT INTO
+            event_log (
+                 id,
+                 stream_id,
+                 position_in_stream,
+                 name,
+                 metadata,
+                 payload,
+                 date_created,
+                 event_number,
+                 previous_event_number)
+            VALUES(?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+            ON CONFLICT DO NOTHING
+            """;
 
-        verify(preparedStatement).setObject(1, ID);
-        verify(preparedStatement).setObject(2, STREAM_ID);
-        verify(preparedStatement).setLong(3, SEQUENCE_ID);
-        verify(preparedStatement).setString(4, NAME);
-        verify(preparedStatement).setString(5, METADATA);
-        verify(preparedStatement).setString(6, PAYLOAD);
-        verify(preparedStatement).setTimestamp(7, toSqlTimestamp(createdAt));
-        verify(preparedStatement).executeUpdate();
+        assertThat(eventInsertionStrategy.insertStatement(), is(expectedSql));
     }
 
     @Test
-    public void shouldExecutePreparedStatementAndThrowExceptionIfRowWasNotInsertedDueToConflict() throws Exception {
-        when(event.getId()).thenReturn(ID);
-        when(event.getStreamId()).thenReturn(STREAM_ID);
-        when(event.getPositionInStream()).thenReturn(SEQUENCE_ID);
-        when(event.getName()).thenReturn(NAME);
-        when(event.getMetadata()).thenReturn(METADATA);
-        when(event.getPayload()).thenReturn(PAYLOAD);
-        when(preparedStatement.executeUpdate()).thenReturn(CONFLICT_OCCURRED);
-        when(event.getCreatedAt()).thenReturn(createdAt);
+    public void shouldInsertCorrectValuesIntoPreparedStatementAndCallUpdate() throws Exception {
 
+        final UUID eventId = randomUUID();
+        final UUID streamId = randomUUID();
+        final long positionInStream = 23L;
+        final int rowsUpdatedCount = 1;
 
-        final OptimisticLockingRetryException optimisticLockingRetryException = assertThrows(OptimisticLockingRetryException.class, () ->
-                eventInsertionStrategy.insert(preparedStatement, event)
+        final String name = "some-event-name";
+        final String metadata = "some-metadata-json";
+        final String payload = "some-payload-json";
+        final ZonedDateTime createdAt = new UtcClock().now();
+        final Timestamp createdAtTimestamp = toSqlTimestamp(createdAt);
+
+        final Event event = new Event(
+                eventId,
+                streamId,
+                positionInStream,
+                name,
+                metadata,
+                payload,
+                createdAt
         );
 
-        assertThat(optimisticLockingRetryException.getMessage(), is("Locking Exception while storing sequence 1 of stream " + STREAM_ID));
-        verify(preparedStatement).setObject(1, ID);
-        verify(preparedStatement).setObject(2, STREAM_ID);
-        verify(preparedStatement).setLong(3, SEQUENCE_ID);
-        verify(preparedStatement).setString(4, NAME);
-        verify(preparedStatement).setString(5, METADATA);
-        verify(preparedStatement).setString(6, PAYLOAD);
-        verify(preparedStatement).setTimestamp(7, toSqlTimestamp(createdAt));
-        verify(preparedStatement).executeUpdate();
+        final PreparedStatementWrapper preparedStatementWrapper = mock(PreparedStatementWrapper.class);
+
+        when(preparedStatementWrapper.executeUpdate()).thenReturn(rowsUpdatedCount);
+
+        eventInsertionStrategy.insert(preparedStatementWrapper, event);
+
+        verify(preparedStatementWrapper).setObject(1, eventId);
+        verify(preparedStatementWrapper).setObject(2, streamId);
+        verify(preparedStatementWrapper).setLong(3, positionInStream);
+        verify(preparedStatementWrapper).setString(4, name);
+        verify(preparedStatementWrapper).setString(5, metadata);
+        verify(preparedStatementWrapper).setString(6, payload);
+        verify(preparedStatementWrapper).setTimestamp(7, createdAtTimestamp);
+
+        verify(preparedStatementWrapper, never()).close();
+    }
+
+    @Test
+    public void shouldThrowInvalidPositionExceptionIfTheEventHasNoPositionInStream() throws Exception {
+
+        final UUID eventId = fromString("36602228-af06-4c13-b2eb-a51d24cd5a8c");
+        final UUID streamId = fromString("55e1b067-666c-4b24-b38a-a1d665db2bde");
+
+        final Event event = mock(Event.class);
+        final PreparedStatementWrapper preparedStatementWrapper = mock(PreparedStatementWrapper.class);
+
+        when(event.getPositionInStream()).thenReturn(null);
+        when(event.getId()).thenReturn(eventId);
+        when(event.getStreamId()).thenReturn(streamId);
+
+        final InvalidPositionException invalidPositionException = assertThrows(
+                InvalidPositionException.class,
+                () -> eventInsertionStrategy.insert(preparedStatementWrapper, event));
+
+        assertThat(invalidPositionException.getMessage(), is("Failed to insert event into event log table. Event has NULL positionInStream: event id '36602228-af06-4c13-b2eb-a51d24cd5a8c', streamId '55e1b067-666c-4b24-b38a-a1d665db2bde'"));
+    }
+
+    @Test
+    public void shouldThrowOptimisticLockingRetryExceptionIfDatabaseConflictResultsInNoRowsGettingUpdated() throws Exception {
+
+        final UUID eventId = randomUUID();
+        final UUID streamId = fromString("fefc7af0-a93f-4019-983e-cec3fc7a816a");
+        final long positionInStream = 23L;
+
+        final String name = "some-event-name";
+        final String metadata = "some-metadata-json";
+        final String payload = "some-payload-json";
+        final ZonedDateTime createdAt = new UtcClock().now();
+        final Timestamp createdAtTimestamp = toSqlTimestamp(createdAt);
+
+        final Event event = new Event(
+                eventId,
+                streamId,
+                positionInStream,
+                name,
+                metadata,
+                payload,
+                createdAt
+        );
+
+        final PreparedStatementWrapper preparedStatementWrapper = mock(PreparedStatementWrapper.class);
+
+        when(preparedStatementWrapper.executeUpdate()).thenReturn(0);
+
+        final OptimisticLockingRetryException optimisticLockingRetryException = assertThrows(
+                OptimisticLockingRetryException.class,
+                () -> eventInsertionStrategy.insert(preparedStatementWrapper, event));
+
+        assertThat(optimisticLockingRetryException.getMessage(), is("OptimisticLockingRetryException while storing positionInStream '23' of stream 'fefc7af0-a93f-4019-983e-cec3fc7a816a'"));
+
+        verify(preparedStatementWrapper).setObject(1, eventId);
+        verify(preparedStatementWrapper).setObject(2, streamId);
+        verify(preparedStatementWrapper).setLong(3, positionInStream);
+        verify(preparedStatementWrapper).setString(4, name);
+        verify(preparedStatementWrapper).setString(5, metadata);
+        verify(preparedStatementWrapper).setString(6, payload);
+        verify(preparedStatementWrapper).setTimestamp(7, createdAtTimestamp);
+
+        verify(preparedStatementWrapper, never()).close();
+
     }
 }

@@ -4,6 +4,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- Inserts of new events into event_log now explicitly set event_number and previous_event_number
+  to NULL, for rollback purposes
 
 # [17.104.0-M8] - 2025-10-24
 ### Added

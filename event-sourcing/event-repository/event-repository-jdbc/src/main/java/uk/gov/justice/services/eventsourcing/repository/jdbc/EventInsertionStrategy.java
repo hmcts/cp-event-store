@@ -13,46 +13,49 @@ import java.sql.SQLException;
 public class EventInsertionStrategy {
 
     // 'is_published' is false by default so not inserted here
-    static final String INSERT_EVENT_INTO_EVENT_LOG_SQL = """
-               INSERT INTO
-               event_log (
-                    id,
-                    stream_id,
-                    position_in_stream,
-                    name,
-                    metadata,
-                    payload,
-                    date_created)
-               VALUES(?, ?, ?, ?, ?, ?, ?)
-               ON CONFLICT DO NOTHING
-               """;
+    private static final String INSERT_EVENT_INTO_EVENT_LOG_SQL = """
+            INSERT INTO
+            event_log (
+                 id,
+                 stream_id,
+                 position_in_stream,
+                 name,
+                 metadata,
+                 payload,
+                 date_created,
+                 event_number,
+                 previous_event_number)
+            VALUES(?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+            ON CONFLICT DO NOTHING
+            """;
 
     public String insertStatement() {
         return INSERT_EVENT_INTO_EVENT_LOG_SQL;
     }
 
-    public void insert(final PreparedStatementWrapper ps, final Event event) throws SQLException, InvalidPositionException {
-        final int updatedRows = executeStatement(ps, event);
+    public void insert(final PreparedStatementWrapper preparedStatementWrapper, final Event event) throws SQLException, InvalidPositionException {
+        if (event.getPositionInStream() == null) {
+            throw new InvalidPositionException(format(
+                    "Failed to insert event into event log table. Event has NULL positionInStream: event id '%s', streamId '%s'",
+                    event.getId(),
+                    event.getStreamId()));
+        }
+
+        preparedStatementWrapper.setObject(1, event.getId());
+        preparedStatementWrapper.setObject(2, event.getStreamId());
+        preparedStatementWrapper.setLong(3, event.getPositionInStream());
+        preparedStatementWrapper.setString(4, event.getName());
+        preparedStatementWrapper.setString(5, event.getMetadata());
+        preparedStatementWrapper.setString(6, event.getPayload());
+        preparedStatementWrapper.setTimestamp(7, toSqlTimestamp(event.getCreatedAt()));
+        final int updatedRows = preparedStatementWrapper.executeUpdate();
 
         if (updatedRows == 0) {
-            throw new OptimisticLockingRetryException(format("Locking Exception while storing sequence %s of stream %s",
-                    event.getPositionInStream(), event.getStreamId()));
+            throw new OptimisticLockingRetryException(
+                    format("%s while storing positionInStream '%d' of stream '%s'",
+                            OptimisticLockingRetryException.class.getSimpleName(),
+                            event.getPositionInStream(),
+                            event.getStreamId()));
         }
     }
-
-    private int executeStatement(final PreparedStatementWrapper preparedStatement, final Event event) throws SQLException, InvalidPositionException {
-        if (event.getPositionInStream() == null) {
-            throw new InvalidPositionException(format("Version is null for stream %s", event.getStreamId()));
-        }
-
-        preparedStatement.setObject(1, event.getId());
-        preparedStatement.setObject(2, event.getStreamId());
-        preparedStatement.setLong(3, event.getPositionInStream());
-        preparedStatement.setString(4, event.getName());
-        preparedStatement.setString(5, event.getMetadata());
-        preparedStatement.setString(6, event.getPayload());
-        preparedStatement.setTimestamp(7, toSqlTimestamp(event.getCreatedAt()));
-        return preparedStatement.executeUpdate();
-    }
-
 }

@@ -17,7 +17,7 @@ import static uk.gov.justice.services.eventsourcing.source.api.service.core.Fixe
 import static uk.gov.justice.services.eventsourcing.source.api.service.core.Position.first;
 import static uk.gov.justice.services.eventsourcing.source.api.service.core.Position.head;
 import static uk.gov.justice.services.eventsourcing.source.api.service.core.Position.position;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.source.api.service.core.Direction;
@@ -67,7 +67,7 @@ public class EventsPageServiceTest {
 
         final List<EventEntry> events = new ArrayList<>();
 
-        final EventEntry event1 = new EventEntry(randomUUID(), streamId, 3L, "Test Name3", jsonBuilderFactory.createObjectBuilder().add("field3", "value3").build(), new UtcClock().now().toString());
+        final EventEntry event1 = new EventEntry(randomUUID(), streamId, 3L, "Test Name3", getJsonBuilderFactory().createObjectBuilder().add("field3", "value3").build(), new UtcClock().now().toString());
 
         events.add(event1);
 
@@ -127,7 +127,7 @@ public class EventsPageServiceTest {
 
         final List<EventEntry> events = new ArrayList<>();
 
-        final EventEntry event1 = new EventEntry(randomUUID(), streamId, 3L, "Test Name3", jsonBuilderFactory.createObjectBuilder().add("field3", "value3").build(), new UtcClock().now().toString());
+        final EventEntry event1 = new EventEntry(randomUUID(), streamId, 3L, "Test Name3", getJsonBuilderFactory().createObjectBuilder().add("field3", "value3").build(), new UtcClock().now().toString());
 
         events.add(event1);
 
@@ -173,8 +173,8 @@ public class EventsPageServiceTest {
         final URL firstURL = new URL(BASE_URL + EVENT_STREAM_PATH + streamId + "/1/FORWARD/2");
         when(urlLinkFactory.createFirstEventsUrlLink(2, uriInfo)).thenReturn(firstURL);
 
-        final JsonObject payloadEvent1 = jsonBuilderFactory.createObjectBuilder().add("field1", "value1").build();
-        final JsonObject payloadEvent2 = jsonBuilderFactory.createObjectBuilder().add("field2", "value2").build();
+        final JsonObject payloadEvent1 = getJsonBuilderFactory().createObjectBuilder().add("field1", "value1").build();
+        final JsonObject payloadEvent2 = getJsonBuilderFactory().createObjectBuilder().add("field2", "value2").build();
 
         final EventEntry event1 = new EventEntry(randomUUID(), streamId, 1L, "Test Name1", payloadEvent1, new UtcClock().now().toString());
         final EventEntry event2 = new EventEntry(randomUUID(), streamId, 2L, "Test Name2", payloadEvent2, new UtcClock().now().toString());
@@ -220,8 +220,8 @@ public class EventsPageServiceTest {
 
         final List<EventEntry> events = new ArrayList<>();
 
-        final JsonObject payloadEvent4 = jsonBuilderFactory.createObjectBuilder().add("field4", "value4").build();
-        final JsonObject payloadEvent3 = jsonBuilderFactory.createObjectBuilder().add("field3", "value3").build();
+        final JsonObject payloadEvent4 = getJsonBuilderFactory().createObjectBuilder().add("field4", "value4").build();
+        final JsonObject payloadEvent3 = getJsonBuilderFactory().createObjectBuilder().add("field3", "value3").build();
 
         final EventEntry event4 = new EventEntry(randomUUID(), streamId, 4L, "Test Name4", payloadEvent4, new UtcClock().now().toString());
         final EventEntry event3 = new EventEntry(randomUUID(), streamId, 3L, "Test Name3", payloadEvent3, new UtcClock().now().toString());
@@ -276,8 +276,8 @@ public class EventsPageServiceTest {
 
         final List<EventEntry> events = new ArrayList<>();
 
-        final EventEntry event1 = new EventEntry(randomUUID(), streamId, 1L, "Test Name1", jsonBuilderFactory.createObjectBuilder().add("field1", "value1").build(), new UtcClock().now().toString());
-        final EventEntry event2 = new EventEntry(randomUUID(), streamId, 2L, "Test Name2", jsonBuilderFactory.createObjectBuilder().add("field2", "value2").build(), new UtcClock().now().toString());
+        final EventEntry event1 = new EventEntry(randomUUID(), streamId, 1L, "Test Name1", getJsonBuilderFactory().createObjectBuilder().add("field1", "value1").build(), new UtcClock().now().toString());
+        final EventEntry event2 = new EventEntry(randomUUID(), streamId, 2L, "Test Name2", getJsonBuilderFactory().createObjectBuilder().add("field2", "value2").build(), new UtcClock().now().toString());
 
         events.add(event2);
 
@@ -315,8 +315,8 @@ public class EventsPageServiceTest {
 
         final List<EventEntry> events = new ArrayList<>();
 
-        final EventEntry event2 = new EventEntry(randomUUID(), streamId, 2L, "Test Name2", jsonBuilderFactory.createObjectBuilder().add("field2", "value2").build(), new UtcClock().now().toString());
-        final EventEntry event3 = new EventEntry(randomUUID(), streamId, 3L, "Test Name3", jsonBuilderFactory.createObjectBuilder().add("field3", "value3").build(), new UtcClock().now().toString());
+        final EventEntry event2 = new EventEntry(randomUUID(), streamId, 2L, "Test Name2", getJsonBuilderFactory().createObjectBuilder().add("field2", "value2").build(), new UtcClock().now().toString());
+        final EventEntry event3 = new EventEntry(randomUUID(), streamId, 3L, "Test Name3", getJsonBuilderFactory().createObjectBuilder().add("field3", "value3").build(), new UtcClock().now().toString());
 
         events.add(event3);
         events.add(event2);

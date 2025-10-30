@@ -4,6 +4,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- Refactor JsonObject usages to more proper api
+- Fix HttpClient lifecycle.
 
 # [17.104.0-M8] - 2025-10-24
 ### Added

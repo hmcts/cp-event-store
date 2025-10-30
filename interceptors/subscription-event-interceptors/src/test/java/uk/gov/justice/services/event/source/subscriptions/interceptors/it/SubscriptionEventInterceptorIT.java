@@ -8,7 +8,7 @@ import static uk.gov.justice.services.core.interceptor.InterceptorContext.interc
 import static uk.gov.justice.services.core.postgres.OpenEjbConfigurationBuilder.createOpenEjbConfigurationBuilder;
 import static uk.gov.justice.services.messaging.Envelope.metadataBuilder;
 import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.schema.service.CatalogProducer;
 import uk.gov.justice.schema.service.SchemaCatalogResolverProducer;
@@ -279,7 +279,7 @@ public class SubscriptionEventInterceptorIT {
                         .withSource(SOURCE)
                         .withEventNumber(1L)
                         .withPreviousEventNumber(0L),
-                jsonBuilderFactory.createObjectBuilder().build());
+                getJsonBuilderFactory().createObjectBuilder().build());
 
         assertThat(processedEventTrackingService.getLatestProcessedEventNumber(SOURCE, COMPONENT_NAME), is(0L));
 

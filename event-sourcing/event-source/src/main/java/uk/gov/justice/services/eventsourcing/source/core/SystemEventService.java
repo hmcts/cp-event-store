@@ -3,7 +3,7 @@ package uk.gov.justice.services.eventsourcing.source.core;
 import static java.lang.String.format;
 import static java.util.UUID.randomUUID;
 import static uk.gov.justice.domain.annotation.Event.SYSTEM_EVENTS;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.common.util.Clock;
 import uk.gov.justice.services.messaging.JsonEnvelope;
@@ -36,7 +36,7 @@ public class SystemEventService {
                 .createdAt(clock.now())
                 .build();
 
-        final JsonObject payload = jsonBuilderFactory.createObjectBuilder()
+        final JsonObject payload = getJsonBuilderFactory().createObjectBuilder()
                 .add("originatingStream", streamId.toString())
                 .add("operation", "cloned")
                 .build();

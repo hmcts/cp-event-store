@@ -173,8 +173,9 @@ public class LinkEventsInEventLogDatabaseAccessIT {
                        name,
                        date_created,
                        payload,
-                       metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                       metadata,
+                       event_number)
+                VALUES (?, ?, ?, ?, ?, ?, ?, null)
                 """;
 
         try (final Connection connection = eventStoreDataSource.getConnection();

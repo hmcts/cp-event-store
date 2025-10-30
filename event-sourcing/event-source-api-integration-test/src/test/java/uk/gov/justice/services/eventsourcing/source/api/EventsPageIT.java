@@ -18,7 +18,7 @@ import static uk.gov.justice.services.core.postgres.OpenEjbConfigurationBuilder.
 import static uk.gov.justice.services.eventsourcing.source.api.service.core.Direction.BACKWARD;
 import static uk.gov.justice.services.eventsourcing.source.api.service.core.Direction.FORWARD;
 import static uk.gov.justice.services.eventsourcing.source.api.util.TestSystemUserProvider.SYSTEM_USER_ID;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.cdi.InitialContextProducer;
 import uk.gov.justice.services.cdi.QualifierAnnotationExtractor;
@@ -646,7 +646,7 @@ public class EventsPageIT {
                     .build();
 
             final Event event = new Event(randomUUID(), STREAM_ID, valueOf(i), "Test Name" + i,
-                    metadata.asJsonObject().toString(), jsonBuilderFactory.createObjectBuilder().add("field" + i, "value" + i).build().toString(),
+                    metadata.asJsonObject().toString(), getJsonBuilderFactory().createObjectBuilder().add("field" + i, "value" + i).build().toString(),
                     new UtcClock().now());
             eventsRepository.insert(event);
         }

@@ -11,7 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.JdbcBasedEventRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.exception.StoreEventRequestFailedException;
@@ -51,7 +51,7 @@ public class PublishingEventAppenderTest {
                                 .withName("name123")
                                 .withStreamId(eventId)
                                 .withId(randomUUID()),
-                        jsonBuilderFactory.createObjectBuilder()
+                        getJsonBuilderFactory().createObjectBuilder()
                                 .add("somePayloadField", "payloadValue123")
                 ),
                 streamId,
@@ -77,7 +77,7 @@ public class PublishingEventAppenderTest {
                 metadataBuilder()
                         .withName("name123")
                         .withId(randomUUID()),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
                         .add("somePayloadField", "payloadValue123")
         );
 
@@ -96,7 +96,7 @@ public class PublishingEventAppenderTest {
                                 .withName("name456")
                                 .withStreamId(streamId)
                                 .withId(eventId),
-                        jsonBuilderFactory.createObjectBuilder()
+                        getJsonBuilderFactory().createObjectBuilder()
                                 .add("somePayloadField", "payloadValue456")
                 ),
                 streamId,
@@ -122,7 +122,7 @@ public class PublishingEventAppenderTest {
                                 .withName("name456")
                                 .withStreamId(streamId)
                                 .withId(eventId),
-                        jsonBuilderFactory.createObjectBuilder()
+                        getJsonBuilderFactory().createObjectBuilder()
                                 .add("somePayloadField", "payloadValue456")
                 ),
                 streamId,

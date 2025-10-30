@@ -4,7 +4,7 @@ import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.UUID.randomUUID;
 import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -90,7 +90,7 @@ public class LinkedEventBuilder {
                         .withName(name)
                         .withStreamId(streamId)
                         .withSource(source),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
                         .add("field_" + positionInStream, "value_" + positionInStream));
 
         if (metadataJSON == null) {

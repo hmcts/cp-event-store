@@ -13,7 +13,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.eventsourcing.source.core.exception.EventStreamException;
 import uk.gov.justice.services.messaging.JsonEnvelope;
@@ -229,7 +229,7 @@ public class EnvelopeEventStreamTest {
                         .withId(randomUUID())
                         .withName("name")
                         .withStreamId(randomUUID()),
-                jsonBuilderFactory.createObjectBuilder());
+                getJsonBuilderFactory().createObjectBuilder());
     }
 
     private JsonEnvelope jsonEnvelopeWithVersion(final long version) {
@@ -239,6 +239,6 @@ public class EnvelopeEventStreamTest {
                         .withName("name")
                         .withStreamId(randomUUID())
                         .withVersion(version),
-                jsonBuilderFactory.createObjectBuilder());
+                getJsonBuilderFactory().createObjectBuilder());
     }
 }

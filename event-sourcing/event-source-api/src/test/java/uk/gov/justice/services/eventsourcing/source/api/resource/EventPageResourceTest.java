@@ -12,7 +12,7 @@ import static uk.gov.justice.services.eventsourcing.source.api.service.core.Dire
 import static uk.gov.justice.services.eventsourcing.source.api.service.core.Direction.FORWARD;
 import static uk.gov.justice.services.eventsourcing.source.api.service.core.FixedPositionValue.FIRST;
 import static uk.gov.justice.services.eventsourcing.source.api.service.core.FixedPositionValue.HEAD;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.adapter.rest.exception.BadRequestException;
 import uk.gov.justice.services.common.converter.ObjectToJsonValueConverter;
@@ -68,7 +68,7 @@ public class EventPageResourceTest {
 
         when(eventsPageService.pageEvents(streamId, position, FORWARD, pageSize, uriInfo)).thenReturn(page);
 
-        final JsonObjectBuilder jsonObjectBuilder = jsonBuilderFactory.createObjectBuilder();
+        final JsonObjectBuilder jsonObjectBuilder = getJsonBuilderFactory().createObjectBuilder();
         jsonObjectBuilder.add("key", "value");
 
         when(converter.convert(page)).thenReturn(jsonObjectBuilder.build());

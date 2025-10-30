@@ -4,7 +4,7 @@ import static java.util.UUID.randomUUID;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.jms.JmsEnvelopeSender;
@@ -42,7 +42,7 @@ public class JmsEventPublisherTest {
                 metadataBuilder()
                         .withName(EVENT_NAME)
                         .withId(randomUUID()),
-                jsonBuilderFactory.createObjectBuilder().build()
+                getJsonBuilderFactory().createObjectBuilder().build()
         );
 
         when(eventDestinationResolver.destinationNameOf(EVENT_NAME)).thenReturn(DESTINATION_NAME);

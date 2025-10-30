@@ -14,7 +14,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streambuffer.EventBufferEvent;
@@ -71,7 +71,7 @@ public class ConsecutiveEventBufferServiceTest {
 
         final JsonEnvelope event = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName("my-event").withPosition(1L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
 
         assertThrows(IllegalStateException.class, () -> bufferService.currentOrderedEventsWith(event, EVENT_LISTENER));
@@ -82,7 +82,7 @@ public class ConsecutiveEventBufferServiceTest {
 
         final JsonEnvelope event = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName("my-event").withPosition(0L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
 
         assertThrows(IllegalStateException.class, () -> bufferService.currentOrderedEventsWith(event, EVENT_LISTENER));
@@ -93,7 +93,7 @@ public class ConsecutiveEventBufferServiceTest {
 
         final JsonEnvelope event = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName("my-event"),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
         assertThrows(IllegalStateException.class, () -> bufferService.currentOrderedEventsWith(event, EVENT_LISTENER));
     }
@@ -107,11 +107,11 @@ public class ConsecutiveEventBufferServiceTest {
 
         final JsonEnvelope event_3 = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName(eventName).withStreamId(streamId).withPosition(3L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
         final JsonEnvelope event_4 = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName(eventName).withStreamId(streamId).withPosition(4L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
 
         final Subscription subscription = mock(Subscription.class);
@@ -144,7 +144,7 @@ public class ConsecutiveEventBufferServiceTest {
 
         final JsonEnvelope incomingEvent = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName(eventName).withStreamId(streamId).withPosition(5L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
 
         final Subscription subscription = mock(Subscription.class);
@@ -174,7 +174,7 @@ public class ConsecutiveEventBufferServiceTest {
         final String component = EVENT_LISTENER;
         final JsonEnvelope incomingEvent = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName("source.event-name").withSource(source).withStreamId(streamId).withPosition(5L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
 
         final Subscription subscription = mock(Subscription.class);
@@ -204,7 +204,7 @@ public class ConsecutiveEventBufferServiceTest {
 
         final JsonEnvelope incomingEvent = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName(eventName).withStreamId(streamId).withPosition(6L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
 
         final Subscription subscription = mock(Subscription.class);
@@ -239,7 +239,7 @@ public class ConsecutiveEventBufferServiceTest {
 
         final JsonEnvelope incomingEvent = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName(eventName).withStreamId(streamId).withPosition(3L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
 
         final Subscription subscription = mock(Subscription.class);
@@ -289,7 +289,7 @@ public class ConsecutiveEventBufferServiceTest {
 
         final JsonEnvelope incomingEvent = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName(eventName).withStreamId(streamId).withPosition(3L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
 
         when(eventSourceNameCalculator.getSource(incomingEvent)).thenReturn(source);
@@ -339,7 +339,7 @@ public class ConsecutiveEventBufferServiceTest {
 
         final JsonEnvelope incomingEvent = envelopeFrom(
                 metadataBuilder().withId(randomUUID()).withName(eventName).withStreamId(streamId).withPosition(3L),
-                jsonBuilderFactory.createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
         );
 
         when(eventSourceNameCalculator.getSource(incomingEvent)).thenReturn(source);

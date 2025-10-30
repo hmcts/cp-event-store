@@ -9,6 +9,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### Changed
 - Inserts of new events into event_log now explicitly set event_number and previous_event_number
   to NULL, for rollback purposes
+- Refactor JsonObject usages to more proper api
+- Fix HttpClient lifecycle.
 
 # [17.104.0-M8] - 2025-10-24
 ### Added

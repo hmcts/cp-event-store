@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.skyscreamer.jsonassert.JSONAssert.assertEquals;
 import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.common.converter.StringToJsonObjectConverter;
 import uk.gov.justice.services.common.converter.ZonedDateTimes;
@@ -64,7 +64,7 @@ public class EventConverterTest {
                         .withStreamId(STREAM_ID)
                         .withVersion(SEQUENCE_ID)
                         .createdAt(clock.now()),
-                jsonBuilderFactory.createObjectBuilder().add(PAYLOAD_FIELD_NAME, PAYLOAD_FIELD_VALUE));
+                getJsonBuilderFactory().createObjectBuilder().add(PAYLOAD_FIELD_NAME, PAYLOAD_FIELD_VALUE));
         Event event = eventConverter.eventOf(envelope);
 
         assertThat(event.getId(), equalTo(ID));
@@ -78,12 +78,12 @@ public class EventConverterTest {
 
     @Test
     public void shouldThrowExceptionOnNullStreamId() throws Exception {
-        assertThrows(InvalidStreamIdException.class, () -> eventConverter.eventOf(envelopeFrom(metadataBuilder().withId(ID).withName(NAME), jsonBuilderFactory.createObjectBuilder())));
+        assertThrows(InvalidStreamIdException.class, () -> eventConverter.eventOf(envelopeFrom(metadataBuilder().withId(ID).withName(NAME), getJsonBuilderFactory().createObjectBuilder())));
     }
 
     @Test
     public void shouldThrowExceptionOnMissingCreatedAt() throws Exception {
-        assertThrows(IllegalArgumentException.class, () -> eventConverter.eventOf((envelopeFrom(metadataBuilder().withId(ID).withName(NAME).withStreamId(STREAM_ID), jsonBuilderFactory.createObjectBuilder()))));
+        assertThrows(IllegalArgumentException.class, () -> eventConverter.eventOf((envelopeFrom(metadataBuilder().withId(ID).withName(NAME).withStreamId(STREAM_ID), getJsonBuilderFactory().createObjectBuilder()))));
     }
 
     @Test

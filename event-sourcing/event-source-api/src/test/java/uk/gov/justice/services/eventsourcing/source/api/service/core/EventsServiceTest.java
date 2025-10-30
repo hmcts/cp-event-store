@@ -17,7 +17,7 @@ import static uk.gov.justice.services.eventsourcing.source.api.service.core.Posi
 import static uk.gov.justice.services.eventsourcing.source.api.service.core.Position.position;
 import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
-import static uk.gov.justice.services.messaging.JsonObjects.jsonBuilderFactory;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.common.converter.ZonedDateTimes;
 import uk.gov.justice.services.eventsourcing.source.core.EventSource;
@@ -57,8 +57,8 @@ public class EventsServiceTest {
         final ZonedDateTime event2CreatedAt = now();
         final long pageSize = 2L;
 
-        final JsonObject payload1 = jsonBuilderFactory.createObjectBuilder().add("field1", "value1").build();
-        final JsonObject payload2 = jsonBuilderFactory.createObjectBuilder().add("field2", "value2").build();
+        final JsonObject payload1 = getJsonBuilderFactory().createObjectBuilder().add("field1", "value1").build();
+        final JsonObject payload2 = getJsonBuilderFactory().createObjectBuilder().add("field2", "value2").build();
 
         final JsonEnvelope event1 = envelopeFrom(
                 metadataBuilder()
@@ -67,7 +67,7 @@ public class EventsServiceTest {
                         .withVersion(1L)
                         .withStreamId(streamId)
                         .createdAt(event1CreatedAt),
-                jsonBuilderFactory.createObjectBuilder().add("field1", "value1")
+                getJsonBuilderFactory().createObjectBuilder().add("field1", "value1")
         );
 
         final JsonEnvelope event2 = envelopeFrom(
@@ -77,7 +77,7 @@ public class EventsServiceTest {
                         .withVersion(2L)
                         .withStreamId(streamId)
                         .createdAt(event2CreatedAt),
-                jsonBuilderFactory.createObjectBuilder().add("field2", "value2")
+                getJsonBuilderFactory().createObjectBuilder().add("field2", "value2")
         );
 
         final EventStream eventStream = mock(EventStream.class);
@@ -110,8 +110,8 @@ public class EventsServiceTest {
         final ZonedDateTime event2CreatedAt = now();
         final long pageSize = 2L;
 
-        final JsonObject payload1 = jsonBuilderFactory.createObjectBuilder().add("field1", "value1").build();
-        final JsonObject payload2 = jsonBuilderFactory.createObjectBuilder().add("field2", "value2").build();
+        final JsonObject payload1 = getJsonBuilderFactory().createObjectBuilder().add("field1", "value1").build();
+        final JsonObject payload2 = getJsonBuilderFactory().createObjectBuilder().add("field2", "value2").build();
 
 
         final JsonEnvelope event1 = envelopeFrom(
@@ -121,7 +121,7 @@ public class EventsServiceTest {
                         .withVersion(1L)
                         .withStreamId(streamId)
                         .createdAt(event1CreatedAt),
-                jsonBuilderFactory.createObjectBuilder().add("field1", "value1")
+                getJsonBuilderFactory().createObjectBuilder().add("field1", "value1")
         );
 
         final JsonEnvelope event2 = envelopeFrom(
@@ -131,7 +131,7 @@ public class EventsServiceTest {
                         .withVersion(2L)
                         .withStreamId(streamId)
                         .createdAt(event2CreatedAt),
-                jsonBuilderFactory.createObjectBuilder().add("field2", "value2")
+                getJsonBuilderFactory().createObjectBuilder().add("field2", "value2")
         );
 
         final EventStream eventStream = mock(EventStream.class);
@@ -167,8 +167,8 @@ public class EventsServiceTest {
         final ZonedDateTime event4CreatedAt = now();
         final long pageSize = 2L;
 
-        final JsonObject payload3 = jsonBuilderFactory.createObjectBuilder().add("field3", "value3").build();
-        final JsonObject payload2 = jsonBuilderFactory.createObjectBuilder().add("field2", "value2").build();
+        final JsonObject payload3 = getJsonBuilderFactory().createObjectBuilder().add("field3", "value3").build();
+        final JsonObject payload2 = getJsonBuilderFactory().createObjectBuilder().add("field2", "value2").build();
 
         final JsonEnvelope event2 = envelopeFrom(
                 metadataBuilder()
@@ -177,7 +177,7 @@ public class EventsServiceTest {
                         .withVersion(2L)
                         .withStreamId(streamId)
                         .createdAt(event2CreatedAt),
-                jsonBuilderFactory.createObjectBuilder().add("field2", "value2")
+                getJsonBuilderFactory().createObjectBuilder().add("field2", "value2")
         );
 
         final JsonEnvelope event3 = envelopeFrom(
@@ -187,7 +187,7 @@ public class EventsServiceTest {
                         .withVersion(3L)
                         .withStreamId(streamId)
                         .createdAt(event3CreatedAt),
-                jsonBuilderFactory.createObjectBuilder().add("field3", "value3")
+                getJsonBuilderFactory().createObjectBuilder().add("field3", "value3")
         );
 
         final JsonEnvelope event4 = envelopeFrom(
@@ -197,7 +197,7 @@ public class EventsServiceTest {
                         .withVersion(4L)
                         .withStreamId(streamId)
                         .createdAt(event4CreatedAt),
-                jsonBuilderFactory.createObjectBuilder().add("field4", "value4")
+                getJsonBuilderFactory().createObjectBuilder().add("field4", "value4")
         );
 
 
@@ -245,8 +245,8 @@ public class EventsServiceTest {
 
         final long pageSize = 2L;
 
-        final JsonObject payload4 = jsonBuilderFactory.createObjectBuilder().add("field4", "value4").build();
-        final JsonObject payload3 = jsonBuilderFactory.createObjectBuilder().add("field3", "value3").build();
+        final JsonObject payload4 = getJsonBuilderFactory().createObjectBuilder().add("field4", "value4").build();
+        final JsonObject payload3 = getJsonBuilderFactory().createObjectBuilder().add("field3", "value3").build();
 
         final JsonEnvelope event4 = envelopeFrom(
                 metadataBuilder()
@@ -255,7 +255,7 @@ public class EventsServiceTest {
                         .withVersion(4L)
                         .withStreamId(streamId)
                         .createdAt(event4CreatedAt),
-                jsonBuilderFactory.createObjectBuilder().add("field4", "value4")
+                getJsonBuilderFactory().createObjectBuilder().add("field4", "value4")
         );
         final JsonEnvelope event3 = envelopeFrom(
                 metadataBuilder()
@@ -264,7 +264,7 @@ public class EventsServiceTest {
                         .withVersion(3L)
                         .withStreamId(streamId)
                         .createdAt(event3CreatedAt),
-                jsonBuilderFactory.createObjectBuilder().add("field3", "value3")
+                getJsonBuilderFactory().createObjectBuilder().add("field3", "value3")
         );
 
         final EventStream eventStream = mock(EventStream.class);
@@ -305,7 +305,7 @@ public class EventsServiceTest {
                         .withVersion(position)
                         .withStreamId(streamId)
                         .createdAt(createdAt),
-                jsonBuilderFactory.createObjectBuilder().add("field1", "value1")
+                getJsonBuilderFactory().createObjectBuilder().add("field1", "value1")
         );
 
         final EventStream eventStream = mock(EventStream.class);

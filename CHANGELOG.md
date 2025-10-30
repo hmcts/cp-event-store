@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Added
+- Added [framework E rollout and rollback SQLs document](event-sourcing/event-repository/event-repository-liquibase/docs/framework-E-sqls.md)
 
 # [17.104.0-M8] - 2025-10-24
 ### Added

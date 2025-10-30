@@ -6,7 +6,7 @@
     <parent>
         <groupId>uk.gov.justice.event-store</groupId>
         <artifactId>event-store</artifactId>
-        <version>17.104.0-M9-SNAPSHOT</version>
+        <version>17.104.0-M9</version>
     </parent>
 
     <artifactId>event-store-metric-meters</artifactId>

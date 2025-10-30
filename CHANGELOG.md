@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Added
+- Added [framework E rollout and rollback SQLs document](event-sourcing/event-repository/event-repository-liquibase/docs/framework-E-sqls.md)
 ### Changed
 - Inserts of new events into event_log now explicitly set event_number and previous_event_number
   to NULL, for rollback purposes

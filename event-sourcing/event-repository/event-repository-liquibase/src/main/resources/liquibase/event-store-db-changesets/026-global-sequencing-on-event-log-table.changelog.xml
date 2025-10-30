@@ -15,40 +15,25 @@
         <addColumn tableName="event_log">
             <column name="is_published" type="BOOLEAN" defaultValue="FALSE"/>
         </addColumn>
-        <dropNotNullConstraint tableName="event_log" columnName="event_number" />
-        <dropDefaultValue tableName="event_log" columnName="event_number" />
+        <addColumn tableName="event_log">
+            <column name="event_status" type="VARCHAR(15)" defaultValue="HEALTHY"/>
+        </addColumn>
         <sql>
             create index event_log_date_created_without_event_number_idx on event_log (date_created) where event_number is null;
         </sql>
+        <dropNotNullConstraint tableName="event_log" columnName="event_number" />
 
         <sql>
             create index publish_queue_date_queued_idx on publish_queue (date_queued);
         </sql>
 
-        <dropTable tableName="pre_publish_queue" />
-
         <rollback>
-            <createTable tableName="pre_publish_queue">
-                <column name="event_log_id" type="UUID">
-                    <constraints primaryKey="true" nullable="false"/>
-                </column>
-                <column name="date_queued" type="TIMESTAMP WITH TIME ZONE">
-                    <constraints nullable="false"/>
-                </column>
-            </createTable>
-
             <dropIndex
                     indexName="publish_queue_date_queued_idx"
                     tableName="publish_queue"/>
-
             <dropIndex
                     indexName="event_log_date_created_without_event_number_idx"
                     tableName="event_log"/>
-            <addDefaultValue
-                    tableName="event_log"
-                    columnName="event_number"
-                    columnDataType="BIGINT"
-                    defaultValueSequenceNext="event_sequence_seq"/>
             <addNotNullConstraint
                     tableName="event_log"
                     columnName="event_number"/>
@@ -57,6 +42,9 @@
             </dropColumn>
             <dropColumn tableName="event_log">
                 <column name="previous_event_number"/>
+            </dropColumn>
+            <dropColumn tableName="event_log">
+                <column name="event_status"/>
             </dropColumn>
         </rollback>
 

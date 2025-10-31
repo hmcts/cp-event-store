@@ -15,13 +15,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventPublishingWorkerConfig;
 import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository;
 import uk.gov.justice.services.eventsourcing.publisher.jms.EventPublisher;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MissingEventNumberException;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import java.util.UUID;
@@ -46,9 +44,6 @@ public class LinkedEventPublisherTest {
     private LinkedJsonEnvelopeCreator linkedJsonEnvelopeCreator;
 
     @Mock
-    private EventPublishingWorkerConfig eventPublishingWorkerConfig;
-
-    @Mock
     private CompatibilityModePublishedEventRepository compatibilityModePublishedEventRepository;
 
     @InjectMocks
@@ -57,7 +52,6 @@ public class LinkedEventPublisherTest {
     @Test
     public void shouldGetEventIdFromPublishQueueFindTheEventInEventLogAddPreviousAndNextEventNumberToMetadataAndPublish() throws Exception {
         final UUID eventId = randomUUID();
-        final Long eventNumber = 23L;
 
         final LinkedEvent linkedEvent = mock(LinkedEvent.class);
         final JsonEnvelope linkedJsonEnvelope = mock(JsonEnvelope.class);
@@ -65,20 +59,15 @@ public class LinkedEventPublisherTest {
         when(eventPublishingRepository.popNextEventIdFromPublishQueue()).thenReturn(of(eventId));
         when(eventPublishingRepository.findEventFromEventLog(eventId)).thenReturn(of(linkedEvent));
         when(linkedJsonEnvelopeCreator.createLinkedJsonEnvelopeFrom(linkedEvent)).thenReturn(linkedJsonEnvelope);
-        when(eventPublishingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable()).thenReturn(true);
-        when(linkedEvent.getEventNumber()).thenReturn(of(eventNumber));
 
         assertThat(linkedEventPublisher.publishNextNewEvent(), is(true));
 
         final InOrder inOrder = inOrder(
                 eventPublisher,
-                eventPublishingRepository,
-                compatibilityModePublishedEventRepository);
+                eventPublishingRepository);
 
         inOrder.verify(eventPublisher).publish(linkedJsonEnvelope);
         inOrder.verify(eventPublishingRepository).setIsPublishedFlag(eventId, true);
-        inOrder.verify(compatibilityModePublishedEventRepository).insertIntoPublishedEvent(linkedJsonEnvelope);
-        inOrder.verify(compatibilityModePublishedEventRepository).setEventNumberSequenceTo(eventNumber);
     }
 
     @Test
@@ -91,7 +80,6 @@ public class LinkedEventPublisherTest {
         when(eventPublishingRepository.popNextEventIdFromPublishQueue()).thenReturn(of(eventId));
         when(eventPublishingRepository.findEventFromEventLog(eventId)).thenReturn(of(linkedEvent));
         when(linkedJsonEnvelopeCreator.createLinkedJsonEnvelopeFrom(linkedEvent)).thenReturn(linkedJsonEnvelope);
-        when(eventPublishingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable()).thenReturn(false);
 
         assertThat(linkedEventPublisher.publishNextNewEvent(), is(true));
 
@@ -102,28 +90,6 @@ public class LinkedEventPublisherTest {
 
         inOrder.verify(eventPublisher).publish(linkedJsonEnvelope);
         inOrder.verify(eventPublishingRepository).setIsPublishedFlag(eventId, true);
-        inOrder.verify(compatibilityModePublishedEventRepository, never()).insertIntoPublishedEvent(linkedJsonEnvelope);
-    }
-
-    @Test
-    public void shouldThrowMissingEventNumberExceptionIfEventInEvenLongTableHasNullEventNumber() throws Exception {
-        final UUID eventId = fromString("15892431-6cb7-43d4-9d55-1aef19a6d087");
-
-        final LinkedEvent linkedEvent = mock(LinkedEvent.class);
-        final JsonEnvelope linkedJsonEnvelope = mock(JsonEnvelope.class);
-
-        when(eventPublishingRepository.popNextEventIdFromPublishQueue()).thenReturn(of(eventId));
-        when(eventPublishingRepository.findEventFromEventLog(eventId)).thenReturn(of(linkedEvent));
-        when(linkedJsonEnvelopeCreator.createLinkedJsonEnvelopeFrom(linkedEvent)).thenReturn(linkedJsonEnvelope);
-        when(eventPublishingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable()).thenReturn(true);
-        when(linkedEvent.getEventNumber()).thenReturn(empty());
-
-        final MissingEventNumberException missingEventNumberException = assertThrows(
-                MissingEventNumberException.class,
-                () -> linkedEventPublisher.publishNextNewEvent());
-
-        assertThat(missingEventNumberException.getMessage(), is("Event with id '15892431-6cb7-43d4-9d55-1aef19a6d087' has null event_number in event_log table"));
-
     }
 
     @Test

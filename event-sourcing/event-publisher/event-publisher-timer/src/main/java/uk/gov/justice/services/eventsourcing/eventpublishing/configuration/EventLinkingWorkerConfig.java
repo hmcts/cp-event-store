@@ -1,5 +1,6 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Long.parseLong;
 
 import uk.gov.justice.services.common.configuration.Value;
@@ -20,6 +21,10 @@ public class EventLinkingWorkerConfig {
     @Value(key = "event.linking.worker.time.between.runs.milliseconds", defaultValue = "5")
     private String timeBetweenRunsMilliseconds;
 
+    @Inject
+    @Value(key = "event.publishing.add.event.to.published.event.table.on.publish", defaultValue = "true")
+    private String insertEventIntoPublishedEventTable;
+
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
@@ -30,5 +35,9 @@ public class EventLinkingWorkerConfig {
 
     public long getTimeBetweenRunsMilliseconds() {
         return parseLong(timeBetweenRunsMilliseconds);
+    }
+
+    public boolean shouldAlsoInsertEventIntoPublishedEventTable() {
+        return parseBoolean(insertEventIntoPublishedEventTable);
     }
 }

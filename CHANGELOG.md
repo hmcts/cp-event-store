@@ -11,6 +11,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
   to NULL, for rollback purposes
 - Refactor JsonObject usages to more proper api
 - Fix HttpClient lifecycle.
+- published_events insertion moved to EventNumberLinker from LinkedEventPublisher
 
 # [17.104.0-M8] - 2025-10-24
 ### Added

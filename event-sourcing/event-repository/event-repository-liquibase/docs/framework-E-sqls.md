@@ -57,7 +57,19 @@ WHERE
   );
 
 -- update event_status flag
-TBD
+UPDATE event_log AS el
+SET event_status = 'FAULTY'
+    FROM event_stream AS es
+WHERE es.stream_id = el.stream_id
+  AND es.active IS TRUE
+  AND el.event_status IS DISTINCT FROM 'FAULTY'
+    AND el.event_number IS NOT NULL
+    --AND el.event_number BETWEEN :range_start AND :range_end
+    AND NOT EXISTS (
+    SELECT 1
+    FROM published_event AS pe
+    WHERE pe.event_number = el.event_number
+    );
 ```
 
 ### Phase-1 Rollback SQLs

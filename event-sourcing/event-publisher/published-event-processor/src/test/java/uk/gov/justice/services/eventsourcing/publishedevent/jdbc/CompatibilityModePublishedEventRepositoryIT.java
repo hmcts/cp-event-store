@@ -2,17 +2,16 @@ package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
 import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
-import static javax.json.JsonValue.NULL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 import static uk.gov.justice.services.messaging.spi.DefaultJsonMetadata.metadataBuilder;
 
+import uk.gov.justice.services.common.converter.StringToJsonObjectConverter;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
-import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
@@ -25,6 +24,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import javax.json.JsonObject;
 import javax.json.JsonValue;
 import javax.sql.DataSource;
 
@@ -37,6 +37,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class CompatibilityModePublishedEventRepositoryIT {
+    private final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
+
+    private final StringToJsonObjectConverter stringToJsonObjectConverter = new StringToJsonObjectConverter();
 
     @Mock
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
@@ -61,38 +64,40 @@ public class CompatibilityModePublishedEventRepositoryIT {
         final Long eventNumber = 23L;
         final Long previousEventNumber = 22L;
         final long positionInStream = 234L;
-        final String payloadAsJson = "some-payload-json";
+        final String payloadAsJson = "{}";
         final ZonedDateTime createdAt = new UtcClock().now();
 
-        final Metadata metadataWithEventNumbers = metadataBuilder()
+        final Metadata metadata = metadataBuilder()
                 .withId(eventId)
+                .withName(name)
+                .withStreamId(streamId)
+                .createdAt(createdAt)
+                .withPosition(positionInStream)
+                .build();
+
+        final Metadata metadataWithEventNumbers = metadataBuilder().withId(eventId)
                 .withName(name)
                 .withStreamId(streamId)
                 .withEventNumber(eventNumber)
                 .withPreviousEventNumber(previousEventNumber)
                 .createdAt(createdAt)
                 .withPosition(positionInStream)
-                .withEventNumber(eventNumber)
-                .withPreviousEventNumber(previousEventNumber)
                 .build();
 
-        final JsonEnvelope linkedJsonEnvelope = mock(JsonEnvelope.class);
-        final JsonValue payload = mock(JsonValue.class);
+        insertEvent(eventId, streamId, positionInStream, name, eventNumber, previousEventNumber, metadata.asJsonObject().toString(), createdAt, payloadAsJson);
 
-        when(linkedJsonEnvelope.metadata()).thenReturn(metadataWithEventNumbers);
-        when(linkedJsonEnvelope.payload()).thenReturn(payload);
-        when(payload.toString()).thenReturn(payloadAsJson);
-
-        compatibilityModePublishedEventRepository.insertIntoPublishedEvent(linkedJsonEnvelope);
+        compatibilityModePublishedEventRepository.insertIntoPublishedEvent(eventId, eventNumber, previousEventNumber);
 
         final List<LinkedEvent> foundEvents = compatibilityModePublishedEventRepository.findAll();
 
         assertThat(foundEvents.size(), is(1));
+
+        final JsonObject actualMetadata = stringToJsonObjectConverter.convert(foundEvents.get(0).getMetadata());
         assertThat(foundEvents.get(0).getId(), is(eventId));
         assertThat(foundEvents.get(0).getStreamId(), is(streamId));
         assertThat(foundEvents.get(0).getPositionInStream(), is(positionInStream));
         assertThat(foundEvents.get(0).getName(), is(name));
-        assertThat(foundEvents.get(0).getMetadata(), is(metadataWithEventNumbers.asJsonObject().toString()));
+        assertThat(actualMetadata, is(metadataWithEventNumbers.asJsonObject()));
         assertThat(foundEvents.get(0).getPayload(), is(payloadAsJson));
         assertThat(foundEvents.get(0).getCreatedAt(), is(createdAt));
         assertThat(foundEvents.get(0).getEventNumber(), is(of(eventNumber)));
@@ -113,8 +118,15 @@ public class CompatibilityModePublishedEventRepositoryIT {
         final long positionInStream = 234L;
         final ZonedDateTime createdAt = new UtcClock().now();
 
-        final Metadata metadataWithEventNumbers = metadataBuilder()
+        final Metadata metadata = metadataBuilder()
                 .withId(eventId)
+                .withName(name)
+                .withStreamId(streamId)
+                .createdAt(createdAt)
+                .withPosition(positionInStream)
+                .build();
+
+        final Metadata metadataWithEventNumbers = metadataBuilder().withId(eventId)
                 .withName(name)
                 .withStreamId(streamId)
                 .withEventNumber(eventNumber)
@@ -125,21 +137,20 @@ public class CompatibilityModePublishedEventRepositoryIT {
                 .withPreviousEventNumber(previousEventNumber)
                 .build();
 
-        final JsonEnvelope linkedJsonEnvelope = mock(JsonEnvelope.class);
+        insertEvent(eventId, streamId, positionInStream, name, eventNumber, previousEventNumber, metadata.asJsonObject().toString(), createdAt, JsonValue.NULL.toString());
 
-        when(linkedJsonEnvelope.metadata()).thenReturn(metadataWithEventNumbers);
-        when(linkedJsonEnvelope.payload()).thenReturn(NULL);
-
-        compatibilityModePublishedEventRepository.insertIntoPublishedEvent(linkedJsonEnvelope);
+        compatibilityModePublishedEventRepository.insertIntoPublishedEvent(eventId, eventNumber, previousEventNumber);
 
         final List<LinkedEvent> foundEvents = compatibilityModePublishedEventRepository.findAll();
 
         assertThat(foundEvents.size(), is(1));
+
+        final JsonObject actualMetadata = stringToJsonObjectConverter.convert(foundEvents.get(0).getMetadata());
         assertThat(foundEvents.get(0).getId(), is(eventId));
         assertThat(foundEvents.get(0).getStreamId(), is(streamId));
         assertThat(foundEvents.get(0).getPositionInStream(), is(positionInStream));
         assertThat(foundEvents.get(0).getName(), is(name));
-        assertThat(foundEvents.get(0).getMetadata(), is(metadataWithEventNumbers.asJsonObject().toString()));
+        assertThat(actualMetadata, is(metadataWithEventNumbers.asJsonObject()));
         assertThat(foundEvents.get(0).getPayload(), is("null"));
         assertThat(foundEvents.get(0).getCreatedAt(), is(createdAt));
         assertThat(foundEvents.get(0).getEventNumber(), is(of(eventNumber)));
@@ -180,6 +191,40 @@ public class CompatibilityModePublishedEventRepositoryIT {
             }
 
             throw new RuntimeException("Failed to get last value from 'event_sequence_seq' sequence");
+        }
+    }
+
+    private void insertEvent(final UUID eventId, final UUID streamId, final long position, final String name, final Long eventNumber, final Long previousEventNumber,
+                             final String metadata, final ZonedDateTime createdAt, final String payload) throws Exception {
+
+        final String sql = """
+                INSERT INTO event_log (
+                    id,
+                    stream_id,
+                    position_in_stream,
+                    name,
+                    payload,
+                    metadata,
+                    date_created,
+                    event_number,
+                    previous_event_number)
+                VALUES (?, ?, ?, ?,  ?, ?, ?, ?, ?)
+                """;
+
+        try (final Connection connection = eventStoreDataSource.getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setObject(1, eventId);
+            preparedStatement.setObject(2, streamId);
+            preparedStatement.setLong(3, position);
+            preparedStatement.setString(4, name);
+            preparedStatement.setString(5, payload);
+            preparedStatement.setString(6, metadata);
+            preparedStatement.setTimestamp(7, toSqlTimestamp(createdAt));
+            preparedStatement.setLong(8, eventNumber);
+            preparedStatement.setLong(9, previousEventNumber);
+
+            preparedStatement.execute();
         }
     }
 }

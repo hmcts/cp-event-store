@@ -11,7 +11,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.eventsourcing.eventpublishing.EventNumberLinker.ADVISORY_LOCK_KEY;
 
+import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.AdvisoryLockDataAccess;
+import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess;
 
 import java.util.UUID;
@@ -25,6 +27,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class EventNumberLinkerTest {
+    @Mock
+    private EventLinkingWorkerConfig eventLinkingWorkerConfig;
+
+    @Mock
+    private CompatibilityModePublishedEventRepository compatibilityModePublishedEventRepository;
 
     @Mock
     private LinkEventsInEventLogDatabaseAccess linkEventsInEventLogDatabaseAccess;
@@ -45,13 +52,17 @@ public class EventNumberLinkerTest {
         when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)).thenReturn(true);
         when(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable()).thenReturn(previousEventNumber);
         when(linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink()).thenReturn(of(eventId));
+        when(eventLinkingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable()).thenReturn(true);
 
         assertThat(eventNumberLinker.findAndAndLinkNextUnlinkedEvent(), is(true));
 
-        final InOrder inOrder = inOrder(linkEventsInEventLogDatabaseAccess, advisoryLockDataAccess);
+        final InOrder inOrder = inOrder(linkEventsInEventLogDatabaseAccess, advisoryLockDataAccess, compatibilityModePublishedEventRepository);
         inOrder.verify(advisoryLockDataAccess).tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).linkEvent(eventId, newEventNumber, previousEventNumber);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).insertLinkedEventIntoPublishQueue(eventId);
+        inOrder.verify(compatibilityModePublishedEventRepository).insertIntoPublishedEvent(eventId, newEventNumber, previousEventNumber);
+        inOrder.verify(compatibilityModePublishedEventRepository).setEventNumberSequenceTo(newEventNumber);
+
     }
 
     @Test
@@ -62,6 +73,7 @@ public class EventNumberLinkerTest {
         assertThat(eventNumberLinker.findAndAndLinkNextUnlinkedEvent(), is(false));
 
         verifyNoInteractions(linkEventsInEventLogDatabaseAccess);
+        verifyNoMoreInteractions(compatibilityModePublishedEventRepository);
     }
 
     @Test
@@ -74,5 +86,6 @@ public class EventNumberLinkerTest {
 
         verifyNoMoreInteractions(linkEventsInEventLogDatabaseAccess);
         verifyNoMoreInteractions(advisoryLockDataAccess);
+        verifyNoMoreInteractions(compatibilityModePublishedEventRepository);
     }
 }

@@ -1,4 +1,4 @@
-# Framework E Rollout and Rollback SQL Commands
+# Framework E Rollout and Rollback SQL Commands (To be Deleted in favour of release level sub folders)
 
 This document provides the required SQL commands for migrating from Framework D to Framework E.
 > **Note**: Some sections link to SQL to avoid duplication. These links will be replaced with inline SQL after full testing and before sharing with DBAs.

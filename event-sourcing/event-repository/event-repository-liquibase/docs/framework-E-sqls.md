@@ -35,9 +35,39 @@ CREATE INDEX event_log_date_created_without_event_number_idx
 ALTER TABLE event_log
     ALTER COLUMN event_number DROP NOT NULL;
 
---Update databasechangelog 
-TBD
-
+-- Add entry to databasechangelog 
+INSERT INTO public.databasechangelog (
+    id,
+    author,
+    filename,
+    dateexecuted,
+    orderexecuted,
+    exectype,
+    md5sum,
+    description,
+    "comments",
+    tag,
+    liquibase,
+    contexts,
+    labels,
+    deployment_id
+)
+VALUES (
+           'event-store-026',
+           'TechPod',
+           '026-global-sequencing-on-event-log-table.changelog.xml',
+           NOW(),
+           26,
+           'EXECUTED',
+           '8:b1ca6e3c33f0f1fb691a53959d169e04',
+           'addColumn tableName=event_log; addColumn tableName=event_log; addColumn tableName=event_log; sql; dropNotNullConstraint columnName=event_number, tableName=event_log; sql',
+           '',
+           NULL,
+           '4.10.0',
+           NULL,
+           NULL,
+           '2160894619'
+       );
 ```
 
 #### Phase-1 DML
@@ -87,9 +117,11 @@ ALTER TABLE event_log
     DROP COLUMN IF EXISTS previous_event_number,
     DROP COLUMN IF EXISTS event_status; 
 
---Update databasechangelog 
-TBD
-
+-- Delete databasechangelog entry
+DELETE FROM public.databasechangelog
+WHERE id = 'event-store-026'
+  AND author = 'TechPod'
+  AND filename = '026-global-sequencing-on-event-log-table.changelog.xml';
 ```
 ---
 
@@ -130,8 +162,35 @@ N/A
 
 #### DML
 ```sql
--- Copy data from event_log to published_event table of those events that arrived after turning on full feature mode
-TBD
+INSERT INTO public.published_event (
+    id,
+    stream_id,
+    position_in_stream,
+    "name",
+    payload,
+    metadata,
+    date_created,
+    event_number,
+    previous_event_number
+)
+SELECT
+    el.id,
+    el.stream_id,
+    el.position_in_stream,
+    el."name",
+    el.payload,
+    el.metadata,
+    el.date_created,
+    el.event_number,
+    el.previous_event_number
+FROM public.event_log AS el
+WHERE el.is_published = TRUE
+  --AND el.event_number > :event_number
+  AND el.event_number IS NOT NULL
+  AND el.previous_event_number IS NOT NULL
+ORDER BY el.event_number
+    -- to support idempotency
+    ON CONFLICT (id) DO NOTHING;  
 ```
 
 #### DDL

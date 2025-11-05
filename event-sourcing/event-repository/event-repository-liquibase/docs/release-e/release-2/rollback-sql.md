@@ -8,17 +8,17 @@
 INSERT INTO pre_publish_queue (SELECT id, date_created FROM event_log WHERE event_number is null and event_status='HEALTHY') ON CONFLICT DO NOTHING;
 
 -- restore event_number column from sequence
-update event_log el
-set event_number = orderedEl.newEventNumber
-    from (
+UPDATE event_log el
+SET event_number = orderedEl.newEventNumber
+    FROM (
          SELECT
              id,
              date_created,
              nextval('event_sequence_seq') as newEventNumber
-         from event_log where event_number is null and event_status='HEALTHY'
-         order by date_created ASC 
+         FROM event_log WHERE event_number is null AND event_status='HEALTHY'
+         ORDER BY date_created ASC 
      ) orderedEl
-where el.id = orderedEl.id and el.event_number is null and event_status='HEALTHY';
+WHERE el.id = orderedEl.id AND el.event_number is null AND event_status='HEALTHY';
 ```
 
 ## DDL

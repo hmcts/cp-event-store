@@ -1,5 +1,7 @@
 package uk.gov.justice.services.eventstore.management.replay.commands;
 
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.any;
@@ -22,6 +24,7 @@ import uk.gov.justice.services.jmx.state.events.SystemCommandStateChangedEvent;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.enterprise.event.Event;
@@ -72,7 +75,39 @@ public class ReplayEventToEventListenerCommandHandlerTest {
 
         replayEventToEventListenerCommandHandler.replayEventToEventListener(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 
-        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_LISTENER);
+        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_LISTENER, empty());
+
+        verify(stateChangedEventFirer, times(2)).fire(eventCaptor.capture());
+        final List<SystemCommandStateChangedEvent> actualEvents = eventCaptor.getAllValues();
+        final SystemCommandStateChangedEvent inProgressEvent = actualEvents.get(0);
+
+        assertThat(inProgressEvent.getCommandId(), is(COMMAND_ID));
+        assertThat(inProgressEvent.getSystemCommand(), is(COMMAND));
+        assertThat(inProgressEvent.getCommandState(), is(COMMAND_IN_PROGRESS));
+        assertThat(inProgressEvent.getMessage(), is("REPLAY_EVENT_TO_EVENT_LISTENER command received"));
+        assertThat(inProgressEvent.getStatusChangedAt(), is(NOW));
+
+        final SystemCommandStateChangedEvent completedEvent = actualEvents.get(1);
+        assertThat(completedEvent.getCommandId(), is(COMMAND_ID));
+        assertThat(completedEvent.getSystemCommand(), is(COMMAND));
+        assertThat(completedEvent.getCommandState(), is(COMMAND_COMPLETE));
+        assertThat(completedEvent.getMessage(), is("REPLAY_EVENT_TO_EVENT_LISTENER command completed"));
+        assertThat(completedEvent.getStatusChangedAt(), is(NOW));
+    }
+
+    @Test
+    public void shouldHandleOptionalEventSourceNameFromCommandRuntimeString() {
+        when(clock.now()).thenReturn(NOW);
+
+        final String eventSourceName = "some-event-source-name";
+        final JmxCommandRuntimeParameters jmxCommandRuntimeParameters = new JmxCommandRuntimeParametersBuilder()
+                .withCommandRuntimeId(COMMAND_RUNTIME_ID)
+                .withCommandRuntimeString(eventSourceName)
+                .build();
+
+        replayEventToEventListenerCommandHandler.replayEventToEventListener(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
+
+        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_LISTENER, of(eventSourceName));
 
         verify(stateChangedEventFirer, times(2)).fire(eventCaptor.capture());
         final List<SystemCommandStateChangedEvent> actualEvents = eventCaptor.getAllValues();
@@ -99,7 +134,7 @@ public class ReplayEventToEventListenerCommandHandlerTest {
                 .withCommandRuntimeId(COMMAND_RUNTIME_ID)
                 .build();
         when(clock.now()).thenReturn(NOW);
-        doThrow(exception).when(replayEventToComponentRunner).run(any(), any(), any());
+        doThrow(exception).when(replayEventToComponentRunner).run(any(), any(), any(), any());
 
         replayEventToEventListenerCommandHandler.replayEventToEventListener(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 

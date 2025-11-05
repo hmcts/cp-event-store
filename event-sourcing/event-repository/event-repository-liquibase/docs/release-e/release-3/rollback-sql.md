@@ -15,10 +15,10 @@ set event_number = orderedEl.newEventNumber
              id,
              date_created,
              nextval('event_sequence_seq') as newEventNumber
-         from event_log where event_number is null
-         order by date_created DESC
+         from event_log where event_number is null and event_status='HEALTHY'
+         order by date_created ASC 
      ) orderedEl
-where el.id = orderedEl.id and el.event_number is null;
+where el.id = orderedEl.id and el.event_number is null and event_status='HEALTHY';
 
 -- add published events 
 INSERT INTO public.published_event (

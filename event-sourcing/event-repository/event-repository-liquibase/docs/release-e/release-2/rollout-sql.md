@@ -29,7 +29,7 @@ END $$;
 
 
 -- process in-flight events in pre_publish_queue
-UPDATE event_log el SET event_number=null, event_status='HEALTY' 
+UPDATE event_log el SET event_number=null, event_status='HEALTHY' 
 WHERE EXISTS (SELECT event_log_id FROM pre_publish_queue ppq 
             WHERE ppq.event_log_id=el.id);
 

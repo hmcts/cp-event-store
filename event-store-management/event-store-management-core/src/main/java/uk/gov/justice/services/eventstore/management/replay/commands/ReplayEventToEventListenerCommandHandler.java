@@ -1,5 +1,6 @@
 package uk.gov.justice.services.eventstore.management.replay.commands;
 
+import static java.util.Optional.ofNullable;
 import static uk.gov.justice.services.core.annotation.Component.EVENT_LISTENER;
 import static uk.gov.justice.services.eventstore.management.commands.ReplayEventToEventListenerCommand.REPLAY_EVENT_TO_EVENT_LISTENER;
 import static uk.gov.justice.services.jmx.api.domain.CommandState.COMMAND_COMPLETE;
@@ -14,6 +15,7 @@ import uk.gov.justice.services.jmx.api.parameters.JmxCommandRuntimeParameters;
 import uk.gov.justice.services.jmx.command.HandlesSystemCommand;
 import uk.gov.justice.services.jmx.state.events.SystemCommandStateChangedEvent;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.enterprise.event.Event;
@@ -43,8 +45,9 @@ public class ReplayEventToEventListenerCommandHandler {
         fireEvent(COMMAND_IN_PROGRESS, command, commandId, "REPLAY_EVENT_TO_EVENT_LISTENER command received");
 
         final UUID commandRuntimeId = jmxCommandRuntimeParameters.getCommandRuntimeId();
+        final Optional<String> eventSourceName = ofNullable(jmxCommandRuntimeParameters.getCommandRuntimeString());
         try {
-            replayEventToComponentRunner.run(commandId, commandRuntimeId, EVENT_LISTENER);
+            replayEventToComponentRunner.run(commandId, commandRuntimeId, EVENT_LISTENER, eventSourceName);
             fireEvent(COMMAND_COMPLETE, command, commandId, "REPLAY_EVENT_TO_EVENT_LISTENER command completed");
         } catch (Exception e) {
             logger.error("REPLAY_EVENT_TO_EVENT_LISTENER failed. commandId {}, commandRuntimeId {}", commandId, commandRuntimeId, e);

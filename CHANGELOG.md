@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.103.3 - 2025-11-05
+### Changed
+- ReplaySingleEvent JMX commands can now take an optional commandRuntimeString of the event source name
+  to work with MI contexts
+
 # [17.103.2] - 2025-09-11
 ### Changed
 - Add limit 1 to ERRORS_EXIST_FOR_HASH_SQL

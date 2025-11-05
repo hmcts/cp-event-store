@@ -5,7 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
-# [17.103.3 - 2025-11-05
+# [17.103.3-M1] - 2025-11-05
 ### Changed
 - ReplaySingleEvent JMX commands can now take an optional commandRuntimeString of the event source name
   to work with MI contexts

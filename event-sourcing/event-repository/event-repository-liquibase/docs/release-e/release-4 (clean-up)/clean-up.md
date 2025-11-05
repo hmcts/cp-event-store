@@ -1,4 +1,4 @@
-# Release 3 Rollback SQLs (Rollback-C: to Framework D)
+# Cleanup SQLs
 
 ## DML
 
@@ -9,6 +9,10 @@ N/A
 ```sql
 DROP TABLE IF EXISTS pre_publish_queue;
 DROP TABLE IF EXISTS published_event;
+
+ALTER TABLE event_log
+    ALTER COLUMN event_number DROP DEFAULT;
+
 DROP SEQUENCE IF EXISTS event_sequence_seq;
 ```
 

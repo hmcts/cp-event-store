@@ -23,5 +23,5 @@ WHERE el.id = orderedEl.id AND el.event_number is null AND event_status='HEALTHY
 
 ## DDL
 
-Execute [Release 1 Rollback SQLs](../release-1/rollback-sql.md)
+N/A
 

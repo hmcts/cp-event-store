@@ -7,8 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.core.annotation.Component.EVENT_LISTENER;
 
-import uk.gov.justice.services.common.util.UtcClock;
-
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -28,9 +26,6 @@ public class ReplayEventToComponentRunnerTest {
 
     @Mock
     private ReplayEventToEventListenerProcessorBean replayEventToEventListenerProcessorBean;
-
-    @Mock
-    private UtcClock clock;
 
     @InjectMocks
     private ReplayEventToComponentRunner replayEventToComponentRunner;

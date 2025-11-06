@@ -5,7 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 ### Changed
-- ReplaySingleEvent JMX commands can now take an optional commandRuntimeString of the event source name
+- ReplaySingleEvent JMX commands can now take an optional commandRuntimeString of the component name
   to work with MI contexts
 
 # [17.104.0-M10] - 2025-11-03

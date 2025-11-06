@@ -44,9 +44,9 @@ public class ReplayEventToEventIndexerCommandHandler {
             final JmxCommandRuntimeParameters jmxCommandRuntimeParameters) {
         fireEvent(COMMAND_IN_PROGRESS, command, commandId, "REPLAY_EVENT_TO_EVENT_INDEXER command received");
         final UUID commandRuntimeId = jmxCommandRuntimeParameters.getCommandRuntimeId();
-        final Optional<String> eventSourceName = ofNullable(jmxCommandRuntimeParameters.getCommandRuntimeString());
+        final Optional<String> componentName = ofNullable(jmxCommandRuntimeParameters.getCommandRuntimeString());
         try {
-            replayEventToComponentRunner.run(commandId, commandRuntimeId, EVENT_INDEXER, eventSourceName);
+            replayEventToComponentRunner.run(commandId, commandRuntimeId, componentName.orElse(EVENT_INDEXER));
             fireEvent(COMMAND_COMPLETE, command, commandId, "REPLAY_EVENT_TO_EVENT_INDEXER command completed");
         } catch (Exception e) {
             logger.error("REPLAY_EVENT_TO_EVENT_INDEXER failed. commandId {}, commandRuntimeId {}", commandId, commandRuntimeId, e);

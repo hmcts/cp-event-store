@@ -1,18 +1,14 @@
 package uk.gov.justice.services.eventstore.management.replay.process;
 
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.core.annotation.Component.EVENT_LISTENER;
 
 import uk.gov.justice.services.common.util.UtcClock;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -33,6 +29,9 @@ public class ReplayEventToComponentRunnerTest {
     @Mock
     private ReplayEventToEventListenerProcessorBean replayEventToEventListenerProcessorBean;
 
+    @Mock
+    private UtcClock clock;
+
     @InjectMocks
     private ReplayEventToComponentRunner replayEventToComponentRunner;
 
@@ -42,7 +41,7 @@ public class ReplayEventToComponentRunnerTest {
         final String componentName = EVENT_LISTENER;
         when(eventSourceNameFinder.getEventSourceNameOf(componentName)).thenReturn(listenerEventSourceName);
 
-        replayEventToComponentRunner.run(COMMAND_ID, COMMAND_RUNTIME_ID, componentName, empty());
+        replayEventToComponentRunner.run(COMMAND_ID, COMMAND_RUNTIME_ID, componentName);
 
         verify(replayEventToEventListenerProcessorBean).perform(argThat(actualContext -> {
             assertThat(actualContext.getCommandId(), is(COMMAND_ID));
@@ -52,27 +51,5 @@ public class ReplayEventToComponentRunnerTest {
 
             return true;
         }));
-
-        verify(eventSourceNameFinder, never()).ensureEventSourceNameExistsInRegistry(listenerEventSourceName, componentName);
-    }
-
-    @Test
-    public void shouldHandleOptionalSuppliedEventSourceName() {
-        final String listenerEventSourceName = "listenerEventSourceName";
-        final String componentName = EVENT_LISTENER;
-        when(eventSourceNameFinder.ensureEventSourceNameExistsInRegistry(listenerEventSourceName, componentName)).thenReturn(listenerEventSourceName);
-
-        replayEventToComponentRunner.run(COMMAND_ID, COMMAND_RUNTIME_ID, componentName, of(listenerEventSourceName));
-
-        verify(replayEventToEventListenerProcessorBean).perform(argThat(actualContext -> {
-            assertThat(actualContext.getCommandId(), is(COMMAND_ID));
-            assertThat(actualContext.getCommandRuntimeId(), is(COMMAND_RUNTIME_ID));
-            assertThat(actualContext.getEventSourceName(), is(listenerEventSourceName));
-            assertThat(actualContext.getComponentName(), is(EVENT_LISTENER));
-
-            return true;
-        }));
-
-        verify(eventSourceNameFinder, never()).getEventSourceNameOf(componentName);
     }
 }

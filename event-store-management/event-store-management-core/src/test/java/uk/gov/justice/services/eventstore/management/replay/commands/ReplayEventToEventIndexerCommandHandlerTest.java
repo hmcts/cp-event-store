@@ -1,7 +1,5 @@
 package uk.gov.justice.services.eventstore.management.replay.commands;
 
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.any;
@@ -74,7 +72,7 @@ public class ReplayEventToEventIndexerCommandHandlerTest {
 
         replayEventToEventIndexerCommandHandler.replayEventToEventIndexer(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 
-        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_INDEXER, empty());
+        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_INDEXER);
 
         verify(stateChangedEventFirer, times(2)).fire(eventCaptor.capture());
         final List<SystemCommandStateChangedEvent> actualEvents = eventCaptor.getAllValues();
@@ -95,18 +93,18 @@ public class ReplayEventToEventIndexerCommandHandlerTest {
     }
 
     @Test
-    public void shouldHandleOptionalEventSourceNameFromCommandRuntimeString() {
+    public void shouldHandleOptionalComponentNameFromCommandRuntimeString() {
 
-        final String eventSourceName = "some-event-source-name";
+        final String componentName = "SOME_EVENT_INDEXER";
         final JmxCommandRuntimeParameters jmxCommandRuntimeParameters = new JmxCommandRuntimeParametersBuilder()
                 .withCommandRuntimeId(COMMAND_RUNTIME_ID)
-                .withCommandRuntimeString(eventSourceName)
+                .withCommandRuntimeString(componentName)
                 .build();
         when(clock.now()).thenReturn(NOW);
 
         replayEventToEventIndexerCommandHandler.replayEventToEventIndexer(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 
-        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_INDEXER, of(eventSourceName));
+        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, componentName);
 
         verify(stateChangedEventFirer, times(2)).fire(eventCaptor.capture());
         final List<SystemCommandStateChangedEvent> actualEvents = eventCaptor.getAllValues();
@@ -134,7 +132,7 @@ public class ReplayEventToEventIndexerCommandHandlerTest {
 
         final RuntimeException exception = new RuntimeException();
         when(clock.now()).thenReturn(NOW);
-        doThrow(exception).when(replayEventToComponentRunner).run(any(), any(), any(), any());
+        doThrow(exception).when(replayEventToComponentRunner).run(any(), any(), any());
 
         replayEventToEventIndexerCommandHandler.replayEventToEventIndexer(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 

@@ -12,7 +12,7 @@
 
     <groupId>uk.gov.justice.event-store</groupId>
     <artifactId>event-store</artifactId>
-    <version>17.103.5-SNAPSHOT</version>
+    <version>17.103.5</version>
     <packaging>pom</packaging>
 
     <name>Event Store</name>

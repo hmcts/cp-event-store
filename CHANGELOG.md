@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.103.5] - 2025-11-06
 ### Changed
 - Refactor ReplaySingleEvent to accept component name rather than event source name
 

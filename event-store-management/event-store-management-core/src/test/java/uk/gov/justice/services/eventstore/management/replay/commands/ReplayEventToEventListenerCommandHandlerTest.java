@@ -75,7 +75,7 @@ public class ReplayEventToEventListenerCommandHandlerTest {
 
         replayEventToEventListenerCommandHandler.replayEventToEventListener(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 
-        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_LISTENER, empty());
+        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_LISTENER);
 
         verify(stateChangedEventFirer, times(2)).fire(eventCaptor.capture());
         final List<SystemCommandStateChangedEvent> actualEvents = eventCaptor.getAllValues();
@@ -99,15 +99,15 @@ public class ReplayEventToEventListenerCommandHandlerTest {
     public void shouldHandleOptionalEventSourceNameFromCommandRuntimeString() {
         when(clock.now()).thenReturn(NOW);
 
-        final String eventSourceName = "some-event-source-name";
+        final String componentName = "SOME_EVENT_LISTENER";
         final JmxCommandRuntimeParameters jmxCommandRuntimeParameters = new JmxCommandRuntimeParametersBuilder()
                 .withCommandRuntimeId(COMMAND_RUNTIME_ID)
-                .withCommandRuntimeString(eventSourceName)
+                .withCommandRuntimeString(componentName)
                 .build();
 
         replayEventToEventListenerCommandHandler.replayEventToEventListener(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 
-        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_LISTENER, of(eventSourceName));
+        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, componentName);
 
         verify(stateChangedEventFirer, times(2)).fire(eventCaptor.capture());
         final List<SystemCommandStateChangedEvent> actualEvents = eventCaptor.getAllValues();
@@ -134,7 +134,7 @@ public class ReplayEventToEventListenerCommandHandlerTest {
                 .withCommandRuntimeId(COMMAND_RUNTIME_ID)
                 .build();
         when(clock.now()).thenReturn(NOW);
-        doThrow(exception).when(replayEventToComponentRunner).run(any(), any(), any(), any());
+        doThrow(exception).when(replayEventToComponentRunner).run(any(), any(), any());
 
         replayEventToEventListenerCommandHandler.replayEventToEventListener(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 

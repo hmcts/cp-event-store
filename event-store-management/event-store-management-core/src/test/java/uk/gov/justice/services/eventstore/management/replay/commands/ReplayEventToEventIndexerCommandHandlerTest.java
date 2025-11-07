@@ -1,6 +1,7 @@
 package uk.gov.justice.services.eventstore.management.replay.commands;
 
-
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.any;
@@ -73,7 +74,7 @@ public class ReplayEventToEventIndexerCommandHandlerTest {
 
         replayEventToEventIndexerCommandHandler.replayEventToEventIndexer(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 
-        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_INDEXER);
+        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_INDEXER, empty());
 
         verify(stateChangedEventFirer, times(2)).fire(eventCaptor.capture());
         final List<SystemCommandStateChangedEvent> actualEvents = eventCaptor.getAllValues();
@@ -94,14 +95,46 @@ public class ReplayEventToEventIndexerCommandHandlerTest {
     }
 
     @Test
-    public void onSuccessShouldFireInProgressAndFailedyStemCommands() {
+    public void shouldHandleOptionalEventSourceNameFromCommandRuntimeString() {
+
+        final String eventSourceName = "some-event-source-name";
+        final JmxCommandRuntimeParameters jmxCommandRuntimeParameters = new JmxCommandRuntimeParametersBuilder()
+                .withCommandRuntimeId(COMMAND_RUNTIME_ID)
+                .withCommandRuntimeString(eventSourceName)
+                .build();
+        when(clock.now()).thenReturn(NOW);
+
+        replayEventToEventIndexerCommandHandler.replayEventToEventIndexer(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
+
+        verify(replayEventToComponentRunner).run(COMMAND_ID, COMMAND_RUNTIME_ID, EVENT_INDEXER, of(eventSourceName));
+
+        verify(stateChangedEventFirer, times(2)).fire(eventCaptor.capture());
+        final List<SystemCommandStateChangedEvent> actualEvents = eventCaptor.getAllValues();
+        final SystemCommandStateChangedEvent inProgressEvent = actualEvents.get(0);
+
+        assertThat(inProgressEvent.getCommandId(), is(COMMAND_ID));
+        assertThat(inProgressEvent.getSystemCommand(), is(COMMAND));
+        assertThat(inProgressEvent.getCommandState(), is(COMMAND_IN_PROGRESS));
+        assertThat(inProgressEvent.getMessage(), is("REPLAY_EVENT_TO_EVENT_INDEXER command received"));
+        assertThat(inProgressEvent.getStatusChangedAt(), is(NOW));
+
+        final SystemCommandStateChangedEvent completedEvent = actualEvents.get(1);
+        assertThat(completedEvent.getCommandId(), is(COMMAND_ID));
+        assertThat(completedEvent.getSystemCommand(), is(COMMAND));
+        assertThat(completedEvent.getCommandState(), is(COMMAND_COMPLETE));
+        assertThat(completedEvent.getMessage(), is("REPLAY_EVENT_TO_EVENT_INDEXER command completed"));
+        assertThat(completedEvent.getStatusChangedAt(), is(NOW));
+    }
+
+    @Test
+    public void onSuccessShouldFireInProgressAndFailedStemCommands() {
         final JmxCommandRuntimeParameters jmxCommandRuntimeParameters = new JmxCommandRuntimeParametersBuilder()
                 .withCommandRuntimeId(COMMAND_RUNTIME_ID)
                 .build();
 
         final RuntimeException exception = new RuntimeException();
         when(clock.now()).thenReturn(NOW);
-        doThrow(exception).when(replayEventToComponentRunner).run(any(), any(), any());
+        doThrow(exception).when(replayEventToComponentRunner).run(any(), any(), any(), any());
 
         replayEventToEventIndexerCommandHandler.replayEventToEventIndexer(COMMAND, COMMAND_ID, jmxCommandRuntimeParameters);
 

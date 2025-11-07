@@ -1,5 +1,6 @@
 package uk.gov.justice.services.eventstore.management.replay.commands;
 
+import static java.util.Optional.ofNullable;
 import static uk.gov.justice.services.core.annotation.Component.EVENT_INDEXER;
 import static uk.gov.justice.services.eventstore.management.commands.ReplayEventToEventIndexerCommand.REPLAY_EVENT_TO_EVENT_INDEXER;
 import static uk.gov.justice.services.jmx.api.domain.CommandState.COMMAND_COMPLETE;
@@ -14,6 +15,7 @@ import uk.gov.justice.services.jmx.api.parameters.JmxCommandRuntimeParameters;
 import uk.gov.justice.services.jmx.command.HandlesSystemCommand;
 import uk.gov.justice.services.jmx.state.events.SystemCommandStateChangedEvent;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.enterprise.event.Event;
@@ -42,8 +44,9 @@ public class ReplayEventToEventIndexerCommandHandler {
             final JmxCommandRuntimeParameters jmxCommandRuntimeParameters) {
         fireEvent(COMMAND_IN_PROGRESS, command, commandId, "REPLAY_EVENT_TO_EVENT_INDEXER command received");
         final UUID commandRuntimeId = jmxCommandRuntimeParameters.getCommandRuntimeId();
+        final Optional<String> eventSourceName = ofNullable(jmxCommandRuntimeParameters.getCommandRuntimeString());
         try {
-            replayEventToComponentRunner.run(commandId, commandRuntimeId, EVENT_INDEXER);
+            replayEventToComponentRunner.run(commandId, commandRuntimeId, EVENT_INDEXER, eventSourceName);
             fireEvent(COMMAND_COMPLETE, command, commandId, "REPLAY_EVENT_TO_EVENT_INDEXER command completed");
         } catch (Exception e) {
             logger.error("REPLAY_EVENT_TO_EVENT_INDEXER failed. commandId {}, commandRuntimeId {}", commandId, commandRuntimeId, e);

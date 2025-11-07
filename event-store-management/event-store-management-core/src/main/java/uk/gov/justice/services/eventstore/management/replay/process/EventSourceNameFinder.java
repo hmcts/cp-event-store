@@ -1,5 +1,7 @@
 package uk.gov.justice.services.eventstore.management.replay.process;
 
+import static java.lang.String.format;
+
 import uk.gov.justice.services.eventstore.management.catchup.process.PriorityComparatorProvider;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Subscription;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.SubscriptionsDescriptor;
@@ -32,6 +34,20 @@ public class EventSourceNameFinder {
                 .findFirst()
                 .map(Subscription::getEventSourceName)
                 .orElseThrow(() -> new ReplayEventFailedException("No event source name found for event listener"));
+    }
+
+    public String ensureEventSourceNameExistsInRegistry(final String eventSourceName, final String componentName) {
+
+        return subscriptionsDescriptorsRegistry
+                .getAll()
+                .stream()
+                .filter(subscriptionsDescriptor -> subscriptionsDescriptor.getServiceComponent().contains(componentName))
+                .sorted(priorityComparatorProvider.getSubscriptionDescriptorComparator())
+                .flatMap(this::getSubscriptions)
+                .filter(subscription -> subscription.getEventSourceName().equals(eventSourceName))
+                .findFirst()
+                .map(Subscription::getEventSourceName)
+                .orElseThrow(() -> new ReplayEventFailedException(format("No event source named '%s' found in subscriptions-descriptor.yaml file(s) for component '%s'", eventSourceName, componentName)));
     }
 
     private Stream<Subscription> getSubscriptions(SubscriptionsDescriptor subscriptionsDescriptor) {

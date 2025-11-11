@@ -1,7 +1,9 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
 import static javax.transaction.Status.STATUS_ACTIVE;
+import static javax.transaction.Status.STATUS_MARKED_ROLLBACK;
 import static javax.transaction.Status.STATUS_NO_TRANSACTION;
+import static javax.transaction.Status.STATUS_ROLLING_BACK;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -165,11 +167,35 @@ public class TransactionHandlerTest {
     }
 
     @Test
-    public void shouldNotRollBackIfNoTransactionActive() throws Exception {
+    public void shouldNotRollBackTransactionIfNoTransactionActive() throws Exception {
 
         final UserTransaction userTransaction = mock(UserTransaction.class);
 
         when(userTransaction.getStatus()).thenReturn(STATUS_NO_TRANSACTION);
+
+        transactionHandler.rollback(userTransaction);
+
+        verify(userTransaction, never()).rollback();
+    }
+
+    @Test
+    public void shouldNotRollBackTransactionIfTransactionAlreadyMarkedForRollback() throws Exception {
+
+        final UserTransaction userTransaction = mock(UserTransaction.class);
+
+        when(userTransaction.getStatus()).thenReturn(STATUS_MARKED_ROLLBACK);
+
+        transactionHandler.rollback(userTransaction);
+
+        verify(userTransaction, never()).rollback();
+    }
+
+    @Test
+    public void shouldNotRollBackTransactionIfTransactionCurrentlyRollingBack() throws Exception {
+
+        final UserTransaction userTransaction = mock(UserTransaction.class);
+
+        when(userTransaction.getStatus()).thenReturn(STATUS_ROLLING_BACK);
 
         transactionHandler.rollback(userTransaction);
 

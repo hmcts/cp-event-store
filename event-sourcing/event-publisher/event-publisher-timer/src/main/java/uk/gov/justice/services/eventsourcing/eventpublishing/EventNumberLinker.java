@@ -7,6 +7,7 @@ import javax.transaction.UserTransaction;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.AdvisoryLockDataAccess;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository;
+import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventNumberLinkingException;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess;
 
 public class EventNumberLinker {
@@ -32,8 +33,10 @@ public class EventNumberLinker {
 
         try {
             final int transactionTimeoutSeconds = eventLinkingWorkerConfig.getTransactionTimeoutSeconds();
+            final int localStatementTimeoutSeconds = eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds();
             userTransaction.setTransactionTimeout(transactionTimeoutSeconds);
             userTransaction.begin();
+            linkEventsInEventLogDatabaseAccess.setStatementTimeoutOnCurrentTransaction(localStatementTimeoutSeconds);
 
             // obtain advisory lock if available
             if(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)) {
@@ -68,7 +71,7 @@ public class EventNumberLinker {
             } catch (final Exception ignored) {
                 //ignore
             }
-            return false;
+            throw new EventNumberLinkingException("Exception occurred while linking event number", e);
         }
     }
 }

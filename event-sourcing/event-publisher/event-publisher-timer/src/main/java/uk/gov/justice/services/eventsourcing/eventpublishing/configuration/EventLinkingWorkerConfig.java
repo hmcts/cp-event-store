@@ -10,6 +10,7 @@ import static java.lang.Long.parseLong;
 public class EventLinkingWorkerConfig {
 
     private static final String DEFAULT_TRANSACTION_TIMEOUT_SECONDS = "5";
+    private static final String DEFAULT_TRANSACTION_STATEMENT_TIMEOUT_SECONDS = "1";
 
     @Inject
     @Value(key = "event.linking.worker.start.wait.milliseconds", defaultValue = "7250")
@@ -31,6 +32,10 @@ public class EventLinkingWorkerConfig {
     @Value(key = "event.linking.worker.transaction.timeout.seconds", defaultValue = DEFAULT_TRANSACTION_TIMEOUT_SECONDS)
     private String transactionTimeoutSeconds;
 
+    @Inject
+    @Value(key = "event.linking.worker.transaction.statement.timeout.seconds", defaultValue = DEFAULT_TRANSACTION_STATEMENT_TIMEOUT_SECONDS)
+    private String transactionStatementTimeoutSeconds;
+
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
@@ -49,5 +54,9 @@ public class EventLinkingWorkerConfig {
 
     public int getTransactionTimeoutSeconds() {
         return parseInt(transactionTimeoutSeconds);
+    }
+
+    public int getLocalStatementTimeoutSeconds() {
+        return parseInt(transactionStatementTimeoutSeconds);
     }
 }

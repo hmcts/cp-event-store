@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.AdvisoryLockDataAccess;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository;
+import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventNumberLinkingException;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess;
 
 import static java.util.Optional.empty;
@@ -18,9 +19,9 @@ import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.eventsourcing.eventpublishing.EventNumberLinker.ADVISORY_LOCK_KEY;
@@ -52,8 +53,10 @@ public class EventNumberLinkerTest {
         final Long newEventNumber = previousEventNumber + 1;
         final UUID eventId = randomUUID();
         final int transactionTimeoutSeconds = 300;
+        final int localStatementTimeoutSeconds = 10;
 
         when(eventLinkingWorkerConfig.getTransactionTimeoutSeconds()).thenReturn(transactionTimeoutSeconds);
+        when(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds()).thenReturn(localStatementTimeoutSeconds);
         when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)).thenReturn(true);
         when(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable()).thenReturn(previousEventNumber);
         when(linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink()).thenReturn(of(eventId));
@@ -63,8 +66,10 @@ public class EventNumberLinkerTest {
 
         final InOrder inOrder = inOrder(userTransaction, eventLinkingWorkerConfig, linkEventsInEventLogDatabaseAccess, advisoryLockDataAccess, compatibilityModePublishedEventRepository);
         inOrder.verify(eventLinkingWorkerConfig).getTransactionTimeoutSeconds();
+        inOrder.verify(eventLinkingWorkerConfig).getLocalStatementTimeoutSeconds();
         inOrder.verify(userTransaction).setTransactionTimeout(transactionTimeoutSeconds);
         inOrder.verify(userTransaction).begin();
+        inOrder.verify(linkEventsInEventLogDatabaseAccess).setStatementTimeoutOnCurrentTransaction(localStatementTimeoutSeconds);
         inOrder.verify(advisoryLockDataAccess).tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).linkEvent(eventId, newEventNumber, previousEventNumber);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).insertLinkedEventIntoPublishQueue(eventId);
@@ -78,20 +83,23 @@ public class EventNumberLinkerTest {
     public void shouldDoNothingIfAdvisoryLockNotAvailable() throws Exception {
 
         final int transactionTimeoutSeconds = 300;
+        final int statementTimeoutSeconds = 10;
 
         when(eventLinkingWorkerConfig.getTransactionTimeoutSeconds()).thenReturn(transactionTimeoutSeconds);
+        when(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds()).thenReturn(statementTimeoutSeconds);
         when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)).thenReturn(false);
 
         assertThat(eventNumberLinker.findAndAndLinkNextUnlinkedEvent(), is(false));
 
-        final InOrder inOrder = inOrder(userTransaction, eventLinkingWorkerConfig, advisoryLockDataAccess);
+        final InOrder inOrder = inOrder(userTransaction, eventLinkingWorkerConfig, advisoryLockDataAccess, linkEventsInEventLogDatabaseAccess);
         inOrder.verify(eventLinkingWorkerConfig).getTransactionTimeoutSeconds();
         inOrder.verify(userTransaction).setTransactionTimeout(transactionTimeoutSeconds);
         inOrder.verify(userTransaction).begin();
+        inOrder.verify(linkEventsInEventLogDatabaseAccess).setStatementTimeoutOnCurrentTransaction(statementTimeoutSeconds);
         inOrder.verify(advisoryLockDataAccess).tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY);
         inOrder.verify(userTransaction).commit();
 
-        verifyNoInteractions(linkEventsInEventLogDatabaseAccess);
+        verifyNoMoreInteractions(linkEventsInEventLogDatabaseAccess);
         verifyNoMoreInteractions(compatibilityModePublishedEventRepository);
     }
 
@@ -99,8 +107,10 @@ public class EventNumberLinkerTest {
     public void shouldDoNothingIfNoUnlinkedEventsFound() throws Exception {
 
         final int transactionTimeoutSeconds = 300;
+        final int statementTimeoutSeconds = 10;
 
         when(eventLinkingWorkerConfig.getTransactionTimeoutSeconds()).thenReturn(transactionTimeoutSeconds);
+        when(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds()).thenReturn(statementTimeoutSeconds);
         when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)).thenReturn(true);
         when(linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink()).thenReturn(empty());
 
@@ -110,6 +120,7 @@ public class EventNumberLinkerTest {
         inOrder.verify(eventLinkingWorkerConfig).getTransactionTimeoutSeconds();
         inOrder.verify(userTransaction).setTransactionTimeout(transactionTimeoutSeconds);
         inOrder.verify(userTransaction).begin();
+        inOrder.verify(linkEventsInEventLogDatabaseAccess).setStatementTimeoutOnCurrentTransaction(statementTimeoutSeconds);
         inOrder.verify(advisoryLockDataAccess).tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).findIdOfNextEventToLink();
         inOrder.verify(userTransaction).commit();
@@ -127,7 +138,7 @@ public class EventNumberLinkerTest {
         when(eventLinkingWorkerConfig.getTransactionTimeoutSeconds()).thenReturn(transactionTimeoutSeconds);
         doThrow(testException).when(userTransaction).begin();
 
-        assertThat(eventNumberLinker.findAndAndLinkNextUnlinkedEvent(), is(false));
+        assertThrows(EventNumberLinkingException.class, () -> eventNumberLinker.findAndAndLinkNextUnlinkedEvent());
 
         final InOrder inOrder = inOrder(userTransaction, eventLinkingWorkerConfig);
         inOrder.verify(eventLinkingWorkerConfig).getTransactionTimeoutSeconds();

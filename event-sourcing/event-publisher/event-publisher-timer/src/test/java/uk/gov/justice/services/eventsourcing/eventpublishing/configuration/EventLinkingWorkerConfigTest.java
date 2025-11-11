@@ -64,4 +64,14 @@ public class EventLinkingWorkerConfigTest {
 
         assertThat(eventLinkingWorkerConfig.getTransactionTimeoutSeconds(), is(timeoutSeconds));
     }
+
+    @Test
+    public void shouldGetTransactionStatementTimeoutSeconds() throws Exception {
+
+        final int timeoutSeconds = 240;
+
+        setField(eventLinkingWorkerConfig, "transactionStatementTimeoutSeconds", "" + timeoutSeconds);
+
+        assertThat(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds(), is(timeoutSeconds));
+    }
 }

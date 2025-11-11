@@ -1,5 +1,6 @@
 package uk.gov.justice.services.subscription;
 
+import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static javax.transaction.Transactional.TxType.REQUIRED;
@@ -25,23 +26,30 @@ import javax.transaction.Transactional;
 
 public class ProcessedEventTrackingRepository {
 
-    private static final String INSERT_SQL =
-            "INSERT INTO processed_event (event_id, event_number, previous_event_number, source, component) " +
-                    "VALUES (?, ?, ?, ?, ?)";
+    private static final String INSERT_SQL = """
+                    INSERT INTO processed_event (
+                                     event_id,
+                                     event_number,
+                                     previous_event_number,
+                                     source,
+                                     component)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT DO NOTHING
+            """;
 
     private static final String SELECT_MAX_SQL =
             "SELECT event_id, event_number, previous_event_number, source, component " +
-                    "FROM processed_event " +
-                    "WHERE source = ? " +
-                    "AND component = ? " +
-                    "ORDER BY event_number DESC LIMIT 1";
+            "FROM processed_event " +
+            "WHERE source = ? " +
+            "AND component = ? " +
+            "ORDER BY event_number DESC LIMIT 1";
 
     private static final String SELECT_ALL_DESCENDING_ORDER_SQL =
             "SELECT event_id, event_number, previous_event_number " +
-                    "FROM processed_event " +
-                    "WHERE source = ? " +
-                    "AND component = ? " +
-                    "ORDER BY event_number DESC";
+            "FROM processed_event " +
+            "WHERE source = ? " +
+            "AND component = ? " +
+            "ORDER BY event_number DESC";
 
     private static final String SELECT_LESS_THAN_EVENT_NUMBER_IN_DESCENDING_ORDER_SQL = """
         SELECT 
@@ -79,7 +87,14 @@ public class ProcessedEventTrackingRepository {
             preparedStatement.setString(4, processedEvent.getSource());
             preparedStatement.setString(5, processedEvent.getComponentName());
 
-            preparedStatement.executeUpdate();
+            final int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new ProcessedEventTrackingException(
+                        format("Failed to insert event with id '%s' into processed_event table. 'event_number', 'source' and 'component' must be unique: %s",
+                                processedEvent.getEventId(),
+                                processedEvent)
+                );
+            }
 
         } catch (final SQLException e) {
             throw new ProcessedEventTrackingException("Failed to insert ProcessedEvent into viewstore", e);
@@ -124,8 +139,8 @@ public class ProcessedEventTrackingRepository {
 
         final ArrayList<ProcessedEvent> processedEvents = new ArrayList<>();
 
-        try(final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
-            final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_LESS_THAN_EVENT_NUMBER_IN_DESCENDING_ORDER_SQL)) {
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_LESS_THAN_EVENT_NUMBER_IN_DESCENDING_ORDER_SQL)) {
 
             preparedStatement.setLong(1, runFromEventNumberInclusive);
             preparedStatement.setLong(2, toEventNumberExclusive);

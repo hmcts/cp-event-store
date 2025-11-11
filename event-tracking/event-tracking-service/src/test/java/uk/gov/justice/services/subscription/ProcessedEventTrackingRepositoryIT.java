@@ -1,9 +1,12 @@
 package uk.gov.justice.services.subscription;
 
+import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
@@ -16,6 +19,7 @@ import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFac
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import javax.sql.DataSource;
@@ -232,5 +236,25 @@ public class ProcessedEventTrackingRepositoryIT {
         } else {
             fail();
         }
+    }
+
+    @Test
+    public void shouldThrowProcessedEventTrackingExceptionOnSaveIfEventNumberSourceOrComponentAreNotUnique() throws Exception {
+
+        final String source = "example-context";
+        final String componentName = "EVENT_LISTENER";
+        final UUID failingEventId = fromString("ed1ddaf4-f9cc-495c-b06b-bc8f638f080d");
+
+        final ProcessedEvent processedEvent_1 = new ProcessedEvent(randomUUID(), 0, 1, source, componentName);
+        final ProcessedEvent processedEvent_2 = new ProcessedEvent(failingEventId, 0, 1, source, componentName);
+
+        processedEventTrackingRepository.save(processedEvent_1);
+
+        final ProcessedEventTrackingException processedEventTrackingException = assertThrows(
+                ProcessedEventTrackingException.class,
+                () -> processedEventTrackingRepository.save(processedEvent_2));
+
+        assertThat(processedEventTrackingException.getMessage(), startsWith("Failed to insert event with id 'ed1ddaf4-f9cc-495c-b06b-bc8f638f080d' into processed_event table. 'event_number', 'source' and 'component' must be unique:"));
+
     }
 }

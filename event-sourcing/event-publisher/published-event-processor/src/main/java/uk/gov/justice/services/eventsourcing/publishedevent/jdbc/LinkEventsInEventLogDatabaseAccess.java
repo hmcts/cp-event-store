@@ -113,7 +113,6 @@ public class LinkEventsInEventLogDatabaseAccess {
         try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
              final Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("SET LOCAL statement_timeout = '" + statementTimeoutInSecs + "s'");
-            stmt.setQueryTimeout(1); //This is safeguard, in very unlikely scenario if this query hung up on db server side
         } catch (final SQLException e) {
             logger.info("Failed to set local statement timeout (safe to ignore)", e);
         }

@@ -17,6 +17,7 @@ import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEven
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.SELECT_NEXT_UNLINKED_EVENT_ID;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.UPDATE_EVENT_NUMBERS_FOR_EVENT;
 
+import org.slf4j.Logger;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
@@ -46,6 +47,9 @@ public class LinkEventsInEventLogDatabaseAccessTest {
 
     @Mock
     private UtcClock clock;
+
+    @Mock
+    private Logger logger;
 
     @InjectMocks
     private LinkEventsInEventLogDatabaseAccess linkEventsInEventLogDatabaseAccess;

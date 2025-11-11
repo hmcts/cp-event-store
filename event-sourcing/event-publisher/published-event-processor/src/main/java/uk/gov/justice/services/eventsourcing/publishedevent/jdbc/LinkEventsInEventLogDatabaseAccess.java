@@ -1,22 +1,22 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
-import static java.lang.String.format;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
-import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
-
-import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
-import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Optional;
 import java.util.UUID;
-
 import javax.inject.Inject;
+import org.slf4j.Logger;
+import uk.gov.justice.services.common.util.UtcClock;
+import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
+import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
+
+import static java.lang.String.format;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 public class LinkEventsInEventLogDatabaseAccess {
 
@@ -49,6 +49,9 @@ public class LinkEventsInEventLogDatabaseAccess {
 
     @Inject
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
+
+    @Inject
+    private Logger logger;
 
     @Inject
     private UtcClock clock;
@@ -102,6 +105,17 @@ public class LinkEventsInEventLogDatabaseAccess {
             return empty();
         } catch (final SQLException e) {
             throw new EventPublishingException("Failed find event id to link", e);
+        }
+    }
+
+    public void setStatementTimeoutOnCurrentTransaction(int statementTimeoutInSecs) {
+
+        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
+             final Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("SET LOCAL statement_timeout = '" + statementTimeoutInSecs + "s'");
+            stmt.setQueryTimeout(1); //This is safeguard, in very unlikely scenario if this query hung up on db server side
+        } catch (final SQLException e) {
+            logger.info("Failed to set local statement timeout (safe to ignore)", e);
         }
     }
 

@@ -1,13 +1,16 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 
-import static java.lang.Boolean.parseBoolean;
-import static java.lang.Long.parseLong;
-
+import javax.inject.Inject;
 import uk.gov.justice.services.common.configuration.Value;
 
-import javax.inject.Inject;
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
 
 public class EventLinkingWorkerConfig {
+
+    private static final String DEFAULT_TRANSACTION_TIMEOUT_SECONDS = "5";
+    private static final String DEFAULT_TRANSACTION_STATEMENT_TIMEOUT_SECONDS = "1";
 
     @Inject
     @Value(key = "event.linking.worker.start.wait.milliseconds", defaultValue = "7250")
@@ -25,6 +28,14 @@ public class EventLinkingWorkerConfig {
     @Value(key = "event.publishing.add.event.to.published.event.table.on.publish", defaultValue = "true")
     private String insertEventIntoPublishedEventTable;
 
+    @Inject
+    @Value(key = "event.linking.worker.transaction.timeout.seconds", defaultValue = DEFAULT_TRANSACTION_TIMEOUT_SECONDS)
+    private String transactionTimeoutSeconds;
+
+    @Inject
+    @Value(key = "event.linking.worker.transaction.statement.timeout.seconds", defaultValue = DEFAULT_TRANSACTION_STATEMENT_TIMEOUT_SECONDS)
+    private String transactionStatementTimeoutSeconds;
+
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
@@ -39,5 +50,13 @@ public class EventLinkingWorkerConfig {
 
     public boolean shouldAlsoInsertEventIntoPublishedEventTable() {
         return parseBoolean(insertEventIntoPublishedEventTable);
+    }
+
+    public int getTransactionTimeoutSeconds() {
+        return parseInt(transactionTimeoutSeconds);
+    }
+
+    public int getLocalStatementTimeoutSeconds() {
+        return parseInt(transactionStatementTimeoutSeconds);
     }
 }

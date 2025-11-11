@@ -3,13 +3,19 @@ package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 import static java.util.Optional.of;
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
+import java.sql.Statement;
+import org.postgresql.util.PSQLException;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
@@ -78,6 +84,32 @@ public class LinkEventsInEventLogDatabaseAccessIT {
                     fail();
                 }
             }
+        }
+    }
+
+    @Test
+    public void shouldSetStatementTimeoutOnCurrentTransaction() throws Exception {
+        insertUnlinkedEventIntoEventLogTable(randomUUID(), new UtcClock().now(), 1);
+
+        final DataSource spyDataSource = spy(new FrameworkTestDataSourceFactory().createEventStoreDataSource());
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(spyDataSource);
+        try(final Connection spyConnection = spy(spyDataSource.getConnection())) {
+            spyConnection.setAutoCommit(false);
+            when(spyDataSource.getConnection()).thenReturn(spyConnection);
+            //This is required as production code closes the connection but same connection is used below in test, to run query for validating statement timeout behaviour
+            doNothing().doCallRealMethod().when(spyConnection).close();
+
+            //when
+            linkEventsInEventLogDatabaseAccess.setStatementTimeoutOnCurrentTransaction(1);
+            final PSQLException pgException = assertThrows(
+                    PSQLException.class,
+                    () -> {
+                        try (final Statement statement = spyConnection.createStatement()) {
+                            statement.executeQuery("SELECT pg_sleep(10) FROM event_log");
+                        }
+                    });
+
+            assertThat(pgException.getMessage(), containsString("ERROR: canceling statement due to statement timeout"));
         }
     }
 

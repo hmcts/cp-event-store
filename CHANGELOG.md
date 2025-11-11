@@ -7,6 +7,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### Changed
 - ReplaySingleEvent JMX commands can now take an optional commandRuntimeString of the component name
   to work with MI contexts
+- Configure timeouts for releasing transactional advisory locks in event linking
 
 # [17.104.0-M10] - 2025-11-03
 ### Added

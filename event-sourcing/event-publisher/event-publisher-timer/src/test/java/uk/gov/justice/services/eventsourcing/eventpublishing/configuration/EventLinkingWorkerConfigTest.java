@@ -1,13 +1,13 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.setField;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.setField;
 
 @ExtendWith(MockitoExtension.class)
 public class EventLinkingWorkerConfigTest {
@@ -53,5 +53,25 @@ public class EventLinkingWorkerConfigTest {
         setField(eventLinkingWorkerConfig, "insertEventIntoPublishedEventTable", "true");
 
         assertThat(eventLinkingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable(), is(true));
+    }
+
+    @Test
+    public void shouldGetTransactionTimeoutSeconds() throws Exception {
+
+        final int timeoutSeconds = 120;
+
+        setField(eventLinkingWorkerConfig, "transactionTimeoutSeconds", "" + timeoutSeconds);
+
+        assertThat(eventLinkingWorkerConfig.getTransactionTimeoutSeconds(), is(timeoutSeconds));
+    }
+
+    @Test
+    public void shouldGetTransactionStatementTimeoutSeconds() throws Exception {
+
+        final int timeoutSeconds = 240;
+
+        setField(eventLinkingWorkerConfig, "transactionStatementTimeoutSeconds", "" + timeoutSeconds);
+
+        assertThat(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds(), is(timeoutSeconds));
     }
 }

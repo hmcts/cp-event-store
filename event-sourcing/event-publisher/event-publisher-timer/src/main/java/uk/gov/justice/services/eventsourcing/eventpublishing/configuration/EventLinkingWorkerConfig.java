@@ -9,8 +9,7 @@ import static java.lang.Long.parseLong;
 
 public class EventLinkingWorkerConfig {
 
-    private static final String DEFAULT_TRANSACTION_TIMEOUT_SECONDS = "5";
-    private static final String DEFAULT_TRANSACTION_STATEMENT_TIMEOUT_SECONDS = "1";
+    private static final String DEFAULT_TIMEOUT_SECONDS = "5";
 
     @Inject
     @Value(key = "event.linking.worker.start.wait.milliseconds", defaultValue = "7250")
@@ -29,11 +28,11 @@ public class EventLinkingWorkerConfig {
     private String insertEventIntoPublishedEventTable;
 
     @Inject
-    @Value(key = "event.linking.worker.transaction.timeout.seconds", defaultValue = DEFAULT_TRANSACTION_TIMEOUT_SECONDS)
+    @Value(key = "event.linking.worker.transaction.timeout.seconds", defaultValue = DEFAULT_TIMEOUT_SECONDS)
     private String transactionTimeoutSeconds;
 
     @Inject
-    @Value(key = "event.linking.worker.transaction.statement.timeout.seconds", defaultValue = DEFAULT_TRANSACTION_STATEMENT_TIMEOUT_SECONDS)
+    @Value(key = "event.linking.worker.transaction.statement.timeout.seconds", defaultValue = DEFAULT_TIMEOUT_SECONDS)
     private String transactionStatementTimeoutSeconds;
 
     public long getTimerStartWaitMilliseconds() {

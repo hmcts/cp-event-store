@@ -5,6 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.104.0-M11] - 2025-11-13
 ## Changed
 - TransactionHandler will now not roll back if transaction is `STATUS_MARKED_ROLLBACK` or `STATUS_ROLLING_BACK`
 - Save of ProcessedEvent will now throw ProcessedEventTrackingException if eventNumber, source or component are not unique

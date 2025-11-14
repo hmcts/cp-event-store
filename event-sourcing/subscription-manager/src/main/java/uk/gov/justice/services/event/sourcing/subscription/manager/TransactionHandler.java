@@ -1,8 +1,6 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
-import static javax.transaction.Status.STATUS_MARKED_ROLLBACK;
 import static javax.transaction.Status.STATUS_NO_TRANSACTION;
-import static javax.transaction.Status.STATUS_ROLLING_BACK;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.TransactionException;
 
@@ -39,20 +37,13 @@ public class TransactionHandler {
 
     public void rollback(final UserTransaction userTransaction) {
         try {
-            if (canRollBack(userTransaction)) {
+
+            if (userTransaction.getStatus() != STATUS_NO_TRANSACTION) {
                 userTransaction.rollback();
             }
-        } catch (final SystemException e) {
+        } catch (final SystemException | IllegalStateException e) {
             logger.error("Failed to rollback transaction, rollback maybe incomplete", e);
         }
     }
 
-    private boolean canRollBack(final UserTransaction userTransaction) throws SystemException {
-
-        final int transactionStatus = userTransaction.getStatus();
-
-        return transactionStatus != STATUS_NO_TRANSACTION &&
-               transactionStatus != STATUS_MARKED_ROLLBACK &&
-               transactionStatus != STATUS_ROLLING_BACK;
-    }
 }

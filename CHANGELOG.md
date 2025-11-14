@@ -5,7 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
-# [17.103.6-M1] - 2025-11-11
+# [17.103.6-M2] - 2025-11-11
 - Update to framework 17.103.1-M1 for:
   - EntityManagerFlushInterceptor will now only flush the EntityManager if a transaction is active
 - TransactionHandler will not roll back if transaction status is `STATUS_NO_TRANSACTION`

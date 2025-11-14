@@ -7,6 +7,9 @@
 -- add events whose event_number is null to pre_publish_queue
 INSERT INTO pre_publish_queue (SELECT id, date_created FROM event_log WHERE event_number is null and event_status='HEALTHY') ON CONFLICT DO NOTHING;
 
+-- update the sequence 
+SELECT setval('event_sequence_seq', (SELECT MAX(event_number) FROM event_log));
+
 -- restore event_number column from sequence
 UPDATE event_log el
 SET event_number = orderedEl.newEventNumber
@@ -19,9 +22,6 @@ SET event_number = orderedEl.newEventNumber
          ORDER BY date_created ASC 
      ) orderedEl
 WHERE el.id = orderedEl.id AND el.event_number is null AND event_status='HEALTHY';
-
--- update the sequence 
-SELECT setval('event_sequence_seq', (SELECT MAX(event_number) FROM event_log));
 
 -- add published events 
 INSERT INTO public.published_event (

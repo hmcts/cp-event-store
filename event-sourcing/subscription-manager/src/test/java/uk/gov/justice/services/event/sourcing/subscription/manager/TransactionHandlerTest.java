@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.TransactionException;
@@ -176,34 +177,11 @@ public class TransactionHandlerTest {
         transactionHandler.rollback(userTransaction);
 
         verify(userTransaction, never()).rollback();
+        verifyNoInteractions(logger);
     }
 
     @Test
-    public void shouldNotRollBackTransactionIfTransactionAlreadyMarkedForRollback() throws Exception {
-
-        final UserTransaction userTransaction = mock(UserTransaction.class);
-
-        when(userTransaction.getStatus()).thenReturn(STATUS_MARKED_ROLLBACK);
-
-        transactionHandler.rollback(userTransaction);
-
-        verify(userTransaction, never()).rollback();
-    }
-
-    @Test
-    public void shouldNotRollBackTransactionIfTransactionCurrentlyRollingBack() throws Exception {
-
-        final UserTransaction userTransaction = mock(UserTransaction.class);
-
-        when(userTransaction.getStatus()).thenReturn(STATUS_ROLLING_BACK);
-
-        transactionHandler.rollback(userTransaction);
-
-        verify(userTransaction, never()).rollback();
-    }
-
-    @Test
-    public void shouldLogAndDoNothingIfRollbackTransactionFails() throws Exception {
+    public void shouldLogAndDoNothingIfRollbackTransactionThrowsSystemException() throws Exception {
 
         final SystemException systemException = new SystemException();
 
@@ -214,5 +192,19 @@ public class TransactionHandlerTest {
         transactionHandler.rollback(userTransaction);
 
         verify(logger).error("Failed to rollback transaction, rollback maybe incomplete", systemException);
+    }
+
+    @Test
+    public void shouldLogAndDoNothingIfRollbackTransactionThrowsIllegalStateException() throws Exception {
+
+        final IllegalStateException illegalStateException = new IllegalStateException();
+
+        final UserTransaction userTransaction = mock(UserTransaction.class);
+
+        doThrow(illegalStateException).when(userTransaction).rollback();
+
+        transactionHandler.rollback(userTransaction);
+
+        verify(logger).error("Failed to rollback transaction, rollback maybe incomplete", illegalStateException);
     }
 }

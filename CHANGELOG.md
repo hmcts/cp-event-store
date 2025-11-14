@@ -4,9 +4,14 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.103.6-M1] - 2025-11-11
+- Update to framework 17.103.1-M1 for:
+  - EntityManagerFlushInterceptor will now only flush the EntityManager if a transaction is active
+- TransactionHandler will not roll back if transaction status is `STATUS_NO_TRANSACTION`
+
 # [17.103.6-M1] - 2025-11-11
 ### Changed
-- TransactionHandler will now not roll back if transaction is `STATUS_MARKED_ROLLBACK` or `STATUS_ROLLING_BACK`
 - Save of ProcessedEvent will now throw ProcessedEventTrackingException if eventNumber, source or component are not unique
 
 # [17.103.5] - 2025-11-06

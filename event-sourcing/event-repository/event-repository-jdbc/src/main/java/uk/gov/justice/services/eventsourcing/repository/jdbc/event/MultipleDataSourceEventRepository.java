@@ -32,6 +32,7 @@ public class MultipleDataSourceEventRepository {
             FROM event_log 
             ORDER BY event_number DESC 
             LIMIT 1""";
+
     private static final String SQL_FIND_RANGE = """
             SELECT
                 e.id,
@@ -49,9 +50,12 @@ public class MultipleDataSourceEventRepository {
                     FROM event_log
                     WHERE event_number < e.event_number)
                 ) AS previous_event_number
-            FROM event_log e
+            FROM event_log e, event_stream event_stream
             WHERE e.event_number >= ?
             AND e.event_number < ?
+            AND e.event_status = 'HEALTHY'
+            AND e.stream_id = event_stream.stream_id
+            AND event_stream.active = TRUE
             ORDER BY e.event_number;
             """;
 
@@ -79,10 +83,10 @@ public class MultipleDataSourceEventRepository {
     }
 
     /**
-     * Returns a Stream of PublishedEvent of all events since eventNumber.
+     * Returns a Stream of LinkedEvent of all events since eventNumber.
      *
      * @param eventNumber - exclusive start of events to return
-     * @return a Stream of PublishedEvent
+     * @return a Stream of LinkedEvent
      */
     public Stream<LinkedEvent> findEventsSince(final long eventNumber) {
 
@@ -98,11 +102,11 @@ public class MultipleDataSourceEventRepository {
     }
 
     /**
-     * Returns a Stream of PublishedEvent for a given range of events numbers.
+     * Returns a Stream of LinkedEvent for a given range of events numbers.
      *
      * @param fromEventNumber - inclusive start of range of event numbers
      * @param toEventNumber   - exclusive end of range of event numbers
-     * @return a Stream of PublishedEvent
+     * @return a Stream of LinkedEvent
      */
     public Stream<LinkedEvent> findEventRange(final long fromEventNumber, final long toEventNumber) {
 
@@ -121,10 +125,10 @@ public class MultipleDataSourceEventRepository {
     }
 
     /**
-     * Returns Optional of PublishedEvent for a given event id.
+     * Returns Optional of LinkedEvent for a given event id.
      *
      * @param eventId - id of the event to fetch
-     * @return Optional of PublishedEvent
+     * @return Optional of LinkedEvent
      */
     public Optional<LinkedEvent> findByEventId(final UUID eventId) {
 
@@ -179,7 +183,7 @@ public class MultipleDataSourceEventRepository {
 
             return empty();
         } catch (SQLException e) {
-            throw new JdbcRepositoryException("Failed to get latest PublishedEvent", e);
+            throw new JdbcRepositoryException("Failed to get latest LinkedEvent", e);
         }
     }
 

@@ -1,14 +1,12 @@
 # Release 2 Rollout SQLs
 
-> **Note**: If release-1 and release-2 are planned in the same deployment window (valid for small to medium contexts), this can be skipped
-
 ## DML
 
 Execute [Release 1 DML](../release-1/rollout-sql.md#dml), then execute below
 
 ```sql
 
--- Delta update for is_published=true 
+-- Delta update for is_published=true (if DB changes and code deployment are done at same time, this delta sql can be skipped, no harm in running it as well)
 DO $$
 DECLARE deltaStartFrom bigint;
 BEGIN

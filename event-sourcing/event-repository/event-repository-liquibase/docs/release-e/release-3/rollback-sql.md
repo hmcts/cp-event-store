@@ -4,6 +4,9 @@
 
 ```sql
 
+-- update the sequence 
+SELECT setval('event_sequence_seq', (SELECT MAX(event_number) FROM event_log));
+
 -- add events whose event_number is null to pre_publish_queue
 INSERT INTO pre_publish_queue (SELECT id, date_created FROM event_log WHERE event_number is null and event_status='HEALTHY') ON CONFLICT DO NOTHING;
 
@@ -20,8 +23,6 @@ SET event_number = orderedEl.newEventNumber
      ) orderedEl
 WHERE el.id = orderedEl.id AND el.event_number is null AND event_status='HEALTHY';
 
--- update the sequence 
-SELECT setval('event_sequence_seq', (SELECT MAX(event_number) FROM event_log));
 
 -- add published events 
 INSERT INTO public.published_event (
@@ -53,6 +54,20 @@ WHERE el.is_published = TRUE
 ORDER BY el.event_number
     -- to support idempotency
     ON CONFLICT (id) DO NOTHING;  
+
+-- Copy publish_queue events to pre_publish_queue (will be processed by Framework D code)
+INSERT INTO public.pre_publish_queue (
+    event_log_id,
+    date_queued
+)
+SELECT 
+    event_log_id,
+    date_queued
+FROM publish_queue;
+
+-- clean publish_queue
+DELETE FROM publish_queue;
+
 ```
 
 ## DDL

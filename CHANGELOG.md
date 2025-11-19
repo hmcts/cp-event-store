@@ -5,6 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 ## Changed
+- Catchup will now ignore events on inactive streams and events that are not marked as `HEALTHY`
 - EntityManagerFlushInterceptor will now only flush the EntityManager if a transaction is active
   TransactionHandler will now roll back except if transaction is `STATUS_NO_TRANSACTION`
 

@@ -41,7 +41,7 @@
 
     <properties>
         <cpp.repo.name>event-store</cpp.repo.name>
-        <framework.version>17.103.1-M1</framework.version>
+        <framework.version>17.103.2-M1</framework.version>
 
         <!-- junit 4 version needed for deltaspike tests. Should be moved to common bom -->
         <junit4.version>4.13.2</junit4.version>

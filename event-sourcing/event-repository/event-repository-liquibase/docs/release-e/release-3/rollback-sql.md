@@ -4,24 +4,25 @@
 
 ```sql
 
+-- update the sequence 
+SELECT setval('event_sequence_seq', (SELECT MAX(event_number) FROM event_log));
+
 -- add events whose event_number is null to pre_publish_queue
 INSERT INTO pre_publish_queue (SELECT id, date_created FROM event_log WHERE event_number is null and event_status='HEALTHY') ON CONFLICT DO NOTHING;
 
 -- restore event_number column from sequence
+WITH ordered AS (
+    SELECT id
+    FROM event_log
+    WHERE event_number IS NULL
+    AND event_status = 'HEALTHY'
+    ORDER BY date_created ASC
+)
 UPDATE event_log el
-SET event_number = orderedEl.newEventNumber
-    FROM (
-         SELECT
-             id,
-             date_created,
-             nextval('event_sequence_seq') as newEventNumber
-         FROM event_log WHERE event_number is null AND event_status='HEALTHY'
-         ORDER BY date_created ASC 
-     ) orderedEl
-WHERE el.id = orderedEl.id AND el.event_number is null AND event_status='HEALTHY';
+SET event_number = nextval('event_sequence_seq')
+FROM ordered o
+WHERE el.id = o.id;
 
--- update the sequence 
-SELECT setval('event_sequence_seq', (SELECT MAX(event_number) FROM event_log));
 
 -- add published events 
 INSERT INTO public.published_event (
@@ -53,6 +54,22 @@ WHERE el.is_published = TRUE
 ORDER BY el.event_number
     -- to support idempotency
     ON CONFLICT (id) DO NOTHING;  
+
+-- Copy publish_queue events to pre_publish_queue (will be processed by Framework D code)
+INSERT INTO public.pre_publish_queue (
+    event_log_id,
+    date_queued
+)
+SELECT 
+    pq.event_log_id,
+    el.date_created AS date_queued
+FROM publish_queue pq
+JOIN event_log el 
+    ON pq.event_log_id = el.id;
+
+-- clean publish_queue
+DELETE FROM publish_queue;
+
 ```
 
 ## DDL

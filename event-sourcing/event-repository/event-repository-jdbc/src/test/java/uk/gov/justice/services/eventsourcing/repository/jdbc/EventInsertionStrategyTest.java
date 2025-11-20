@@ -46,8 +46,9 @@ public class EventInsertionStrategyTest {
                  payload,
                  date_created,
                  event_number,
-                 previous_event_number)
-            VALUES(?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+                 previous_event_number,
+                 is_published)
+            VALUES(?, ?, ?, ?, ?, ?, ?, NULL, NULL, FALSE)
             ON CONFLICT DO NOTHING
             """;
 

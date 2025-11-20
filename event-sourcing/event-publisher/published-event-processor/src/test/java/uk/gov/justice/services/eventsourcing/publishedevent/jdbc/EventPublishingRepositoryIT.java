@@ -139,14 +139,14 @@ public class EventPublishingRepositoryIT {
 
         insertEvent(eventId, streamId, 1);
 
-        // is_published false by default
-        assertThat(getIsPublishedFlag(eventId), is(of(false)));
-
-        eventPublishingRepository.setIsPublishedFlag(eventId, true);
+        // is_published true by default
         assertThat(getIsPublishedFlag(eventId), is(of(true)));
 
         eventPublishingRepository.setIsPublishedFlag(eventId, false);
         assertThat(getIsPublishedFlag(eventId), is(of(false)));
+
+        eventPublishingRepository.setIsPublishedFlag(eventId, true);
+        assertThat(getIsPublishedFlag(eventId), is(of(true)));
     }
 
     private void insertEvent(final UUID eventId, final UUID streamId, final int eventNumber) throws Exception {

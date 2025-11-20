@@ -61,9 +61,11 @@ INSERT INTO public.pre_publish_queue (
     date_queued
 )
 SELECT 
-    event_log_id,
-    date_queued
-FROM publish_queue;
+    pq.event_log_id,
+    el.date_created AS date_queued
+FROM publish_queue pq
+JOIN event_log el 
+    ON pq.event_log_id = el.id;
 
 -- clean publish_queue
 DELETE FROM publish_queue;

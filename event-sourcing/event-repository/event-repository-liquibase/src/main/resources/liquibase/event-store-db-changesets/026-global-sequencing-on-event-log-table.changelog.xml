@@ -13,10 +13,10 @@
             <column name="previous_event_number" type="BIGINT"/>
         </addColumn>
         <addColumn tableName="event_log">
-            <column name="is_published" type="BOOLEAN" defaultValue="FALSE"/>
+            <column name="is_published" type="BOOLEAN" defaultValue="TRUE"/>
         </addColumn>
         <addColumn tableName="event_log">
-            <column name="event_status" type="VARCHAR(15)" defaultValue="HEALTHY"/>
+            <column name="event_status" type="VARCHAR(64)" defaultValue="HEALTHY"/>
         </addColumn>
         <sql>
             create index event_log_date_created_without_event_number_idx on event_log (date_created) where event_number is null;

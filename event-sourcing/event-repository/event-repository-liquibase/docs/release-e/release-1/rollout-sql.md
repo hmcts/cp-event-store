@@ -43,7 +43,7 @@ VALUES (
            NOW(),
            26,
            'EXECUTED',
-           '8:b1ca6e3c33f0f1fb691a53959d169e04',
+           '8:e012cb2e1b2f34233815347997fc011b',
            'addColumn tableName=event_log; addColumn tableName=event_log; addColumn tableName=event_log; sql; dropNotNullConstraint columnName=event_number, tableName=event_log; sql',
            '',
            NULL,

@@ -4,6 +4,7 @@ package uk.gov.justice.services.eventsourcing.repository.jdbc.event;
 import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
 import static java.util.UUID.fromString;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
 
@@ -36,18 +37,6 @@ import org.slf4j.Logger;
 public class EventJdbcRepository {
 
     /**
-     * Column Names
-     */
-    static final String PRIMARY_KEY_ID = "id";
-    static final String COL_STREAM_ID = "stream_id";
-    static final String COL_POSITION = "position_in_stream";
-    static final String COL_NAME = "name";
-    static final String COL_METADATA = "metadata";
-    static final String COL_PAYLOAD = "payload";
-    static final String COL_TIMESTAMP = "date_created";
-    static final String COL_EVENT_NUMBER = "event_number";
-
-    /**
      * Statements
      */
     static final String SQL_FIND_ALL = "SELECT * FROM event_log ORDER BY position_in_stream ASC";
@@ -58,15 +47,6 @@ public class EventJdbcRepository {
     static final String SQL_FIND_LATEST_POSITION = "SELECT MAX(position_in_stream) FROM event_log WHERE stream_id=?";
     static final String SQL_DISTINCT_STREAM_ID = "SELECT DISTINCT stream_id FROM event_log";
     static final String SQL_DELETE_STREAM = "DELETE FROM event_log t WHERE t.stream_id=?";
-
-    /*
-     * Error Messages
-     */
-    private static final String READING_STREAM_ALL_EXCEPTION = "Exception while reading stream";
-    private static final String READING_STREAM_EXCEPTION = "Exception while reading stream %s";
-    private static final String DELETING_STREAM_EXCEPTION = "Exception while deleting stream %s";
-    private static final String DELETING_STREAM_EXCEPTION_DETAILS = DELETING_STREAM_EXCEPTION + ", expected %d rows to be updated but was %d";
-    private static final String FAILED_TO_READ_STREAM = "Failed to read stream {}";
 
     private static final long NO_EXISTING_VERSION = 0L;
 
@@ -159,8 +139,8 @@ public class EventJdbcRepository {
 
             return jdbcResultSetStreamer.streamOf(preparedStatementWrapper, asEvent());
         } catch (final SQLException e) {
-            logger.warn(FAILED_TO_READ_STREAM, streamId, e);
-            throw new JdbcRepositoryException(format(READING_STREAM_EXCEPTION, streamId), e);
+            logger.warn("Failed to read stream {}", streamId, e);
+            throw new JdbcRepositoryException(format("Exception while reading stream %s", streamId), e);
         }
     }
 
@@ -184,8 +164,8 @@ public class EventJdbcRepository {
 
             return jdbcResultSetStreamer.streamOf(preparedStatementWrapper, asEvent());
         } catch (final SQLException e) {
-            logger.warn(FAILED_TO_READ_STREAM, streamId, e);
-            throw new JdbcRepositoryException(format(READING_STREAM_EXCEPTION, streamId), e);
+            logger.warn("Failed to read stream {}", streamId, e);
+            throw new JdbcRepositoryException(format("Exception while reading stream %s", streamId), e);
         }
     }
 
@@ -203,8 +183,8 @@ public class EventJdbcRepository {
 
             return jdbcResultSetStreamer.streamOf(preparedStatementWrapper, asEvent());
         } catch (final SQLException e) {
-            logger.error(FAILED_TO_READ_STREAM, streamId, e);
-            throw new JdbcRepositoryException(format(READING_STREAM_EXCEPTION, streamId), e);
+            logger.error("Failed to read stream {}", streamId, e);
+            throw new JdbcRepositoryException(format("Exception while reading stream %s", streamId), e);
         }
     }
 
@@ -222,7 +202,7 @@ public class EventJdbcRepository {
                     .streamOf(preparedStatementWrapperFactory
                             .preparedStatementWrapperOf(dataSource, SQL_FIND_ALL), asEvent());
         } catch (final SQLException e) {
-            throw new JdbcRepositoryException(READING_STREAM_ALL_EXCEPTION, e);
+            throw new JdbcRepositoryException("Exception while reading stream", e);
         }
     }
 
@@ -246,8 +226,8 @@ public class EventJdbcRepository {
             }
 
         } catch (final SQLException e) {
-            logger.warn(FAILED_TO_READ_STREAM, streamId, e);
-            throw new JdbcRepositoryException(format(READING_STREAM_EXCEPTION, streamId), e);
+            logger.warn("Failed to read stream {}", streamId, e);
+            throw new JdbcRepositoryException(format("Exception while reading stream %s", streamId), e);
         }
 
         return NO_EXISTING_VERSION;
@@ -267,7 +247,7 @@ public class EventJdbcRepository {
             final PreparedStatementWrapper preparedStatementWrapper = preparedStatementWrapperFactory.preparedStatementWrapperOf(dataSource, SQL_DISTINCT_STREAM_ID);
             return streamFrom(preparedStatementWrapper);
         } catch (final SQLException e) {
-            throw new JdbcRepositoryException(READING_STREAM_ALL_EXCEPTION, e);
+            throw new JdbcRepositoryException("Exception while reading stream", e);
         }
 
     }
@@ -288,17 +268,17 @@ public class EventJdbcRepository {
 
             if (deletedRows != eventCount) {
                 // Rollback, something went wrong
-                throw new JdbcRepositoryException(format(DELETING_STREAM_EXCEPTION_DETAILS, streamId, eventCount, deletedRows));
+                throw new JdbcRepositoryException(format("Exception while deleting stream %s, expected %d rows to be updated but was %d", streamId, eventCount, deletedRows));
             }
         } catch (final SQLException e) {
-            throw new JdbcRepositoryException(format(DELETING_STREAM_EXCEPTION, streamId), e);
+            throw new JdbcRepositoryException(format("Exception while deleting stream %s", streamId), e);
         }
     }
 
     private Stream<UUID> streamFrom(final PreparedStatementWrapper preparedStatementWrapper) throws SQLException {
         return jdbcResultSetStreamer.streamOf(preparedStatementWrapper, resultSet -> {
             try {
-                return (UUID) resultSet.getObject(COL_STREAM_ID);
+                return (UUID) resultSet.getObject("stream_id");
             } catch (final SQLException e) {
                 preparedStatementWrapper.close();
                 throw new JdbcRepositoryException(e);
@@ -309,14 +289,14 @@ public class EventJdbcRepository {
     private Function<ResultSet, Event> asEvent() {
         return resultSet -> {
             try {
-                return new Event((UUID) resultSet.getObject(PRIMARY_KEY_ID),
-                        (UUID) resultSet.getObject(COL_STREAM_ID),
-                        resultSet.getLong(COL_POSITION),
-                        resultSet.getString(COL_NAME),
-                        resultSet.getString(COL_METADATA),
-                        resultSet.getString(COL_PAYLOAD),
-                        fromSqlTimestamp(resultSet.getTimestamp(COL_TIMESTAMP)),
-                        of(resultSet.getLong(COL_EVENT_NUMBER))
+                return new Event((UUID) resultSet.getObject("id"),
+                        (UUID) resultSet.getObject("stream_id"),
+                        resultSet.getLong("position_in_stream"),
+                        resultSet.getString("name"),
+                        resultSet.getString("metadata"),
+                        resultSet.getString("payload"),
+                        fromSqlTimestamp(resultSet.getTimestamp("date_created")),
+                        ofNullable(resultSet.getObject("event_number", Long.class))
                 );
             } catch (final SQLException e) {
                 throw new JdbcRepositoryException(e);

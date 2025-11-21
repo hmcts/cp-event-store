@@ -1,6 +1,7 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc;
 
 import static java.time.ZonedDateTime.now;
+import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.of;
@@ -46,7 +47,7 @@ import org.slf4j.Logger;
 @ExtendWith(MockitoExtension.class)
 public class JdbcBasedEventRepositoryTest {
 
-    private static final UUID STREAM_ID = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb259e");
+    private static final UUID STREAM_ID = fromString("4b4e80a0-76f7-476c-b75b-527e38fb259e");
     private static final long POSITION = 1L;
 
     @Mock
@@ -156,9 +157,9 @@ public class JdbcBasedEventRepositoryTest {
 
     @Test
     public void shouldGetStreamOfStreams() throws Exception {
-        final UUID streamId1 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
-        final UUID streamId2 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
-        final UUID streamId3 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
+        final UUID streamId1 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
+        final UUID streamId2 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
+        final UUID streamId3 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
 
         final Event event1 = eventOf(streamId1);
         final Event event2 = eventOf(streamId2);
@@ -189,9 +190,9 @@ public class JdbcBasedEventRepositoryTest {
 
     @Test
     public void shouldGetActiveStreamOfStreams() throws Exception {
-        final UUID streamId1 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
-        final UUID streamId2 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
-        final UUID streamId3 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
+        final UUID streamId1 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
+        final UUID streamId2 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
+        final UUID streamId3 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
 
         final Event event1 = eventOf(streamId1);
         final Event event2 = eventOf(streamId2);
@@ -222,9 +223,9 @@ public class JdbcBasedEventRepositoryTest {
 
     @Test
     public void shouldGetActiveStreamOfStreamIds() throws Exception {
-        final UUID streamId1 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
-        final UUID streamId2 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
-        final UUID streamId3 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
+        final UUID streamId1 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
+        final UUID streamId2 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
+        final UUID streamId3 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
 
         when(eventStreamJdbcRepository.findActive()).thenReturn(of(buildEventStreamFor(streamId1, 1L), buildEventStreamFor(streamId2, 2L), buildEventStreamFor(streamId3, 3L)));
 
@@ -240,9 +241,9 @@ public class JdbcBasedEventRepositoryTest {
 
     @Test
     public void shouldGetAllStreamOfStreamIds() throws Exception {
-        final UUID streamId1 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
-        final UUID streamId2 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
-        final UUID streamId3 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
+        final UUID streamId1 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
+        final UUID streamId2 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
+        final UUID streamId3 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
 
         when(eventStreamJdbcRepository.findAll()).thenReturn(of(buildEventStreamFor(streamId1, 1L), buildEventStreamFor(streamId2, 2L), buildEventStreamFor(streamId3, 3L)));
 
@@ -258,9 +259,9 @@ public class JdbcBasedEventRepositoryTest {
 
     @Test
     public void shouldCloseAllStreamsOnCloseOfStreamOfStreams() throws Exception {
-        final UUID streamId1 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
-        final UUID streamId2 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
-        final UUID streamId3 = UUID.fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
+        final UUID streamId1 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb251e");
+        final UUID streamId2 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb252e");
+        final UUID streamId3 = fromString("4b4e80a0-76f7-476c-b75b-527e38fb253e");
 
         final Event event1 = eventOf(streamId1);
         final Event event2 = eventOf(streamId2);
@@ -282,7 +283,7 @@ public class JdbcBasedEventRepositoryTest {
         final Stream<Stream<JsonEnvelope>> streamOfAllEventStreams = jdbcBasedEventRepository
                 .getStreamOfAllEventStreams();
 
-        final List<Stream<JsonEnvelope>> streams = streamOfAllEventStreams.collect(toList());
+        final List<Stream<JsonEnvelope>> streams = streamOfAllEventStreams.toList();
 
         assertThat(streams.size(), is(3));
 
@@ -339,7 +340,7 @@ public class JdbcBasedEventRepositoryTest {
         when(eventStreamJdbcRepository.findEventStreamWithPositionFrom(POSITION)).thenReturn(of(eventStream));
 
         final Stream<EventStream> streamOfEnvelopes = eventStreamJdbcRepository.findEventStreamWithPositionFrom(POSITION);
-        final List<EventStream> eventStreamObjectList = streamOfEnvelopes.collect(toList());
+        final List<EventStream> eventStreamObjectList = streamOfEnvelopes.toList();
 
         assertThat(eventStreamObjectList.size(), is(1));
         assertThat(streamOfEnvelopes, not(nullValue()));
@@ -366,7 +367,7 @@ public class JdbcBasedEventRepositoryTest {
         when(eventStreamJdbcRepository.findEventStreamWithPositionFrom(position)).thenReturn(eventStreams);
 
         final Stream<EventStreamMetadata> streamOfEnvelopes = jdbcBasedEventRepository.getEventStreamsFromPosition(position);
-        final List<EventStreamMetadata> eventStreamMetadataList = streamOfEnvelopes.collect(toList());
+        final List<EventStreamMetadata> eventStreamMetadataList = streamOfEnvelopes.toList();
 
         assertThat(eventStreamMetadataList.size(), is(1));
         assertThat(streamOfEnvelopes, not(nullValue()));
@@ -391,7 +392,7 @@ public class JdbcBasedEventRepositoryTest {
         when(eventStreamJdbcRepository.findAll()).thenReturn(eventStreams);
 
         final Stream<EventStreamMetadata> streamOfEnvelopes = jdbcBasedEventRepository.getStreams();
-        final List<EventStreamMetadata> eventStreamMetadataList = streamOfEnvelopes.collect(toList());
+        final List<EventStreamMetadata> eventStreamMetadataList = streamOfEnvelopes.toList();
 
         assertThat(eventStreamMetadataList.size(), is(1));
         assertThat(streamOfEnvelopes, not(nullValue()));

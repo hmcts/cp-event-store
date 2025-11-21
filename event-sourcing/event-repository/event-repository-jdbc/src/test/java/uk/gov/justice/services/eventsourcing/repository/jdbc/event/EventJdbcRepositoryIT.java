@@ -19,6 +19,7 @@ import uk.gov.justice.services.jdbc.persistence.PreparedStatementWrapperFactory;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
 import uk.gov.justice.services.test.utils.persistence.SettableEventStoreDataSourceProvider;
+import uk.gov.justice.services.test.utils.persistence.TestJdbcConnectionProvider;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -103,6 +104,27 @@ public class EventJdbcRepositoryIT {
         assertThat(events.count(), equalTo(3L));
         assertThat(events2.count(), equalTo(2L));
         assertThat(latestSequenceId, equalTo(7L));
+    }
+
+    @Test
+    public void shouldAlwaysSetIsPublishedFalseWhenEventIsInsertedIntoEventLog() throws Exception {
+
+        final Event event = eventBuilder()
+                .withStreamId(STREAM_ID)
+                .withPositionInStream(SEQUENCE_ID)
+                .build();
+        jdbcRepository.insert(event);
+
+        final String sql = "SELECT is_published FROM event_log WHERE id = ?";
+        try(final Connection connection = new TestJdbcConnectionProvider().getEventStoreConnection("framework");
+            final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setObject(1, event.getId());
+            try(final ResultSet resultSet = preparedStatement.executeQuery()) {
+                assertThat(resultSet.next(), is(true));
+                assertThat(resultSet.getBoolean("is_published"), is(false));
+            }
+
+        }
     }
 
     @Test

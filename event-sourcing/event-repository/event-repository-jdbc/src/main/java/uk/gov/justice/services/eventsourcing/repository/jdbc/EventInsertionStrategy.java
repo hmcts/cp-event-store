@@ -12,7 +12,7 @@ import java.sql.SQLException;
 
 public class EventInsertionStrategy {
 
-    // 'is_published' is false by default so not inserted here
+    // 'is_published' is true by default so setting false to allow the publishing to set to true
     private static final String INSERT_EVENT_INTO_EVENT_LOG_SQL = """
             INSERT INTO
             event_log (
@@ -24,8 +24,9 @@ public class EventInsertionStrategy {
                  payload,
                  date_created,
                  event_number,
-                 previous_event_number)
-            VALUES(?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+                 previous_event_number,
+                 is_published)
+            VALUES(?, ?, ?, ?, ?, ?, ?, NULL, NULL, FALSE)
             ON CONFLICT DO NOTHING
             """;
 

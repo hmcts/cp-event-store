@@ -57,19 +57,6 @@ VALUES (
 ## DML
 
 ```sql
--- update is_published flag on event range partition
-UPDATE event_log el
-SET is_published = true
-WHERE
-  el.is_published IS DISTINCT FROM true
-  AND el.event_number IS NOT NULL
-  AND el.event_number BETWEEN :range_start AND :range_end
-  AND EXISTS (
-        SELECT 1
-        FROM published_event pe
-        WHERE pe.event_number = el.event_number
-  );
-
 -- update event_status flag
 UPDATE event_log AS el
 SET event_status = 'FAULTY'

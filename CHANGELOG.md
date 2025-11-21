@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.104.0-M12] - 2025-11-21
 ## Changed
 - Catchup will now ignore events on inactive streams and events that are not marked as `HEALTHY`
 - EntityManagerFlushInterceptor will now only flush the EntityManager if a transaction is active

@@ -1,8 +1,11 @@
-# Release 2 Rollback SQLs (Rollback-B: to Framework D)
+# Release 2 Rollback SQLs (From full feature mode to Framework D)
 
 ## DML
 
 ```sql
+-- PROCESS IN-FLIGHT EVENTS
+-- update the sequence 
+SELECT setval('event_sequence_seq', (SELECT MAX(event_number) FROM event_log));
 
 -- add events whose event_number is null to pre_publish_queue
 INSERT INTO pre_publish_queue (SELECT id, date_created FROM event_log WHERE event_number is null and event_status='HEALTHY') ON CONFLICT DO NOTHING;
@@ -19,9 +22,71 @@ UPDATE event_log el
 SET event_number = nextval('event_sequence_seq')
 FROM ordered o
 WHERE el.id = o.id;
+
+-- Copy publish_queue events to pre_publish_queue
+INSERT INTO public.pre_publish_queue (
+    event_log_id,
+    date_queued
+)
+SELECT
+    pq.event_log_id,
+    el.date_created AS date_queued
+FROM publish_queue pq
+         JOIN event_log el
+              ON pq.event_log_id = el.id;
+
+-- clean publish_queue
+DELETE FROM publish_queue;
+
+-- RESTORE PUBLISHED_EVENTS
+INSERT INTO public.published_event (
+    id,
+    stream_id,
+    position_in_stream,
+    "name",
+    payload,
+    metadata,
+    date_created,
+    event_number,
+    previous_event_number
+)
+SELECT
+    el.id,
+    el.stream_id,
+    el.position_in_stream,
+    el."name",
+    el.payload,
+    el.metadata,
+    el.date_created,
+    el.event_number,
+    el.previous_event_number
+FROM public.event_log AS el
+WHERE el.is_published = TRUE
+  AND el.event_number > (select MAX(event_number) from published_event)
+  AND el.event_number IS NOT NULL
+  AND el.previous_event_number IS NOT NULL
+ORDER BY el.event_number
+    -- to support idempotency
+    ON CONFLICT (id) DO NOTHING;  
 ```
 
 ## DDL
 
-N/A
+```sql
+DROP INDEX IF EXISTS event_log_date_created_without_event_number_idx;
+
+ALTER TABLE event_log
+    ALTER COLUMN event_number SET NOT NULL;
+
+ALTER TABLE event_log
+    DROP COLUMN IF EXISTS is_published,
+    DROP COLUMN IF EXISTS previous_event_number,
+    DROP COLUMN IF EXISTS event_status; 
+
+-- Delete databasechangelog entry
+DELETE FROM public.databasechangelog
+WHERE id = 'event-store-026'
+  AND author = 'TechPod'
+  AND filename = '026-global-sequencing-on-event-log-table.changelog.xml';
+```
 

@@ -1,4 +1,4 @@
-# Release 1 Rollout SQLs (DB Only release)
+# Release 1 Rollout SQLs (From Framework D to compatability feature mode)
 
 ## DDL
 
@@ -57,7 +57,7 @@ VALUES (
 ## DML
 
 ```sql
--- update event_status flag
+-- UPDATE EVENT_STATUS 
 UPDATE event_log AS el
 SET event_status = 'FAULTY'
     FROM event_stream AS es
@@ -71,5 +71,12 @@ WHERE es.stream_id = el.stream_id
     FROM published_event AS pe
     WHERE pe.event_number = el.event_number
     );
+
+-- PROCESS IN-FLIGHT EVENTS
+UPDATE event_log el SET event_number=null, event_status='HEALTHY', is_published=false
+WHERE EXISTS (SELECT event_log_id FROM pre_publish_queue ppq
+              WHERE ppq.event_log_id=el.id);
+
+DELETE FROM pre_publish_queue
 ```
 

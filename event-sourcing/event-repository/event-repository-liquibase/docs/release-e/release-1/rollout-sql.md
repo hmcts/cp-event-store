@@ -57,22 +57,6 @@ VALUES (
 ## DML
 
 ```sql
-
--- UPDATE EVENT_STATUS (for contexts with reasonable data, otherwise skip to next sql) 
-UPDATE event_log AS el
-SET event_status = 'FAULTY'
-    FROM event_stream AS es
-WHERE es.stream_id = el.stream_id
-  AND es.active IS TRUE
-  AND el.event_status IS DISTINCT FROM 'PUBLISH_FAILED'
-    AND el.event_number IS NOT NULL
-    --AND el.event_number BETWEEN :range_start AND :range_end
-    AND NOT EXISTS (
-    SELECT 1
-    FROM published_event AS pe
-    WHERE pe.event_number = el.event_number
-    );
-
 -- UPDATE EVENT_STATUS (for contexts with huge data set)
 CREATE TABLE IF NOT EXISTS temporary_publish_failed_event_ids (
     event_id UUID PRIMARY KEY
@@ -85,7 +69,6 @@ FROM event_log AS el
          JOIN event_stream AS es
               ON es.stream_id = el.stream_id
 WHERE es.active IS TRUE
-  AND el.event_status IS DISTINCT FROM 'PUBLISH_FAILED'
     AND el.event_number IS NOT NULL
     -- AND el.event_number BETWEEN :range_start AND :range_end
     AND NOT EXISTS (

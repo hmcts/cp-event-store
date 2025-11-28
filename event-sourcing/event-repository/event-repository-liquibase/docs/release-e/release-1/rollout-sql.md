@@ -1,4 +1,4 @@
-# Release 1 Rollout SQLs (DB Only release)
+# Release 1 Rollout SQLs (From Framework D to compatability feature mode)
 
 ## DDL
 
@@ -7,10 +7,10 @@ ALTER TABLE event_log
     ADD COLUMN previous_event_number BIGINT;
 
 ALTER TABLE event_log
-    ADD COLUMN is_published BOOLEAN DEFAULT FALSE;
+    ADD COLUMN is_published BOOLEAN DEFAULT TRUE;
 
 ALTER TABLE event_log
-    ADD COLUMN event_status VARCHAR(15) DEFAULT 'HEALTHY';
+    ADD COLUMN event_status VARCHAR(64) DEFAULT 'HEALTHY';
 
 CREATE INDEX event_log_date_created_without_event_number_idx
     ON event_log (date_created)
@@ -57,32 +57,39 @@ VALUES (
 ## DML
 
 ```sql
--- update is_published flag on event range partition
-UPDATE event_log el
-SET is_published = true
-WHERE
-  el.is_published IS DISTINCT FROM true
-  AND el.event_number IS NOT NULL
-  AND el.event_number BETWEEN :range_start AND :range_end
-  AND EXISTS (
-        SELECT 1
-        FROM published_event pe
-        WHERE pe.event_number = el.event_number
-  );
+-- UPDATE EVENT_STATUS (for contexts with huge data set)
+CREATE TABLE IF NOT EXISTS temporary_publish_failed_event_ids (
+    event_id UUID PRIMARY KEY
+);
 
--- update event_status flag
-UPDATE event_log AS el
-SET event_status = 'FAULTY'
-    FROM event_stream AS es
-WHERE es.stream_id = el.stream_id
-  AND es.active IS TRUE
-  AND el.event_status IS DISTINCT FROM 'FAULTY'
+-- step-1
+INSERT INTO temporary_publish_failed_event_ids (event_id)
+SELECT el.id
+FROM event_log AS el
+         JOIN event_stream AS es
+              ON es.stream_id = el.stream_id
+WHERE es.active IS TRUE
     AND el.event_number IS NOT NULL
-    --AND el.event_number BETWEEN :range_start AND :range_end
+    -- AND el.event_number BETWEEN :range_start AND :range_end
     AND NOT EXISTS (
     SELECT 1
     FROM published_event AS pe
     WHERE pe.event_number = el.event_number
     );
+
+-- step-2
+UPDATE event_log AS el
+SET event_status = 'PUBLISH_FAILED'
+WHERE el.id IN (
+    SELECT event_id
+    FROM temporary_publish_failed_event_ids
+);
+
+-- PROCESS IN-FLIGHT EVENTS
+UPDATE event_log el SET event_number=null, event_status='HEALTHY', is_published=false
+WHERE EXISTS (SELECT event_log_id FROM pre_publish_queue ppq
+              WHERE ppq.event_log_id=el.id);
+
+DELETE FROM pre_publish_queue
 ```
 

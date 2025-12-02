@@ -6,7 +6,7 @@
     <parent>
         <artifactId>framework-rest-resources</artifactId>
         <groupId>uk.gov.justice.event-store</groupId>
-        <version>17.104.0-M13</version>
+        <version>17.104.0-M14-SNAPSHOT</version>
     </parent>
 
     <artifactId>framework-version-rest-resources</artifactId>

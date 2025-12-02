@@ -97,7 +97,7 @@ public class EventJdbcRepository {
 
                 if (resultSet.next()) {
                     final UUID streamId = fromString(resultSet.getString("stream_id"));
-                    final Long positionInStream = resultSet.getLong("position_in_stream");
+                    final Long positionInStream = resultSet.getObject("position_in_stream", Long.class);
                     final String name = resultSet.getString("name");
                     final String metadata = resultSet.getString("metadata");
                     final String payload = resultSet.getString("payload");
@@ -212,7 +212,7 @@ public class EventJdbcRepository {
      * @param streamId streamId of the stream.
      * @return current position streamId for the stream.  Returns 0 if stream doesn't exist.
      */
-    public long getStreamSize(final UUID streamId) {
+    public Long getStreamSize(final UUID streamId) {
 
         final DataSource dataSource = eventStoreDataSourceProvider.getDefaultDataSource();
 
@@ -291,7 +291,7 @@ public class EventJdbcRepository {
             try {
                 return new Event((UUID) resultSet.getObject("id"),
                         (UUID) resultSet.getObject("stream_id"),
-                        resultSet.getLong("position_in_stream"),
+                        resultSet.getObject("position_in_stream", Long.class),
                         resultSet.getString("name"),
                         resultSet.getString("metadata"),
                         resultSet.getString("payload"),

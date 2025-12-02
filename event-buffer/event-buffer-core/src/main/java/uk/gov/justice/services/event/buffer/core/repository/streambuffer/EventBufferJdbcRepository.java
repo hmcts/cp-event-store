@@ -118,7 +118,9 @@ public class EventBufferJdbcRepository {
         return resultSet -> {
             try {
                 return new EventBufferEvent((UUID) resultSet.getObject(STREAM_ID),
-                        resultSet.getLong(POSITION),
+                        // position column is nullable, Use Long Object to prevent jdbc
+                        // converting nulls to zero
+                        resultSet.getObject(POSITION, Long.class),
                         resultSet.getString(EVENT),
                         resultSet.getString(SOURCE),
                         resultSet.getString(COMPONENT),

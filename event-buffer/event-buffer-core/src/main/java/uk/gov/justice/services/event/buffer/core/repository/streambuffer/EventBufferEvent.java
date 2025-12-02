@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public class EventBufferEvent implements Comparable<EventBufferEvent> {
     private final UUID streamId;
-    private final long position;
+    private final Long position;
     private final String event;
     private final String source;
     private final String component;
@@ -33,7 +33,7 @@ public class EventBufferEvent implements Comparable<EventBufferEvent> {
         return streamId;
     }
 
-    public long getPosition() {
+    public Long getPosition() {
         return position;
     }
 

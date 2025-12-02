@@ -11,6 +11,7 @@ import static uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueue
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 import uk.gov.justice.services.test.utils.core.eventsource.EventStoreInitializer;
+import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
 
 import java.time.ZonedDateTime;
@@ -38,7 +39,7 @@ public class PublishQueuesDataAccessIT {
 
     @BeforeEach
     public void initDatabase() throws Exception {
-        new EventStoreInitializer().initializeEventStore(eventStoreDataSource);
+        new DatabaseCleaner().cleanEventStoreTables("framework");
     }
 
     @Test

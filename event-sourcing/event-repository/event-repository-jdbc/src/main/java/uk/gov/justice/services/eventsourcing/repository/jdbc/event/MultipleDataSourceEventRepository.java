@@ -158,13 +158,13 @@ public class MultipleDataSourceEventRepository {
                     if (resultSet.next()) {
                         final UUID id = fromString(resultSet.getString("id"));
                         final UUID streamId = fromString(resultSet.getString("stream_id"));
-                        final Long positionInStream = resultSet.getLong("position_in_stream");
+                        final Long positionInStream = resultSet.getObject("position_in_stream", Long.class);
                         final String name = resultSet.getString("name");
                         final String metadata = resultSet.getString("metadata");
                         final String payload = resultSet.getString("payload");
                         final ZonedDateTime createdAt = fromSqlTimestamp(resultSet.getTimestamp("date_created"));
-                        final long eventNumber = resultSet.getLong("event_number");
-                        final long previousEventNumber = resultSet.getLong("previous_event_number");
+                        final long eventNumber = resultSet.getObject("event_number", Long.class);
+                        final long previousEventNumber = resultSet.getObject("previous_event_number", Long.class);
 
                         return of(new LinkedEvent(
                                 id,
@@ -192,13 +192,13 @@ public class MultipleDataSourceEventRepository {
             try {
                 return new LinkedEvent((UUID) resultSet.getObject(ID),
                         (UUID) resultSet.getObject(STREAM_ID),
-                        resultSet.getLong(POSITION_IN_STREAM),
+                        resultSet.getObject(POSITION_IN_STREAM, Long.class),
                         resultSet.getString(NAME),
                         resultSet.getString(METADATA),
                         resultSet.getString(PAYLOAD),
                         fromSqlTimestamp(resultSet.getTimestamp(DATE_CREATED)),
-                        resultSet.getLong(EVENT_NUMBER),
-                        resultSet.getLong(PREVIOUS_EVENT_NUMBER)
+                        resultSet.getObject(EVENT_NUMBER, Long.class),
+                        resultSet.getObject(PREVIOUS_EVENT_NUMBER, Long.class)
                 );
             } catch (final SQLException e) {
                 throw new JdbcRepositoryException(e);

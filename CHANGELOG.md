@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.104.0-M13] - 2025-12-02
+## Changed
+- Liquibase is_published is not true by default
+- Liquibase event_status is now VARCHAR(64)
+
 # [17.104.0-M12] - 2025-11-21
 ## Changed
 - Catchup will now ignore events on inactive streams and events that are not marked as `HEALTHY`

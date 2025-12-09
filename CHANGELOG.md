@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.103.7] - 2025-12-09
 ### Changed
 - Used JsonFactory instead of Json.create methods
 - Refactor JsonObject usages to more proper api

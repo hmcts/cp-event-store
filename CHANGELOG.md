@@ -4,14 +4,13 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
-
-# [17.103.6-M2] - 2025-11-11
-- Update to framework 17.103.1-M1 for:
+### Changed
+- Used JsonFactory instead of Json.create methods
+- Refactor JsonObject usages to more proper api
+- Fix HttpClient lifecycle.
+- Update to framework 17.103.2 for:
   - EntityManagerFlushInterceptor will now only flush the EntityManager if a transaction is active
 - TransactionHandler will not roll back if transaction status is `STATUS_NO_TRANSACTION`
-
-# [17.103.6-M1] - 2025-11-11
-### Changed
 - Save of ProcessedEvent will now throw ProcessedEventTrackingException if eventNumber, source or component are not unique
 
 # [17.103.5] - 2025-11-06
@@ -24,6 +23,12 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
   to work with MI contexts
 
 # [17.103.2] - 2025-09-11
+### Changed
+- Add limit 1 to ERRORS_EXIST_FOR_HASH_SQL
+- Temporarily disable coveralls whilst its site is down
+- TagProvider now uses `EventSourceNameCalculator` to calculate `source` so it will align with `stream_status.source`.
+
+# [17.103.1-M6] - 2025-08-14
 ### Changed
 - Add limit 1 to ERRORS_EXIST_FOR_HASH_SQL
 - Temporarily disable coveralls whilst its site is down

@@ -5,7 +5,6 @@ import static java.util.Optional.of;
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
-import static javax.json.Json.createObjectBuilder;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -14,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingEventRange;
 import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
@@ -72,7 +72,7 @@ public class ProcessedEventTrackingServiceTest {
                         .withPreviousEventNumber(previousEventNumber)
                         .withEventNumber(eventNumber)
                         .withSource(source),
-                createObjectBuilder());
+                getJsonBuilderFactory().createObjectBuilder());
 
         when(eventSourceNameCalculator.getSource(event)).thenReturn(source);
 
@@ -96,7 +96,7 @@ public class ProcessedEventTrackingServiceTest {
                         .withName("event-name")
                         .withEventNumber(eventNumber)
                         .withSource(source),
-                createObjectBuilder());
+                getJsonBuilderFactory().createObjectBuilder());
 
         try {
             processedEventTrackingService.trackProcessedEvent(event, componentName);
@@ -121,7 +121,7 @@ public class ProcessedEventTrackingServiceTest {
                         .withName("event-name")
                         .withPreviousEventNumber(previousEventNumber)
                         .withSource(source),
-                createObjectBuilder());
+                getJsonBuilderFactory().createObjectBuilder());
 
         try {
             processedEventTrackingService.trackProcessedEvent(event, componentName);

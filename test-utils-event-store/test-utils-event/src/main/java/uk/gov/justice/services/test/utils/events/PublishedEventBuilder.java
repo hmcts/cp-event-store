@@ -2,9 +2,9 @@ package uk.gov.justice.services.test.utils.events;
 
 import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.UUID.randomUUID;
-import static javax.json.Json.createObjectBuilder;
 import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
 import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.PublishedEvent;
@@ -90,7 +90,7 @@ public class PublishedEventBuilder {
                         .withName(name)
                         .withStreamId(streamId)
                         .withSource(source),
-                createObjectBuilder()
+                getJsonBuilderFactory().createObjectBuilder()
                         .add("field_" + positionInStream, "value_" + positionInStream));
 
         if (metadataJSON == null) {

@@ -3,7 +3,7 @@ package uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.uti
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.IntStream.range;
-import static javax.json.Json.createObjectBuilder;
+import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.PublishedEvent;
@@ -104,7 +104,7 @@ public class EventFactory {
                 positionInStream,
                 eventName,
                 metadataJson,
-                createObjectBuilder().build().toString(),
+                getJsonBuilderFactory().createObjectBuilder().build().toString(),
                 clock.now(),
                 eventNumber,
                 eventNumber - 1

@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+## Changed
+- Fixed CATCHUP will run from specific event_number correctly when the event_id is provided
 
 # [17.104.0-M13] - 2025-12-02
 ## Changed

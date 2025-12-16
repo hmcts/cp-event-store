@@ -13,8 +13,6 @@ import javax.transaction.Transactional;
 
 public class MissingEventRangeFinder {
 
-    private static final long FIRST_POSSIBLE_EVENT_NUMBER = 0L;
-
     @Inject
     private ProcessedEventTrackingRepository processedEventTrackingRepository;
 

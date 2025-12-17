@@ -116,8 +116,8 @@ public class ProcessedEventTrackingRepository {
 
                 try {
                     final UUID eventId = (UUID) resultSet.getObject("event_id");
-                    final long eventNumber = resultSet.getLong("event_number");
-                    final long previousEventNumber = resultSet.getLong("previous_event_number");
+                    final Long eventNumber = resultSet.getObject("event_number", Long.class);
+                    final Long previousEventNumber = resultSet.getObject("previous_event_number", Long.class);
                     return new ProcessedEvent(eventId, previousEventNumber, eventNumber, source, componentName);
                 } catch (final SQLException e) {
                     throw new ProcessedEventTrackingException("Failed to get row from processed_event table", e);
@@ -151,8 +151,8 @@ public class ProcessedEventTrackingRepository {
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     final UUID eventId = (UUID) resultSet.getObject("event_id");
-                    final long eventNumber = resultSet.getLong("event_number");
-                    final long previousEventNumber = resultSet.getLong("previous_event_number");
+                    final long eventNumber = resultSet.getObject("event_number", Long.class);
+                    final long previousEventNumber = resultSet.getObject("previous_event_number", Long.class);
                     final ProcessedEvent processedEvent = new ProcessedEvent(
                             eventId,
                             previousEventNumber,
@@ -187,8 +187,8 @@ public class ProcessedEventTrackingRepository {
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     final UUID eventId = (UUID) resultSet.getObject("event_id");
-                    final long eventNumber = resultSet.getLong("event_number");
-                    final long previousEventNumber = resultSet.getLong("previous_event_number");
+                    final Long eventNumber = resultSet.getObject("event_number", Long.class);
+                    final long previousEventNumber = resultSet.getObject("previous_event_number", Long.class);
 
                     return of(new ProcessedEvent(eventId, previousEventNumber, eventNumber, source, componentName));
                 }

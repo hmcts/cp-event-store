@@ -9,11 +9,11 @@ import java.util.UUID;
 public class Subscription {
 
     private final UUID streamId;
-    private final long position;
+    private final Long position;
     private final String source;
     private final String component;
 
-    public Subscription(final UUID streamId, final long position, final String source, final String component) {
+    public Subscription(final UUID streamId, final Long position, final String source, final String component) {
         this.streamId = streamId;
         this.position = position;
         this.source = source;
@@ -24,7 +24,7 @@ public class Subscription {
         return streamId;
     }
 
-    public long getPosition() {
+    public Long getPosition() {
         return position;
     }
 

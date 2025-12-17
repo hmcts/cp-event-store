@@ -152,8 +152,12 @@ public class StreamStatusJdbcRepository {
 
     }
 
-    protected Subscription entityFrom(final ResultSet rs) throws SQLException {
-        return new Subscription((UUID) rs.getObject(PRIMARY_KEY_ID), rs.getLong(LATEST_POSITION_COLUMN), rs.getString(SOURCE), rs.getString(COMPONENT));
+    protected Subscription entityFrom(final ResultSet resultSet) throws SQLException {
+        return new Subscription(
+                resultSet.getObject(PRIMARY_KEY_ID, UUID.class),
+                resultSet.getObject(LATEST_POSITION_COLUMN, Long.class),
+                resultSet.getString(SOURCE),
+                resultSet.getString(COMPONENT));
     }
 
     public void updateSource(final UUID streamId, final String source, final String component) {

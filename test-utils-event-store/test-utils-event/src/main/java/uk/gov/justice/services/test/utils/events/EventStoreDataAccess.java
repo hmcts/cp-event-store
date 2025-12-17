@@ -2,6 +2,7 @@ package uk.gov.justice.services.test.utils.events;
 
 import static java.lang.String.format;
 import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
@@ -122,13 +123,13 @@ public class EventStoreDataAccess {
             while (resultSet.next()) {
 
                 final Event event = new Event((UUID) resultSet.getObject("id"),
-                        (UUID) resultSet.getObject("stream_id"),
-                        resultSet.getLong("position_in_stream"),
+                        resultSet.getObject("stream_id", UUID.class),
+                        resultSet.getObject("position_in_stream", Long.class),
                         resultSet.getString("name"),
                         resultSet.getString("metadata"),
                         resultSet.getString("payload"),
                         fromSqlTimestamp(resultSet.getTimestamp("date_created")),
-                        of(resultSet.getLong("event_number")));
+                        of(resultSet.getObject("event_number", Long.class)));
 
                 events.add(event);
             }
@@ -151,13 +152,13 @@ public class EventStoreDataAccess {
             while (resultSet.next()) {
 
                 final Event event = new Event((UUID) resultSet.getObject("id"),
-                        (UUID) resultSet.getObject("stream_id"),
-                        resultSet.getLong("position_in_stream"),
+                        resultSet.getObject("stream_id", UUID.class),
+                        resultSet.getObject("position_in_stream", Long.class),
                         resultSet.getString("name"),
                         resultSet.getString("metadata"),
                         resultSet.getString("payload"),
                         fromSqlTimestamp(resultSet.getTimestamp("date_created")),
-                        of(resultSet.getLong("event_number")));
+                        of(resultSet.getObject("event_number", Long.class)));
 
                 events.add(event);
             }
@@ -182,13 +183,13 @@ public class EventStoreDataAccess {
                 while (resultSet.next()) {
 
                     final Event event = new Event((UUID) resultSet.getObject("id"),
-                            (UUID) resultSet.getObject("stream_id"),
-                            resultSet.getLong("position_in_stream"),
+                            resultSet.getObject("stream_id", UUID.class),
+                            resultSet.getObject("position_in_stream", Long.class),
                             resultSet.getString("name"),
                             resultSet.getString("metadata"),
                             resultSet.getString("payload"),
                             fromSqlTimestamp(resultSet.getTimestamp("date_created")),
-                            of(resultSet.getLong("event_number")));
+                            ofNullable(resultSet.getObject("event_number", Long.class)));
 
                     events.add(event);
                 }
@@ -218,15 +219,15 @@ public class EventStoreDataAccess {
             while (resultSet.next()) {
 
                 final LinkedEvent linkedEvent = new LinkedEvent(
-                        (UUID) resultSet.getObject("id"),
-                        (UUID) resultSet.getObject("stream_id"),
+                        resultSet.getObject("id", UUID.class),
+                        resultSet.getObject("stream_id", UUID.class),
                         resultSet.getLong("position_in_stream"),
                         resultSet.getString("name"),
                         resultSet.getString("metadata"),
                         resultSet.getString("payload"),
                         fromSqlTimestamp(resultSet.getTimestamp("date_created")),
-                        resultSet.getLong("event_number"),
-                        resultSet.getLong("previous_event_number")
+                        resultSet.getObject("event_number", Long.class),
+                        resultSet.getObject("previous_event_number", Long.class)
                 );
 
                 events.add(linkedEvent);

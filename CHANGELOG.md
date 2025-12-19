@@ -4,10 +4,15 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+## Added
+- Notification-based event linking and publishing via CDI events, enabled via JNDI:
+  - event.linking.worker.notified (linking)
+  - event.publishing.worker.notified (publishing)
+- Bug fixes: dead notifier thread recovery, submit() failure handling
 
 ### [17.104.1-M1]  - 2026-03-17
 ### Changed
-- Batch event linking: `EventNumberLinker` now links N events per JTA transaction using JDBC `executeBatch()`, 
+- Batch event linking: `EventNumberLinker` now links N events per JTA transaction using JDBC `executeBatch()`,
   configurable via JNDI `event.linking.worker.batch.size` (default 10)
 
 # [17.104.0] - 2025-12-16

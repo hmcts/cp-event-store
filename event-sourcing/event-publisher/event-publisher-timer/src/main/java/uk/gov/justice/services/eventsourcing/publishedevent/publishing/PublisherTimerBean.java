@@ -28,6 +28,9 @@ public class PublisherTimerBean {
     @Inject
     private AsynchronousPublisher asynchronousPublisher;
 
+    @Inject
+    private EventPublishingNotifier eventPublishingNotifier;
+
     @PostConstruct
     public void startTimerService() {
 
@@ -41,8 +44,12 @@ public class PublisherTimerBean {
     @Timeout
     public void doDeQueueAndPublish() {
 
-        if (! publisherTimerConfig.isDisabled()) {
-            asynchronousPublisher.doDeQueueAndPublish();
+        if (!publisherTimerConfig.isDisabled()) {
+            if (publisherTimerConfig.shouldWorkerNotified()) {
+                eventPublishingNotifier.wakeUp(true);
+            } else {
+                asynchronousPublisher.doDeQueueAndPublish();
+            }
         }
     }
 }

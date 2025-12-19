@@ -58,6 +58,7 @@ import uk.gov.justice.services.eventsourcing.source.api.service.core.PositionFac
 import uk.gov.justice.services.eventsourcing.source.api.service.core.PositionValueFactory;
 import uk.gov.justice.services.eventsourcing.source.api.util.LoggerProducer;
 import uk.gov.justice.services.eventsourcing.source.api.util.TestSystemUserProvider;
+import uk.gov.justice.services.eventsourcing.source.core.EventAppendTriggerService;
 import uk.gov.justice.services.eventsourcing.source.core.EventAppender;
 import uk.gov.justice.services.eventsourcing.source.core.EventSource;
 import uk.gov.justice.services.eventsourcing.source.core.EventSourceNameProvider;
@@ -229,6 +230,8 @@ public class EventStreamPageIT {
             JdbcBasedEventRepository.class,
             MaxRetryProvider.class,
             EventSourceNameProvider.class,
+            EventsPageIT.TestSimpleTransactionSynchronizationRegistry.class,
+            EventAppendTriggerService.class,
             EventStreamManager.class,
 
             JndiAppNameProvider.class,

@@ -4,7 +4,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
-
+## Added
+- Proactive event linking and publishing based on observable events enabled via jndi configurations
+  - event.linking.worker.notified
+  - event.publishing.worker.notified
+  
 # [17.103.7] - 2025-12-09
 ### Changed
 - Used JsonFactory instead of Json.create methods

@@ -30,6 +30,7 @@ import uk.gov.justice.services.eventsourcing.publishedevent.prepublish.helpers.D
 import uk.gov.justice.services.eventsourcing.publishedevent.prepublish.helpers.TestGlobalValueProducer;
 import uk.gov.justice.services.eventsourcing.publishedevent.publish.PublishedEventDeQueuerAndPublisher;
 import uk.gov.justice.services.eventsourcing.publishedevent.publishing.AsynchronousPublisher;
+import uk.gov.justice.services.eventsourcing.publishedevent.publishing.EventPublishingNotifier;
 import uk.gov.justice.services.eventsourcing.publishedevent.publishing.PublisherTimerBean;
 import uk.gov.justice.services.eventsourcing.publishedevent.publishing.PublisherTimerConfig;
 import uk.gov.justice.services.eventsourcing.publisher.jms.EventDestinationResolver;
@@ -197,7 +198,9 @@ public class EventPublishIT {
             PublishQueueRepository.class,
             OversizeMessageGuard.class,
             JmsMessagingConfiguration.class,
-            ValueProducer.class
+            ValueProducer.class,
+            EventLinkingNotifier.class,
+            EventPublishingNotifier.class
     })
     public WebApp war() {
         return new WebApp()

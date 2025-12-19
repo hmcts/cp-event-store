@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+## Added
+- Proactive event linking and publishing based on observable events enabled via jndi configurations
+  - event.linking.worker.notified
+  - event.publishing.worker.notified
+
 # [17.104.0] - 2025-12-16
 ### Added
 - Added [framework E rollout and rollback SQLs document](event-sourcing/event-repository/event-repository-liquibase/docs/framework-E-sqls.md)

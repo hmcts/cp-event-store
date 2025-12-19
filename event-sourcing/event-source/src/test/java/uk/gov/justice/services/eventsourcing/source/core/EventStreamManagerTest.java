@@ -80,6 +80,9 @@ public class EventStreamManagerTest {
     @Mock
     private Logger logger;
 
+    @Mock
+    private EventAppendTriggerService eventAppendTriggerService;
+
     @InjectMocks
     private EventStreamManager eventStreamManager;
 
@@ -101,7 +104,7 @@ public class EventStreamManagerTest {
         eventStreamManager.append(STREAM_ID, Stream.of(event));
 
         verify(publishingEventAppender).append(event, STREAM_ID, INITIAL_VERSION + 1, EVENT_SOURCE_NAME);
-
+        verify(eventAppendTriggerService).registerTransactionListener();
     }
 
     @Test
@@ -128,6 +131,7 @@ public class EventStreamManagerTest {
 
 
         verify(publishingEventAppender).append(event, STREAM_ID, expectedVersion, EVENT_SOURCE_NAME);
+        verify(eventAppendTriggerService).registerTransactionListener();
     }
 
     @Test
@@ -251,6 +255,7 @@ public class EventStreamManagerTest {
 
         verify(publishingEventAppender).append(event1, STREAM_ID, CURRENT_VERSION + 1, EVENT_SOURCE_NAME);
         verify(publishingEventAppender).append(event2, STREAM_ID, CURRENT_VERSION + 2, EVENT_SOURCE_NAME);
+        verify(eventAppendTriggerService).registerTransactionListener();
 
     }
 
@@ -303,6 +308,7 @@ public class EventStreamManagerTest {
         verify(publishingEventAppender).append(event2, STREAM_ID, currentVersion + 2, EVENT_SOURCE_NAME);
         verify(publishingEventAppender).append(event2, STREAM_ID, currentVersionAfterException + 1, EVENT_SOURCE_NAME);
         verify(publishingEventAppender).append(event3, STREAM_ID, currentVersionAfterException + 2, EVENT_SOURCE_NAME);
+        verify(eventAppendTriggerService).registerTransactionListener();
     }
 
     @Test
@@ -420,6 +426,7 @@ public class EventStreamManagerTest {
         assertThat(clonedEvent.metadata().position(), is(empty()));
 
         verify(eventRepository).markEventStreamActive(clonedId, false);
+        verify(eventAppendTriggerService).registerTransactionListener();
     }
 
     @Test
@@ -442,6 +449,7 @@ public class EventStreamManagerTest {
         assertThat(versionCaptor.getAllValues(), hasItems(1L, 2L, 3L));
 
         verify(eventRepository).markEventStreamActive(clonedId, false);
+        verify(eventAppendTriggerService).registerTransactionListener();
     }
 
     @Test

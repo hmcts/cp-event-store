@@ -20,6 +20,7 @@ import static uk.gov.justice.services.eventsourcing.source.api.service.core.Dire
 import static uk.gov.justice.services.eventsourcing.source.api.util.TestSystemUserProvider.SYSTEM_USER_ID;
 import static uk.gov.justice.services.messaging.JsonObjects.getJsonBuilderFactory;
 
+import org.apache.openejb.core.SimpleTransactionSynchronizationRegistry;
 import uk.gov.justice.services.cdi.InitialContextProducer;
 import uk.gov.justice.services.cdi.QualifierAnnotationExtractor;
 import uk.gov.justice.services.common.configuration.ContextNameProvider;
@@ -59,6 +60,7 @@ import uk.gov.justice.services.eventsourcing.source.api.service.core.PositionFac
 import uk.gov.justice.services.eventsourcing.source.api.service.core.PositionValueFactory;
 import uk.gov.justice.services.eventsourcing.source.api.util.LoggerProducer;
 import uk.gov.justice.services.eventsourcing.source.api.util.TestSystemUserProvider;
+import uk.gov.justice.services.eventsourcing.source.core.EventAppendTriggerService;
 import uk.gov.justice.services.eventsourcing.source.core.EventAppender;
 import uk.gov.justice.services.eventsourcing.source.core.EventSource;
 import uk.gov.justice.services.eventsourcing.source.core.EventSourceNameProvider;
@@ -98,6 +100,7 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.UUID;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import com.jayway.jsonpath.JsonPath;
@@ -223,6 +226,8 @@ public class EventsPageIT {
             EventStreamJdbcRepository.class,
             MaxRetryProvider.class,
             EventSourceNameProvider.class,
+            TestSimpleTransactionSynchronizationRegistry.class,
+            EventAppendTriggerService.class,
             EventStreamManager.class,
 
             JndiAppNameProvider.class,
@@ -644,5 +649,14 @@ public class EventsPageIT {
 
         final String firstUrl = JsonPath.read(value, "$.pagingLinks.first");
         assertThat(firstUrl, containsString(EVENT_STREAM_URL_PATH_PREFIX + "/1/FORWARD/" + PAGE_SIZE));
+    }
+
+    @ApplicationScoped
+    public static class TestSimpleTransactionSynchronizationRegistry extends SimpleTransactionSynchronizationRegistry {
+
+
+        public TestSimpleTransactionSynchronizationRegistry() {
+            super(null);
+        }
     }
 }

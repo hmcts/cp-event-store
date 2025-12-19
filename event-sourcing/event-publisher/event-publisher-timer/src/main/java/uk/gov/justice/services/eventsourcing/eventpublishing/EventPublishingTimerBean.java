@@ -31,6 +31,9 @@ public class EventPublishingTimerBean {
     private EventPublishingWorker eventPublishingWorker;
 
     @Inject
+    private EventPublishingNotifier eventPublishingNotifier;
+
+    @Inject
     private SufficientTimeRemainingCalculatorFactory sufficientTimeRemainingCalculatorFactory;
 
     @PostConstruct
@@ -46,13 +49,14 @@ public class EventPublishingTimerBean {
     @Timeout
     public void runEventPublishing(final Timer timer) {
 
-        final long timeBetweenRunsMilliseconds = eventPublishingWorkerConfig.getTimeBetweenRunsMilliseconds();
+        if (eventPublishingWorkerConfig.shouldWorkerNotified()) {
+            eventPublishingNotifier.wakeUp(true);
+        } else {
+            eventPublishingWorker.publishNewEvents(
+                    sufficientTimeRemainingCalculatorFactory.createNew(
+                            timer,
+                            eventPublishingWorkerConfig.getTimeBetweenRunsMilliseconds()));
+        }
 
-        final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = sufficientTimeRemainingCalculatorFactory.createNew(
-                timer,
-                timeBetweenRunsMilliseconds);
-
-
-        eventPublishingWorker.publishNewEvents(sufficientTimeRemainingCalculator);
     }
 }

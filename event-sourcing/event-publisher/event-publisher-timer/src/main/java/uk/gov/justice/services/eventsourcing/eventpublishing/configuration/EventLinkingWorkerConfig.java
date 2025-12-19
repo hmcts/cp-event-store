@@ -1,13 +1,16 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+
 import uk.gov.justice.services.common.configuration.Value;
 
 import static java.lang.Boolean.parseBoolean;
+import static java.lang.Double.parseDouble;
 import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 
-public class EventLinkingWorkerConfig {
+public class EventLinkingWorkerConfig extends NotifierWorkerConfig {
 
     private static final String DEFAULT_TIMEOUT_SECONDS = "5";
 
@@ -35,6 +38,22 @@ public class EventLinkingWorkerConfig {
     @Value(key = "event.linking.worker.transaction.statement.timeout.seconds", defaultValue = DEFAULT_TIMEOUT_SECONDS)
     private String transactionStatementTimeoutSeconds;
 
+    @Inject
+    @Value(key = "event.linking.worker.notified", defaultValue = "false")
+    private String eventLinkerNotified;
+
+    @Inject
+    @Value(key = "event.linking.worker.backoff.min.milliseconds", defaultValue = "5")
+    private String backoffMinMilliseconds;
+
+    @Inject
+    @Value(key = "event.linking.worker.backoff.max.milliseconds", defaultValue = "100")
+    private String backoffMaxMilliseconds;
+
+    @Inject
+    @Value(key = "event.linking.worker.backoff.multiplier", defaultValue = "1.5")
+    private String backoffMultiplier;
+
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
@@ -50,12 +69,20 @@ public class EventLinkingWorkerConfig {
     public boolean shouldAlsoInsertEventIntoPublishedEventTable() {
         return parseBoolean(insertEventIntoPublishedEventTable);
     }
-
     public int getTransactionTimeoutSeconds() {
         return parseInt(transactionTimeoutSeconds);
     }
 
     public int getLocalStatementTimeoutSeconds() {
         return parseInt(transactionStatementTimeoutSeconds);
+    }
+
+
+    @PostConstruct
+    public void postConstruct() {
+        this.setShouldWorkerNotified(parseBoolean(eventLinkerNotified));
+        this.setBackoffMinMilliseconds(parseLong(backoffMinMilliseconds));
+        this.setBackoffMaxMilliseconds(parseLong(backoffMaxMilliseconds));
+        this.setBackoffMultiplier(parseDouble(backoffMultiplier));
     }
 }

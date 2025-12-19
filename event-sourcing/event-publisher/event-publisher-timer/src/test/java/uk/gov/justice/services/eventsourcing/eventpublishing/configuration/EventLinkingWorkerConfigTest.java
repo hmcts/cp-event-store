@@ -1,5 +1,6 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,6 +15,14 @@ public class EventLinkingWorkerConfigTest {
 
     @InjectMocks
     private EventLinkingWorkerConfig eventLinkingWorkerConfig;
+
+    @BeforeEach
+    public void postConstruct() {
+        setField(eventLinkingWorkerConfig, "eventLinkerNotified", "false");
+        setField(eventLinkingWorkerConfig, "backoffMinMilliseconds", "1");
+        setField(eventLinkingWorkerConfig, "backoffMaxMilliseconds", "1");
+        setField(eventLinkingWorkerConfig, "backoffMultiplier", "1");
+    }
 
     @Test
     public void shouldGetTheStartWaitTime() throws Exception {
@@ -73,5 +82,41 @@ public class EventLinkingWorkerConfigTest {
         setField(eventLinkingWorkerConfig, "transactionStatementTimeoutSeconds", "" + timeoutSeconds);
 
         assertThat(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds(), is(timeoutSeconds));
+    }
+
+    @Test
+    public void shouldGetEventLinkerNotified() throws IllegalAccessException {
+        setField(eventLinkingWorkerConfig, "eventLinkerNotified", "true");
+        eventLinkingWorkerConfig.postConstruct();
+        assertThat(eventLinkingWorkerConfig.shouldWorkerNotified(), is(true));
+
+        setField(eventLinkingWorkerConfig, "eventLinkerNotified", "false");
+        eventLinkingWorkerConfig.postConstruct();
+
+        assertThat(eventLinkingWorkerConfig.shouldWorkerNotified(), is(false));
+    }
+
+    @Test
+    public void shouldGetBackoffMinMilliseconds() throws IllegalAccessException {
+        long backoffMinMilliseconds = 100L;
+        setField(eventLinkingWorkerConfig, "backoffMinMilliseconds", String.valueOf(backoffMinMilliseconds));
+        eventLinkingWorkerConfig.postConstruct();
+        assertThat(eventLinkingWorkerConfig.getBackoffMinMilliseconds(), is(backoffMinMilliseconds));
+    }
+
+    @Test
+    public void shouldGetBackoffMaxMilliseconds() throws IllegalAccessException {
+        long backoffMaxMilliseconds = 500L;
+        setField(eventLinkingWorkerConfig, "backoffMaxMilliseconds", String.valueOf(backoffMaxMilliseconds));
+        eventLinkingWorkerConfig.postConstruct();
+        assertThat(eventLinkingWorkerConfig.getBackoffMaxMilliseconds(), is(backoffMaxMilliseconds));
+    }
+
+    @Test
+    public void shouldGetBackoffMultiplier() throws IllegalAccessException {
+        double backoffMultiplier = 2.0;
+        setField(eventLinkingWorkerConfig, "backoffMultiplier", String.valueOf(backoffMultiplier));
+        eventLinkingWorkerConfig.postConstruct();
+        assertThat(eventLinkingWorkerConfig.getBackoffMultiplier(), is(backoffMultiplier));
     }
 }

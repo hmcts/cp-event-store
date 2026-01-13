@@ -5,7 +5,7 @@
     <parent>
         <artifactId>event-store</artifactId>
         <groupId>uk.gov.justice.event-store</groupId>
-        <version>17.105.0-SNAPSHOT</version>
+        <version>17.105.0-M1-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -17,7 +17,6 @@
         <module>event-publisher</module>
         <module>event-repository</module>
         <module>event-source-api</module>
-        <module>event-source-api-integration-test</module>
         <module>event-subscription-registry</module>
         <module>subscription-manager</module>
     </modules>

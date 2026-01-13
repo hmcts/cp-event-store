@@ -5,7 +5,7 @@
     <parent>
         <artifactId>test-utils-event-store</artifactId>
         <groupId>uk.gov.justice.event-store</groupId>
-        <version>17.105.0-SNAPSHOT</version>
+        <version>17.105.0-M1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -79,7 +79,6 @@
                     <execution>
                         <phase>pre-integration-test</phase>
                         <goals>
-                            <goal>dropAll</goal>
                             <goal>update</goal>
                         </goals>
                     </execution>

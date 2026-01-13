@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+### Added
+- New table 'event_subscription_table' that will contain the latest events for eaach source/component pair
+- New Timer Bean 'EventDiscoveryTimerBean' that kicks of the discovery process
+- Discovery in event store will return the latest positions for streams 
+
 # [17.104.0] - 2025-12-16
 ### Added
 - Added [framework E rollout and rollback SQLs document](event-sourcing/event-repository/event-repository-liquibase/docs/framework-E-sqls.md)

@@ -1,7 +1,5 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.event;
 
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -32,7 +30,6 @@ import java.util.stream.Stream;
 
 import javax.sql.DataSource;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -47,7 +47,7 @@ public class EventJdbcRepository {
     static final String SQL_FIND_LATEST_POSITION = "SELECT MAX(position_in_stream) FROM event_log WHERE stream_id=?";
     static final String SQL_DISTINCT_STREAM_ID = "SELECT DISTINCT stream_id FROM event_log";
     static final String SQL_DELETE_STREAM = "DELETE FROM event_log t WHERE t.stream_id=?";
-    static final String SQL_FIND_BY_STREAM_ID_AND_POSITION_RANGE = "SELECT * FROM event_log WHERE stream_id = ? and position_in_stream > ? and position_in_stream <= ? ORDER BY position_in_stream ASC LIMIT ?";
+    static final String SQL_FIND_BY_STREAM_ID_AND_POSITION_RANGE = "SELECT id, stream_id, position_in_stream, name, payload, metadata, date_created, event_number FROM event_log WHERE stream_id = ? and position_in_stream > ? and position_in_stream <= ? ORDER BY position_in_stream ASC LIMIT ?";
 
     private static final long NO_EXISTING_VERSION = 0L;
 

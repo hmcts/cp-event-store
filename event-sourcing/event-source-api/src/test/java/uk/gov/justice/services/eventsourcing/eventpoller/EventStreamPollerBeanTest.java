@@ -1,14 +1,19 @@
 package uk.gov.justice.services.eventsourcing.eventpoller;
 
+import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.services.messaging.JsonEnvelope.envelopeFrom;
+import static uk.gov.justice.services.messaging.JsonEnvelope.metadataBuilder;
 
+import uk.gov.justice.services.eventsourcing.repository.jdbc.JdbcBasedEventRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.Event;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventJdbcRepository;
 
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -18,12 +23,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.services.messaging.Envelope;
+import uk.gov.justice.services.messaging.JsonEnvelope;
+import uk.gov.justice.services.messaging.JsonObjects;
+
+import javax.json.Json;
 
 @ExtendWith(MockitoExtension.class)
 public class EventStreamPollerBeanTest {
 
     @Mock
-    private EventJdbcRepository eventRepository;
+    private JdbcBasedEventRepository jdbcBasedEventRepository;
 
     @Mock
     private EventStreamPollerConfig eventStreamPollerConfig;
@@ -38,26 +48,25 @@ public class EventStreamPollerBeanTest {
         final long toPosition = 5L;
         final int batchSize = 10;
 
-        final Event event1 = createEvent(streamId, 1L);
-        final Event event2 = createEvent(streamId, 2L);
-        final Event event3 = createEvent(streamId, 3L);
-        final Stream<Event> expectedStream = Stream.of(event1, event2, event3);
+        final JsonEnvelope envelope1 = createEnvelope(streamId, 1L);
+        final JsonEnvelope envelope2 = createEnvelope(streamId, 2L);
+        final JsonEnvelope envelope3 = createEnvelope(streamId, 3L);
+        final Stream<JsonEnvelope> expectedStream = Stream.of(envelope1, envelope2, envelope3);
 
         when(eventStreamPollerConfig.getBatchSize()).thenReturn(batchSize);
-        when(eventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(streamId, fromPosition, toPosition, batchSize))
+        when(jdbcBasedEventRepository.pollStreamEvents(streamId, fromPosition, toPosition, batchSize))
                 .thenReturn(expectedStream);
 
-        final Stream<Event> result = eventStreamPollerBean.pollStreamEvents(streamId, fromPosition, toPosition);
+        final List<JsonEnvelope> result = eventStreamPollerBean.pollStreamEvents(streamId, fromPosition, toPosition);
 
 
         verify(eventStreamPollerConfig).getBatchSize();
-        verify(eventRepository).findByStreamIdInPositionRangeOrderByPositionAsc(streamId, fromPosition, toPosition, batchSize);
+        verify(jdbcBasedEventRepository).pollStreamEvents(streamId, fromPosition, toPosition, batchSize);
 
-        final List<Event> resultList = result.toList();
-        assertThat(resultList.size(), is(3));
-        assertThat(resultList.get(0), is(event1));
-        assertThat(resultList.get(1), is(event2));
-        assertThat(resultList.get(2), is(event3));
+        assertThat(result.size(), is(3));
+        assertThat(result.get(0), is(envelope1));
+        assertThat(result.get(1), is(envelope2));
+        assertThat(result.get(2), is(envelope3));
 
     }
 
@@ -70,29 +79,24 @@ public class EventStreamPollerBeanTest {
         final long toPosition = 10L;
         final int batchSize = 25;
 
-        final Stream<Event> emptyStream = Stream.empty();
+        final Stream<JsonEnvelope> emptyStream = Stream.empty();
 
         when(eventStreamPollerConfig.getBatchSize()).thenReturn(batchSize);
-        when(eventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(streamId, fromPosition, toPosition, batchSize))
+        when(jdbcBasedEventRepository.pollStreamEvents(streamId, fromPosition, toPosition, batchSize))
                 .thenReturn(emptyStream);
 
-        final Stream<Event> result = eventStreamPollerBean.pollStreamEvents(streamId, fromPosition, toPosition);
+        final List<JsonEnvelope> result = eventStreamPollerBean.pollStreamEvents(streamId, fromPosition, toPosition);
 
-        final List<Event> resultList = result.toList();
-        assertThat(resultList.isEmpty(), is(true));
+        assertThat(result.isEmpty(), is(true));
     }
 
 
-    private Event createEvent(final UUID streamId, final Long positionInStream) {
-        return new Event(
-                UUID.randomUUID(),
-                streamId,
-                positionInStream,
-                "test.event",
-                "{}",
-                "{}",
-                ZonedDateTime.now()
-        );
+    private JsonEnvelope createEnvelope(final UUID streamId, final Long positionInStream) {
+        return JsonEnvelope.envelopeFrom(JsonEnvelope.metadataBuilder()
+                .withStreamId(streamId)
+                .withId(randomUUID())
+                .withPosition(positionInStream)
+                .withName("eventA"), JsonObjects.createObjectBuilder());
     }
 }
 

@@ -271,10 +271,12 @@ public class EventJdbcRepositoryIT {
     public void shouldReturnEventsByStreamIdForGivenPositionRangeOrderByPosition() throws InvalidPositionException {
 
         final int batchLimit = 2;
+        final UUID DIFFERENT_STREAM_ID = randomUUID();
 
         jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(7L).build());
         jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(4L).build());
         jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(3L).build());
+        jdbcRepository.insert(eventBuilder().withStreamId(DIFFERENT_STREAM_ID).withPositionInStream(5L).build());
 
         final Stream<Event> events = jdbcRepository.findByStreamIdInPositionRangeOrderByPositionAsc(STREAM_ID, 3L, 7L, batchLimit);
         final List<Event> eventList = events.collect(toList());

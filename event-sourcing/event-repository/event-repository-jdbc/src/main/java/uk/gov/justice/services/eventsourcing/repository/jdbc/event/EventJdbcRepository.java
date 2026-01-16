@@ -300,8 +300,7 @@ public class EventJdbcRepository {
 
             return jdbcResultSetStreamer.streamOf(preparedStatementWrapper, asEvent());
         } catch (final SQLException e) {
-            logger.error("Failed to read stream {}", streamId, e);
-            throw new JdbcRepositoryException(format("Exception while reading stream %s", streamId), e);
+            throw new JdbcRepositoryException(format("Exception while reading events in stream and position range %s", streamId), e);
         }
     }
 

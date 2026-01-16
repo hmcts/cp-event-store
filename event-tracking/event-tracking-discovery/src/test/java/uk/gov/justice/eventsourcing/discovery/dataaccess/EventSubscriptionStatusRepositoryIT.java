@@ -1,9 +1,12 @@
 package uk.gov.justice.eventsourcing.discovery.dataaccess;
 
 import static java.util.Collections.emptyList;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.common.util.UtcClock;
@@ -11,6 +14,7 @@ import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +32,9 @@ public class EventSubscriptionStatusRepositoryIT {
 
     @Mock
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
+
+    @Mock
+    private UtcClock clock;
 
     @InjectMocks
     private EventSubscriptionStatusRepository eventSubscriptionStatusRepository;
@@ -48,14 +55,14 @@ public class EventSubscriptionStatusRepositoryIT {
         final EventSubscriptionStatus eventSubscriptionStatus_1 = new EventSubscriptionStatus(
                 source_1,
                 component_1,
-                randomUUID(),
+                of(randomUUID()),
                 23L,
                 new UtcClock().now()
                 );
         final EventSubscriptionStatus eventSubscriptionStatus_2 = new EventSubscriptionStatus(
                 source_2,
                 component_2,
-                randomUUID(),
+                of(randomUUID()),
                 234L,
                 new UtcClock().now()
                 );
@@ -80,11 +87,10 @@ public class EventSubscriptionStatusRepositoryIT {
         final EventSubscriptionStatus eventSubscriptionStatus = new EventSubscriptionStatus(
                 "some-source",
                 "some-component",
-                randomUUID(),
+                of(randomUUID()),
                 firstLatestKnownPosition,
                 new UtcClock().now().minusMinutes(2)
         );
-
 
         assertThat(eventSubscriptionStatusRepository.findAll(), is(emptyList()));
 
@@ -118,21 +124,21 @@ public class EventSubscriptionStatusRepositoryIT {
         final EventSubscriptionStatus eventSubscriptionStatus_1 = new EventSubscriptionStatus(
                 "some-source_1",
                 "some-component_1",
-                randomUUID(),
+                of(randomUUID()),
                 23L,
                 new UtcClock().now().minusMinutes(5)
         );
         final EventSubscriptionStatus eventSubscriptionStatus_2 = new EventSubscriptionStatus(
                 "some-source_2",
                 "some-component_2",
-                randomUUID(),
+                of(randomUUID()),
                 234L,
                 new UtcClock().now().minusMinutes(2)
         );
         final EventSubscriptionStatus eventSubscriptionStatus_3 = new EventSubscriptionStatus(
                 "some-source_3",
                 "some-component_3",
-                randomUUID(),
+                of(randomUUID()),
                 897L,
                 new UtcClock().now().minusMinutes(1)
         );
@@ -147,5 +153,58 @@ public class EventSubscriptionStatusRepositoryIT {
 
         assertThat(eventSubscriptionStatus.isPresent(), is(true));
         assertThat(eventSubscriptionStatus.get(), is(eventSubscriptionStatus_2));
+    }
+
+    @Test
+    public void shouldInsertEmptyRowForSourceComponent() throws Exception {
+
+        final String source = "some-new-source";
+        final String component = "some-new-component";
+        final ZonedDateTime updatedAt = new UtcClock().now();
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(frameworkTestDataSourceFactory.createViewStoreDataSource());
+        when(clock.now()).thenReturn(updatedAt);
+
+        assertThat(eventSubscriptionStatusRepository.findBy(source, component).isEmpty(), is(true));
+
+        final int rowsUpdated = eventSubscriptionStatusRepository.insertEmptyRowFor(source, component);
+
+        assertThat(rowsUpdated, is(1));
+
+        final Optional<EventSubscriptionStatus> eventSubscriptionStatus = eventSubscriptionStatusRepository.findBy(
+                source,
+                component);
+
+        if (eventSubscriptionStatus.isPresent()) {
+            assertThat(eventSubscriptionStatus.get().source(), is(source));
+            assertThat(eventSubscriptionStatus.get().component(), is(component));
+            assertThat(eventSubscriptionStatus.get().latestKnownPosition(), is(-1L));
+            assertThat(eventSubscriptionStatus.get().latestEventId(), is(empty()));
+            assertThat(eventSubscriptionStatus.get().updatedAt(), is(updatedAt));
+        } else {
+            fail();
+        }
+    }
+
+    @Test
+    public void shouldDoNothingIfInsertingEmptyRowHasConflict() throws Exception {
+
+        final String source = "some-new-source";
+        final String component = "some-new-component";
+        final ZonedDateTime updatedAt = new UtcClock().now();
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(frameworkTestDataSourceFactory.createViewStoreDataSource());
+        when(clock.now()).thenReturn(updatedAt);
+
+        assertThat(eventSubscriptionStatusRepository.findBy(source, component).isEmpty(), is(true));
+
+        // first insert should add one row
+        assertThat(eventSubscriptionStatusRepository.insertEmptyRowFor(source, component), is(1));
+
+        // subsequent inserts should do nothing...
+        assertThat(eventSubscriptionStatusRepository.insertEmptyRowFor(source, component), is(0));
+        assertThat(eventSubscriptionStatusRepository.insertEmptyRowFor(source, component), is(0));
+        assertThat(eventSubscriptionStatusRepository.insertEmptyRowFor(source, component), is(0));
+        assertThat(eventSubscriptionStatusRepository.insertEmptyRowFor(source, component), is(0));
     }
 }

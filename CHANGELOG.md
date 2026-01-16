@@ -6,9 +6,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### [Unreleased]
 
 ### Added
-- New table 'event_subscription_table' that will contain the latest events for eaach source/component pair
+- New table `event_subscription_status` that will contain the latest events for each source/component pair
 - New Timer Bean 'EventDiscoveryTimerBean' that kicks of the discovery process
 - Discovery in event store will return the latest positions for streams 
+- New JNDI value `event.discovery.timer.interval.milliseconds` that defines how often the new TimerBean runs
+- New Wildfly extension `EventDiscoveryBootstrapWildflyExtension` that will prime the `event_subscription_status` table
 
 # [17.104.0] - 2025-12-16
 ### Added

@@ -1,7 +1,7 @@
 package uk.gov.justice.eventsourcing.discovery.dataaccess;
 
 import static java.time.ZoneOffset.UTC;
-import static java.time.ZonedDateTime.of;
+import static java.util.Optional.of;
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
@@ -17,7 +17,6 @@ import static uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptio
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 import uk.gov.justice.eventsourcing.discovery.EventDiscoveryException;
-import uk.gov.justice.services.common.converter.ZonedDateTimes;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
@@ -52,10 +51,11 @@ public class EventSubscriptionStatusRepositoryTest {
     @Test
     public void shouldSaveEventSubscriptionStatus() throws Exception {
 
+        final UUID latestEventId = randomUUID();
         final EventSubscriptionStatus eventSubscriptionStatus = new EventSubscriptionStatus(
                 "some-source",
                 "some-component",
-                randomUUID(),
+                of(latestEventId),
                 23L,
                 new UtcClock().now()
         );
@@ -74,7 +74,7 @@ public class EventSubscriptionStatusRepositoryTest {
 
         inOrder.verify(preparedStatement).setString(1, eventSubscriptionStatus.source());
         inOrder.verify(preparedStatement).setString(2, eventSubscriptionStatus.component());
-        inOrder.verify(preparedStatement).setObject(3, eventSubscriptionStatus.latestEventId());
+        inOrder.verify(preparedStatement).setObject(3, latestEventId);
         inOrder.verify(preparedStatement).setLong(4, eventSubscriptionStatus.latestKnownPosition());
         inOrder.verify(preparedStatement).setTimestamp(5, toSqlTimestamp(eventSubscriptionStatus.updatedAt()));
         inOrder.verify(preparedStatement).execute();
@@ -86,12 +86,12 @@ public class EventSubscriptionStatusRepositoryTest {
     @Test
     public void shouldThrowEventDiscoveryExceptionIfSavingEventSubscriptionStatusFails() throws Exception {
 
-        final ZonedDateTime updatedAt = of(2026, 1, 2, 11, 22, 46, 0, UTC);
+        final ZonedDateTime updatedAt = ZonedDateTime.of(2026, 1, 2, 11, 22, 46, 0, UTC);
         final UUID latestEventId = fromString("5246fb9c-ecde-4d1c-9cc4-09ec520ff1c3");
         final EventSubscriptionStatus eventSubscriptionStatus = new EventSubscriptionStatus(
                 "some-source",
                 "some-component",
-                latestEventId,
+                of(latestEventId),
                 23L,
                 updatedAt
         );
@@ -111,13 +111,13 @@ public class EventSubscriptionStatusRepositoryTest {
                 () -> eventSubscriptionStatusRepository.save(eventSubscriptionStatus));
 
         assertThat(eventDiscoveryException.getCause(), is(sqlException));
-        assertThat(eventDiscoveryException.getMessage(), is("Failed to upsert EventSubscriptionStatus[source=some-source, component=some-component, latestEventId=5246fb9c-ecde-4d1c-9cc4-09ec520ff1c3, latestKnownPosition=23, updatedAt=2026-01-02T11:22:46Z]"));
+        assertThat(eventDiscoveryException.getMessage(), is("Failed to upsert EventSubscriptionStatus[source=some-source, component=some-component, latestEventId=Optional[5246fb9c-ecde-4d1c-9cc4-09ec520ff1c3], latestKnownPosition=23, updatedAt=2026-01-02T11:22:46Z]"));
 
         final InOrder inOrder = inOrder(preparedStatement, connection);
 
         inOrder.verify(preparedStatement).setString(1, eventSubscriptionStatus.source());
         inOrder.verify(preparedStatement).setString(2, eventSubscriptionStatus.component());
-        inOrder.verify(preparedStatement).setObject(3, eventSubscriptionStatus.latestEventId());
+        inOrder.verify(preparedStatement).setObject(3, latestEventId);
         inOrder.verify(preparedStatement).setLong(4, eventSubscriptionStatus.latestKnownPosition());
         inOrder.verify(preparedStatement).setTimestamp(5, toSqlTimestamp(eventSubscriptionStatus.updatedAt()));
         inOrder.verify(preparedStatement).execute();
@@ -234,14 +234,14 @@ public class EventSubscriptionStatusRepositoryTest {
         final EventSubscriptionStatus eventSubscriptionStatus_1 = new EventSubscriptionStatus(
                 "some-source_1",
                 "some-component_1",
-                randomUUID(),
+                of(randomUUID()),
                 23L,
                 new UtcClock().now().minusMinutes(2)
         );
         final EventSubscriptionStatus eventSubscriptionStatus_2 = new EventSubscriptionStatus(
                 "some-source_2",
                 "some-component_2",
-                randomUUID(),
+                of(randomUUID()),
                 25L,
                 new UtcClock().now()
         );
@@ -258,7 +258,7 @@ public class EventSubscriptionStatusRepositoryTest {
         when(resultSet.next()).thenReturn(true, true, false);
         when(resultSet.getString("source")).thenReturn(eventSubscriptionStatus_1.source(), eventSubscriptionStatus_2.source());
         when(resultSet.getString("component")).thenReturn(eventSubscriptionStatus_1.component(), eventSubscriptionStatus_2.component());
-        when(resultSet.getObject("latest_event_id", UUID.class)).thenReturn(eventSubscriptionStatus_1.latestEventId(), eventSubscriptionStatus_2.latestEventId());
+        when(resultSet.getObject("latest_event_id", UUID.class)).thenReturn(eventSubscriptionStatus_1.latestEventId().orElse(null), eventSubscriptionStatus_2.latestEventId().orElse(null));
         when(resultSet.getLong("latest_known_position")).thenReturn(eventSubscriptionStatus_1.latestKnownPosition(), eventSubscriptionStatus_2.latestKnownPosition());
         when(resultSet.getTimestamp("updated_at")).thenReturn(toSqlTimestamp(eventSubscriptionStatus_1.updatedAt()), toSqlTimestamp(eventSubscriptionStatus_2.updatedAt()));
 

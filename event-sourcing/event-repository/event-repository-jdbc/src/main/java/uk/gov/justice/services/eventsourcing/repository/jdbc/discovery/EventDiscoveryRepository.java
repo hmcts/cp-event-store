@@ -26,10 +26,41 @@ public class EventDiscoveryRepository {
            GROUP BY stream_id
            LIMIT ?;
            """;
+    static final String GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_FROM_EVENT_NUMBER_SQL = """
+            SELECT
+             stream_id,
+             MAX(position_in_stream) AS max_position_in_stream
+           FROM event_log
+           WHERE event_number > ?
+           GROUP BY stream_id
+           LIMIT ?;
+           """;
 
     @Inject
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
 
+    public List<StreamPosition> getLatestStreamPositions(final Long eventNumber, final int batchSize) {
+
+        try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
+            final PreparedStatement preparedStatement = connection.prepareStatement(GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_FROM_EVENT_NUMBER_SQL)) {
+            preparedStatement.setLong(1, eventNumber);
+            preparedStatement.setInt(2, batchSize);
+
+            try(final ResultSet resultSet = preparedStatement.executeQuery()) {
+                final List<StreamPosition> streamPositions = new ArrayList<>();
+                while (resultSet.next()) {
+                    final UUID streamId = resultSet.getObject("stream_id", UUID.class);
+                    final Long positionInStream = resultSet.getObject("max_position_in_stream", Long.class);
+
+                    streamPositions.add(new StreamPosition(streamId, positionInStream));
+                }
+
+                return streamPositions;
+            }
+        } catch (final SQLException e) {
+            throw new EventStoreEventDiscoveryException(format("Failed to get latest stream positions for eventNumber '%d', batchSize '%d'", eventNumber, batchSize), e);
+        }
+    }
     public List<StreamPosition> getLatestStreamPositions(final UUID eventId, final int batchSize) {
 
         try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();

@@ -15,7 +15,6 @@ import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepo
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventJdbcRepository;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
 import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
 import uk.gov.justice.services.messaging.JsonEnvelope;

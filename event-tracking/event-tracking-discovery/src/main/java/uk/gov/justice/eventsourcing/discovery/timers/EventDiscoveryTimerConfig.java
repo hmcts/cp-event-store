@@ -1,7 +1,5 @@
 package uk.gov.justice.eventsourcing.discovery.timers;
 
-import static java.lang.Boolean.parseBoolean;
-import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 
 import uk.gov.justice.services.common.configuration.Value;
@@ -15,12 +13,8 @@ public class EventDiscoveryTimerConfig {
     private String timerStartWaitMilliseconds;
 
     @Inject
-    @Value(key = "event.discovery.timer.interval.milliseconds", defaultValue = "100")
+    @Value(key = "event.discovery.timer.interval.milliseconds", defaultValue = "1000")
     private String timerIntervalMilliseconds;
-
-    @Inject
-    @Value(key = "event.discovery.timer.time.between.runs.milliseconds", defaultValue = "5")
-    private String timeBetweenRunsMilliseconds;
 
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
@@ -29,9 +23,4 @@ public class EventDiscoveryTimerConfig {
     public long getTimerIntervalMilliseconds() {
         return parseLong(timerIntervalMilliseconds);
     }
-
-    public long getTimeBetweenRunsMilliseconds() {
-        return parseLong(timeBetweenRunsMilliseconds);
-    }
-
 }

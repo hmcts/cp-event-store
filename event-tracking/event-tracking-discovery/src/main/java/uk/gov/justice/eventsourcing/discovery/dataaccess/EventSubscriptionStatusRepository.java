@@ -3,11 +3,13 @@ package uk.gov.justice.eventsourcing.discovery.dataaccess;
 import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
 import static javax.transaction.Transactional.TxType.REQUIRED;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 import uk.gov.justice.eventsourcing.discovery.EventDiscoveryException;
+import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
 import java.sql.Connection;
@@ -56,6 +58,9 @@ public class EventSubscriptionStatusRepository {
     @Inject
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
 
+    @Inject
+    private UtcClock clock;
+
     @Transactional(REQUIRED)
     public void save(final EventSubscriptionStatus eventSubscriptionStatus) {
 
@@ -64,7 +69,7 @@ public class EventSubscriptionStatusRepository {
 
             preparedStatement.setString(1, eventSubscriptionStatus.source());
             preparedStatement.setString(2, eventSubscriptionStatus.component());
-            preparedStatement.setObject(3, eventSubscriptionStatus.latestEventId());
+            preparedStatement.setObject(3, eventSubscriptionStatus.latestEventId().orElse(null));
             preparedStatement.setLong(4, eventSubscriptionStatus.latestKnownPosition());
             preparedStatement.setTimestamp(5, toSqlTimestamp(eventSubscriptionStatus.updatedAt()));
 
@@ -92,7 +97,7 @@ public class EventSubscriptionStatusRepository {
                     final EventSubscriptionStatus eventSubscriptionStatus = new EventSubscriptionStatus(
                             source,
                             component,
-                            latestEventId,
+                            ofNullable(latestEventId),
                             latestKnownPosition,
                             updatedAt
                     );
@@ -126,7 +131,7 @@ public class EventSubscriptionStatusRepository {
                 final EventSubscriptionStatus eventSubscriptionStatus = new EventSubscriptionStatus(
                         source,
                         component,
-                        latestEventId,
+                        of(latestEventId),
                         latestKnownPosition,
                         updatedAt
                 );
@@ -138,6 +143,29 @@ public class EventSubscriptionStatusRepository {
 
         } catch (final SQLException e) {
             throw new EventDiscoveryException("Failed to find all from event-subscription-status table", e);
+        }
+    }
+
+    @Transactional(REQUIRED)
+    public int insertEmptyRowFor(final String source, final String component) {
+
+        final String sql = """
+            INSERT INTO event_subscription_status (source, component, latest_known_position, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(source, component) DO NOTHING
+            """;
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setString(1, source);
+            preparedStatement.setString(2, component);
+            preparedStatement.setLong(3, -1L);
+            preparedStatement.setTimestamp(4, toSqlTimestamp(clock.now()));
+
+            return preparedStatement.executeUpdate();
+
+        } catch (final SQLException e) {
+            throw new EventDiscoveryException(format("Failed to insert empty row for source '%s', component '%s'", source, component), e);
         }
     }
 }

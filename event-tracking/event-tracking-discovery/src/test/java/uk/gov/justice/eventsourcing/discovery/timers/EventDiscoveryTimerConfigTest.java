@@ -35,14 +35,4 @@ public class EventDiscoveryTimerConfigTest {
 
         assertThat(eventDiscoveryTimerConfig.getTimerIntervalMilliseconds(), is(timerIntervalMilliseconds));
     }
-
-    @Test
-    public void shouldGetTimeBetweenRunsMilliseconds() throws Exception {
-
-        final long timeBetweenRunsMilliseconds = 23L;
-
-        setField(eventDiscoveryTimerConfig, "timeBetweenRunsMilliseconds", "" + timeBetweenRunsMilliseconds);
-
-        assertThat(eventDiscoveryTimerConfig.getTimeBetweenRunsMilliseconds(), is(timeBetweenRunsMilliseconds));
-    }
 }

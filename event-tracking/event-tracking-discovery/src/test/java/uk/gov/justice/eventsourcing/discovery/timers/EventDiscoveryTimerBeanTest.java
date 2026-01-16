@@ -7,9 +7,7 @@ import static uk.gov.justice.eventsourcing.discovery.timers.EventDiscoveryTimerB
 import uk.gov.justice.eventsourcing.discovery.workers.EventDiscoveryWorker;
 import uk.gov.justice.services.ejb.timer.TimerServiceManager;
 
-import javax.annotation.Resource;
 import javax.ejb.TimerService;
-import javax.inject.Inject;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

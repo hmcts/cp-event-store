@@ -21,7 +21,6 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;

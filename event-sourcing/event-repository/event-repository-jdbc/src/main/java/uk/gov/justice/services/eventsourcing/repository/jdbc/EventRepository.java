@@ -138,4 +138,16 @@ public interface EventRepository {
      */
     Stream<EventStreamMetadata> getStreams();
 
+    /**
+     *  Retrieves a stream of envelopes for the given stream within the specified position range,
+     *  ordered by position in ascending order.
+     *
+     * @param streamId the id of the stream to retrieve
+     * @param fromPosition (exclusive) the position to read the stream from
+     * @param toPosition (inclusive) the position to read the stream to
+     * @param batchLimit the max size of the result set.
+     * @return the stream of envelopes. Never returns null.
+     */
+    Stream<JsonEnvelope> pollStreamEvents(final UUID streamId, final long fromPosition, final long toPosition, final int batchLimit);
+
 }

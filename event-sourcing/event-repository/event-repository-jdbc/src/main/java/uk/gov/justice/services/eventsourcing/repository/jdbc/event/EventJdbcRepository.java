@@ -47,6 +47,7 @@ public class EventJdbcRepository {
     static final String SQL_FIND_LATEST_POSITION = "SELECT MAX(position_in_stream) FROM event_log WHERE stream_id=?";
     static final String SQL_DISTINCT_STREAM_ID = "SELECT DISTINCT stream_id FROM event_log";
     static final String SQL_DELETE_STREAM = "DELETE FROM event_log t WHERE t.stream_id=?";
+    static final String SQL_FIND_BY_STREAM_ID_AND_POSITION_RANGE = "SELECT * FROM event_log WHERE stream_id = ? and position_in_stream > ? and position_in_stream <= ? ORDER BY position_in_stream ASC LIMIT ?";
 
     private static final long NO_EXISTING_VERSION = 0L;
 
@@ -272,6 +273,35 @@ public class EventJdbcRepository {
             }
         } catch (final SQLException e) {
             throw new JdbcRepositoryException(format("Exception while deleting stream %s", streamId), e);
+        }
+    }
+
+    /***
+     * Returns a list of events for the given stream within the specified position range.
+     * @param streamId
+     * @param fromPosition
+     * @param toPosition
+     * @param limit
+     * @return
+     */
+    public Stream<Event> findByStreamIdInPositionRangeOrderByPositionAsc(final UUID streamId,
+                                                                      final long fromPosition,
+                                                                      final long toPosition,
+                                                                           final int limit) {
+
+        final DataSource dataSource = eventStoreDataSourceProvider.getDefaultDataSource();
+
+        try {
+            final PreparedStatementWrapper preparedStatementWrapper = preparedStatementWrapperFactory.preparedStatementWrapperOf(dataSource, SQL_FIND_BY_STREAM_ID_AND_POSITION_RANGE);
+            preparedStatementWrapper.setObject(1, streamId);
+            preparedStatementWrapper.setLong(2, fromPosition);
+            preparedStatementWrapper.setLong(3, toPosition);
+            preparedStatementWrapper.setInt(4, limit);
+
+            return jdbcResultSetStreamer.streamOf(preparedStatementWrapper, asEvent());
+        } catch (final SQLException e) {
+            logger.error("Failed to read stream {}", streamId, e);
+            throw new JdbcRepositoryException(format("Exception while reading stream %s", streamId), e);
         }
     }
 

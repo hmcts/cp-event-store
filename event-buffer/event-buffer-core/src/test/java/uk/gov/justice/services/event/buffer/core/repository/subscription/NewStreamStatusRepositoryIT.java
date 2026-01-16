@@ -184,6 +184,47 @@ public class NewStreamStatusRepositoryIT {
     }
 
     @Test
+    public void shouldUpdateLatestPosition() throws Exception {
+
+        final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+        final UUID streamId = randomUUID();
+
+        final String source = "some-source";
+        final String componentName = "some-component-name";
+        final boolean upToDate = true;
+        final ZonedDateTime updatedAt = new UtcClock().now();
+        final long latestKnownPosition = 23L;
+
+        assertThat(newStreamStatusRepository.findAll().isEmpty(), is(true));
+
+        assertThat(newStreamStatusRepository.insertIfNotExists(
+                streamId,
+                source,
+                componentName,
+                updatedAt,
+                upToDate), is(1));
+
+        final Optional<StreamStatus> streamStatus = newStreamStatusRepository.find(streamId, source, componentName);
+        assertThat(streamStatus.isPresent(), is(true));
+        assertThat(streamStatus.get().latestKnownPosition(), is(0L));
+        assertThat(streamStatus.get().isUpToDate(), is(true));
+
+        newStreamStatusRepository.updateLatestKnownPosition(
+                streamId,
+                source,
+                componentName,
+                latestKnownPosition
+        );
+
+        final Optional<StreamStatus> updatedStreamStatus = newStreamStatusRepository.find(streamId, source, componentName);
+        assertThat(updatedStreamStatus.isPresent(), is(true));
+        assertThat(updatedStreamStatus.get().latestKnownPosition(), is(latestKnownPosition));
+        assertThat(updatedStreamStatus.get().isUpToDate(), is(true));
+    }
+
+    @Test
     public void shouldUpdateLatestPositionAndIsUpToDateOfAStream() throws Exception {
 
         final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);

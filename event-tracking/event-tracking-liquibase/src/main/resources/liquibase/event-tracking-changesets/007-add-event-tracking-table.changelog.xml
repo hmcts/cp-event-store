@@ -17,7 +17,7 @@
                 <constraints nullable="false" primaryKey="true" primaryKeyName="pk_event_subscription_status"/>
             </column>
             <column name="latest_event_id" type="uuid">
-                <constraints nullable="false"/>
+                <constraints nullable="true"/>
             </column>
             <column name="latest_known_position" type="BIGINT">
                 <constraints nullable="false"/>

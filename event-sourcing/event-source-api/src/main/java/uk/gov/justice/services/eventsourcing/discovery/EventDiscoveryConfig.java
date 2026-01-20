@@ -11,7 +11,7 @@ import javax.inject.Inject;
 public class EventDiscoveryConfig {
 
     @Inject
-    @Value(key = "event.discovery.batch.size", defaultValue = "7250")
+    @Value(key = "event.discovery.batch.size", defaultValue = "100")
     private String batchSize;
 
     public int getBatchSize() {

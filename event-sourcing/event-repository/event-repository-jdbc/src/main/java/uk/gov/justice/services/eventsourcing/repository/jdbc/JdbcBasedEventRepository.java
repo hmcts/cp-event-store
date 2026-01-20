@@ -88,17 +88,6 @@ public class JdbcBasedEventRepository implements EventRepository {
     }
 
     @Override
-    public Stream<JsonEnvelope> pollStreamEvents(UUID streamId, long fromPosition, long toPosition, int batchLimit) {
-        if (streamId == null) {
-            throw new InvalidStreamIdException("streamId is null.");
-        }
-
-        logger.trace("Retrieving event stream for {} from positon {} to position {}", streamId, fromPosition, toPosition);
-        return eventJdbcRepository.findByStreamIdInPositionRangeOrderByPositionAsc(streamId, fromPosition, toPosition, batchLimit)
-                .map(eventConverter::envelopeOf);
-    }
-
-    @Override
     @Transactional(dontRollbackOn = OptimisticLockingRetryException.class)
     public void storeEvent(final JsonEnvelope envelope) throws StoreEventRequestFailedException {
         try {
@@ -183,7 +172,6 @@ public class JdbcBasedEventRepository implements EventRepository {
     public long getStreamPosition(final UUID streamId) {
         return eventStreamJdbcRepository.getPosition(streamId);
     }
-
 
     private Function<EventStream, EventStreamMetadata> toEventStreamMetadata() {
         return e -> new DefaultEventStreamMetadata(e.getStreamId(), e.getPosition(),

@@ -26,4 +26,6 @@ public interface LinkedEventSource {
     Optional<LinkedEvent> findByEventId(final UUID id);
 
     Long getHighestPublishedEventNumber();
+
+    Stream<LinkedEvent> pollStreamEvents(UUID streamId, long fromPosition, long toPosition, int batchLimit);
 }

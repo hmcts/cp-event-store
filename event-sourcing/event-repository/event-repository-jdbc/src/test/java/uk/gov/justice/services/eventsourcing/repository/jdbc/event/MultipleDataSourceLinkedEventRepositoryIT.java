@@ -3,17 +3,21 @@ package uk.gov.justice.services.eventsourcing.repository.jdbc.event;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
+import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 import static uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventStatus.HEALTHY;
 import static uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventStatus.PUBLISH_FAILED;
+import static uk.gov.justice.services.test.utils.events.EventBuilder.eventBuilder;
 import static uk.gov.justice.services.test.utils.events.LinkedEventBuilder.linkedEventBuilder;
 
 import uk.gov.justice.services.common.util.UtcClock;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.exception.InvalidPositionException;
 import uk.gov.justice.services.jdbc.persistence.JdbcResultSetStreamer;
 import uk.gov.justice.services.jdbc.persistence.PreparedStatementWrapperFactory;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
@@ -25,6 +29,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import javax.sql.DataSource;
 
@@ -376,6 +381,42 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
     @Test
     public void shouldReturnEmptyWhenGettingLatestPublishedEventIfNoPublishedEventsExist() throws Exception {
         assertThat(multipleDataSourceEventRepository.getLatestLinkedEvent(), is(empty()));
+    }
+
+    @Test
+    public void shouldReturnEventsByStreamIdForGivenPositionRangeOrderByPosition() throws SQLException {
+
+        final int batchLimit = 2;
+        final UUID STREAM_ID = randomUUID();
+        final UUID DIFFERENT_STREAM_ID = randomUUID();
+
+        final LinkedEvent event_1 = linkedEventBuilder().withStreamId(STREAM_ID).withPositionInStream(7L).withPreviousEventNumber(6L).build();
+        final LinkedEvent event_2 = linkedEventBuilder().withStreamId(STREAM_ID).withPositionInStream(4L).withPreviousEventNumber(3L).build();
+        final LinkedEvent event_3 = linkedEventBuilder().withStreamId(STREAM_ID).withPositionInStream(3L).withPreviousEventNumber(2L).build();
+        final LinkedEvent event_4 = linkedEventBuilder().withStreamId(DIFFERENT_STREAM_ID).withPositionInStream(5L).withPreviousEventNumber(4L).build();
+
+        final Connection connection = dataSource.getConnection();
+
+        insertLinkedEvent(event_1, connection);
+        insertLinkedEvent(event_2, connection);
+        insertLinkedEvent(event_3, connection);
+        insertLinkedEvent(event_4, connection);
+
+        final Stream<LinkedEvent> events = multipleDataSourceEventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(STREAM_ID, 3L, 7L, batchLimit);
+        final List<LinkedEvent> eventList = events.collect(toList());
+        assertThat(eventList, hasSize(2));
+        assertThat(eventList.get(0).getPositionInStream(), is(4L));
+        assertThat(eventList.get(1).getPositionInStream(), is(7L));
+    }
+
+    @Test
+    public void shouldReturnEmptyStreamWhenEventsByStreamIdForGivenPositionRangeRequested() {
+        final int batchLimit = 2;
+        final UUID STREAM_ID = randomUUID();
+
+        final Stream<LinkedEvent> events = multipleDataSourceEventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(STREAM_ID, 3L, 7L, batchLimit);
+        final List<LinkedEvent> eventList = events.collect(toList());
+        assertThat(eventList, hasSize(0));
     }
 
     private void insertLinkedEvent(final LinkedEvent linkedEvent, final Connection connection) throws SQLException {

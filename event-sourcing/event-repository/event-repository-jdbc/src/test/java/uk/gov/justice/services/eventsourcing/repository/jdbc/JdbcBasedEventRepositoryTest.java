@@ -136,26 +136,6 @@ public class JdbcBasedEventRepositoryTest {
     }
 
     @Test
-    public void shouldGetByStreamIdAndPositionRange() {
-        final long fromPosition = 1L;
-        final long toPosition = 2L;
-        final int batchSize = 1000;
-
-        when(eventJdbcRepository.findByStreamIdInPositionRangeOrderByPositionAsc(STREAM_ID, fromPosition, toPosition, batchSize)).thenReturn(of(event));
-        when(eventConverter.envelopeOf(event)).thenReturn(envelope);
-
-        final Stream<JsonEnvelope> streamOfEnvelopes = jdbcBasedEventRepository.pollStreamEvents(STREAM_ID, fromPosition, toPosition,  batchSize);
-
-        assertThat(streamOfEnvelopes, not(nullValue()));
-        assertThat(streamOfEnvelopes.findFirst().get(), equalTo(envelope));
-    }
-
-    @Test
-    public void shouldThrowExceptionOnNullStreamIdWhenGettingStreamByStreamIdAndPositionRange() {
-        assertThrows(InvalidStreamIdException.class, () -> jdbcBasedEventRepository.pollStreamEvents(null, 1L, 2L, 1000));
-    }
-
-    @Test
     public void shouldThrowExceptionOnNullStreamIdWhenGettingStreamByStreamIdAndSequence() throws Exception {
         assertThrows(InvalidStreamIdException.class, () -> jdbcBasedEventRepository.getEventsByStreamIdFromPosition(null, POSITION));
     }

@@ -267,29 +267,5 @@ public class EventJdbcRepositoryIT {
         assertThat(deletedStreamLatestSequenceId, equalTo(0L));
     }
 
-    @Test
-    public void shouldReturnEventsByStreamIdForGivenPositionRangeOrderByPosition() throws InvalidPositionException {
 
-        final int batchLimit = 2;
-        final UUID DIFFERENT_STREAM_ID = randomUUID();
-
-        jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(7L).build());
-        jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(4L).build());
-        jdbcRepository.insert(eventBuilder().withStreamId(STREAM_ID).withPositionInStream(3L).build());
-        jdbcRepository.insert(eventBuilder().withStreamId(DIFFERENT_STREAM_ID).withPositionInStream(5L).build());
-
-        final Stream<Event> events = jdbcRepository.findByStreamIdInPositionRangeOrderByPositionAsc(STREAM_ID, 3L, 7L, batchLimit);
-        final List<Event> eventList = events.collect(toList());
-        assertThat(eventList, hasSize(2));
-        assertThat(eventList.get(0).getPositionInStream(), is(4L));
-        assertThat(eventList.get(1).getPositionInStream(), is(7L));
-    }
-
-    @Test
-    public void shouldReturnEmptyStreamWhenEventsByStreamIdForGivenPositionRangeRequested() {
-        final int batchLimit = 2;
-        final Stream<Event> events = jdbcRepository.findByStreamIdInPositionRangeOrderByPositionAsc(STREAM_ID, 3L, 7L, batchLimit);
-        final List<Event> eventList = events.collect(toList());
-        assertThat(eventList, hasSize(0));
-    }
 }

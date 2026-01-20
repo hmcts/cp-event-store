@@ -1,8 +1,7 @@
 package uk.gov.justice.services.eventsourcing.eventpoller;
 
-import uk.gov.justice.services.eventsourcing.repository.jdbc.JdbcBasedEventRepository;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.Event;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventJdbcRepository;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
+import uk.gov.justice.services.eventsourcing.source.api.service.core.LinkedEventSource;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import javax.ejb.Stateless;
@@ -15,10 +14,13 @@ import java.util.UUID;
 public class EventStreamPollerBean {
 
     @Inject
-    private JdbcBasedEventRepository jdbcBasedEventRepository;
+    private LinkedEventSource linkedEventSource;
 
     @Inject
     private EventStreamPollerConfig eventStreamPollerConfig;
+
+    @Inject
+    private EventConverter eventConverter;
 
     /**
      *  Retrieves a list of envelopes for the given stream within the specified position range,
@@ -30,6 +32,8 @@ public class EventStreamPollerBean {
      * @return the list of envelopes. Never returns null.
      */
     public List<JsonEnvelope> pollStreamEvents(final UUID streamId, final long fromPosition, final long toPosition) {
-        return jdbcBasedEventRepository.pollStreamEvents(streamId, fromPosition, toPosition, eventStreamPollerConfig.getBatchSize()).toList();
+        return linkedEventSource.pollStreamEvents(streamId, fromPosition, toPosition, eventStreamPollerConfig.getBatchSize())
+                .map(eventConverter::envelopeOf)
+                .toList();
     }
 }

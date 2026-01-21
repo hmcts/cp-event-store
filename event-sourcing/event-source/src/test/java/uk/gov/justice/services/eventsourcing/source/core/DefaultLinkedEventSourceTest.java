@@ -104,4 +104,22 @@ public class DefaultLinkedEventSourceTest {
 
         assertThat(defaultPublishedEventSource.getHighestPublishedEventNumber(), is(0L));
     }
+
+    @Test
+    public void shouldPollStreamEventsInPositionRange() {
+        final UUID streamId = randomUUID();
+        final long fromPosition = 1L;
+        final long toPosition = 2L;
+        final int batchSize = 1000;
+
+        final LinkedEvent linkedEvent = mock(LinkedEvent.class);
+
+        when(multipleDataSourceEventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(streamId, fromPosition, toPosition, batchSize)).thenReturn(Stream.of(linkedEvent));
+
+        final List<LinkedEvent> envelopes = defaultPublishedEventSource.pollStreamEvents(streamId, fromPosition, toPosition, batchSize)
+                .toList();
+
+        assertThat(envelopes.size(), is(1));
+        assertThat(envelopes.get(0), is(linkedEvent));
+    }
 }

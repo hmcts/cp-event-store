@@ -266,4 +266,6 @@ public class EventJdbcRepositoryIT {
         final Long deletedStreamLatestSequenceId = jdbcRepository.getStreamSize(STREAM_ID);
         assertThat(deletedStreamLatestSequenceId, equalTo(0L));
     }
+
+
 }

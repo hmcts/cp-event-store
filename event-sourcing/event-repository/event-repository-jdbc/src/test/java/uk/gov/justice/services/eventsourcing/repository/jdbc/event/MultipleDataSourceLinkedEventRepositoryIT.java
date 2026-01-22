@@ -16,6 +16,7 @@ import static uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventS
 import static uk.gov.justice.services.test.utils.events.EventBuilder.eventBuilder;
 import static uk.gov.justice.services.test.utils.events.LinkedEventBuilder.linkedEventBuilder;
 
+import org.junit.jupiter.api.Nested;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.exception.InvalidPositionException;
 import uk.gov.justice.services.jdbc.persistence.JdbcResultSetStreamer;
@@ -417,6 +418,82 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
         final Stream<LinkedEvent> events = multipleDataSourceEventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(STREAM_ID, 3L, 7L, batchLimit);
         final List<LinkedEvent> eventList = events.collect(toList());
         assertThat(eventList, hasSize(0));
+    }
+
+    @Nested
+    class FindNextEventInTheStreamAfterPositionTest {
+
+        @Test
+        public void shouldReturnNextEventAfterGivenPositionInStream() throws Exception {
+            final UUID streamId1 = randomUUID();
+            final UUID streamId2 = randomUUID();
+
+            final LinkedEvent event_1 = linkedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).withStreamId(streamId1).withPositionInStream(1L).build();
+            final LinkedEvent event_2 = linkedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).withStreamId(streamId1).withPositionInStream(2L).build();
+            final LinkedEvent event_3 = linkedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).withStreamId(streamId1).withPositionInStream(4L).build();
+            final LinkedEvent event_4 = linkedEventBuilder().withPreviousEventNumber(2).withEventNumber(3).withStreamId(streamId2).withPositionInStream(1L).build();
+            final LinkedEvent event_5 = linkedEventBuilder().withPreviousEventNumber(3).withEventNumber(4).withStreamId(streamId2).withPositionInStream(2L).build();
+
+            final Connection connection = dataSource.getConnection();
+
+            insertLinkedEvent(event_1, connection);
+            insertLinkedEvent(event_2, connection);
+            insertLinkedEvent(event_3, connection);
+            insertLinkedEvent(event_4, connection);
+            insertLinkedEvent(event_5, connection);
+
+            final Optional<LinkedEvent> nextEvent1 = multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId1, 1L);
+
+            assertTrue(nextEvent1.isPresent());
+            assertThat(nextEvent1.get().getId(), is(event_2.getId()));
+            assertThat(nextEvent1.get().getStreamId(), is(streamId1));
+            assertThat(nextEvent1.get().getPositionInStream(), is(2L));
+
+            final Optional<LinkedEvent> nextEvent2 = multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId1, 2L);
+
+            assertTrue(nextEvent2.isPresent());
+            assertThat(nextEvent2.get().getId(), is(event_3.getId()));
+            assertThat(nextEvent2.get().getStreamId(), is(streamId1));
+            assertThat(nextEvent2.get().getPositionInStream(), is(4L));
+        }
+
+        @Test
+        public void shouldReturnEmptyWhenNoEventFoundAfterPosition() throws Exception {
+
+            final UUID streamId = randomUUID();
+
+            final LinkedEvent event_1 = linkedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).withStreamId(streamId).withPositionInStream(1L).build();
+            final LinkedEvent event_2 = linkedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).withStreamId(streamId).withPositionInStream(2L).build();
+            final LinkedEvent event_3 = linkedEventBuilder().withPreviousEventNumber(2).withEventNumber(3).withStreamId(streamId).withPositionInStream(3L).build();
+
+            final Connection connection = dataSource.getConnection();
+
+            insertLinkedEvent(event_1, connection);
+            insertLinkedEvent(event_2, connection);
+            insertLinkedEvent(event_3, connection);
+
+            final Optional<LinkedEvent> nextEvent = multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId, 3L);
+
+            assertFalse(nextEvent.isPresent());
+        }
+
+        @Test
+        public void shouldReturnEmptyWhenStreamDoesNotExist() throws Exception {
+            final UUID streamId = randomUUID();
+            final UUID differentStreamId = randomUUID();
+
+            final LinkedEvent event_1 = linkedEventBuilder().withPreviousEventNumber(0).withEventNumber(1).withStreamId(differentStreamId).withPositionInStream(1L).build();
+            final LinkedEvent event_2 = linkedEventBuilder().withPreviousEventNumber(1).withEventNumber(2).withStreamId(differentStreamId).withPositionInStream(2L).build();
+
+            final Connection connection = dataSource.getConnection();
+
+            insertLinkedEvent(event_1, connection);
+            insertLinkedEvent(event_2, connection);
+
+            final Optional<LinkedEvent> nextEvent = multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId, 1L);
+
+            assertFalse(nextEvent.isPresent());
+        }
     }
 
     private void insertLinkedEvent(final LinkedEvent linkedEvent, final Connection connection) throws SQLException {

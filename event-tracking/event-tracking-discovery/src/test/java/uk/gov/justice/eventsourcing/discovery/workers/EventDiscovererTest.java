@@ -5,14 +5,11 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import uk.gov.justice.eventsourcing.discovery.EventDiscoveryException;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
 import uk.gov.justice.eventsourcing.discovery.subscription.SourceComponentPair;
@@ -95,7 +92,7 @@ public class EventDiscovererTest {
     }
 
     @Test
-    public void shouldThrowEventDiscoveryExceptionIfNoEventSubscriptionStatusFoundForSourceComponent() throws Exception {
+    public void shouldDoNothingNoEventSubscriptionStatusFoundForSourceComponent() throws Exception {
 
         final String source = "some-source";
         final String component = "some-component";
@@ -105,10 +102,8 @@ public class EventDiscovererTest {
 
         when(eventSubscriptionStatusRepository.findBy(source, component)).thenReturn(empty());
 
-        final EventDiscoveryException eventDiscoveryException = assertThrows(
-                EventDiscoveryException.class,
-                () -> eventDiscoverer.runEventDiscoveryForSourceComponentPair(sourceComponentPair));
+        eventDiscoverer.runEventDiscoveryForSourceComponentPair(sourceComponentPair);
 
-        assertThat(eventDiscoveryException.getMessage(), is("Failed to run event discovery. No EventSubscriptionStatus found for source 'some-source' component 'some-component'"));
+        verifyNoInteractions(eventSubscriptionDiscoveryBean);
     }
 }

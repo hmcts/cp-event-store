@@ -60,29 +60,20 @@ public class StreamEventProcessor {
     public boolean processSingleEvent(final String source, final String component) {
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
 
-        final Optional<LockedStreamStatus> lockedStreamStatus;
-        try {
-            transactionHandler.begin(userTransaction);
-            lockedStreamStatus = streamSelector.findStreamToProcess(source, component);
-        } catch (final Exception e) {
-            transactionHandler.rollback(userTransaction);
-            throw new StreamProcessingException(format("Failed to find stream to process, source: '%s', component: '%s'", source, component), e);
-        }
+        transactionHandler.begin(userTransaction);
 
-        if (lockedStreamStatus.isPresent()) {
-            JsonEnvelope eventJsonEnvelope = null;
-            final long currentPosition = lockedStreamStatus.get().position();
-            final long latestKnownPosition = lockedStreamStatus.get().latestKnownPosition();
-            final UUID streamId = lockedStreamStatus.get().streamId();
-            String eventName = null;
-            UUID eventId = null;
+        Optional<PulledEvent> pulledEvent = pullEventToProcess(source, component);
+
+        if (pulledEvent.isPresent()) {
+            final JsonEnvelope eventJsonEnvelope = pulledEvent.get().jsonEnvelope();
+            final LockedStreamStatus lockedStreamStatus = pulledEvent.get().lockedStreamStatus();
+            final UUID streamId = lockedStreamStatus.streamId();
+            final long latestKnownPosition = lockedStreamStatus.latestKnownPosition();
+            final long streamCurrentPosition = lockedStreamStatus.position();
+            final Metadata metadata = eventJsonEnvelope.metadata();
 
             try {
-                eventJsonEnvelope = findNextEventInTheStreamAfterPosition(source, streamId, currentPosition);
-                final Metadata metadata = eventJsonEnvelope.metadata();
-                eventName = metadata.name();
-                eventId = metadata.id();
-                final Long eventPositionInStream = metadata.position().orElseThrow(() -> new MissingPositionInStreamException(format("No position found in event: name '%s', eventId '%s'", metadata.name(), metadata.id())));
+                final long eventPositionInStream = metadata.position().orElseThrow(() -> new MissingPositionInStreamException(format("No position found in event: name '%s', eventId '%s'", metadata.name(), metadata.id())));
 
                 final InterceptorChainProcessor interceptorChainProcessor = interceptorChainProcessorProducer.produceLocalProcessor(component);
                 final InterceptorContext interceptorContext = interceptorContextProvider.getInterceptorContext(eventJsonEnvelope);
@@ -103,23 +94,66 @@ public class StreamEventProcessor {
             } catch (final Exception e) {
                 transactionHandler.rollback(userTransaction);
                 micrometerMetricsCounters.incrementEventsFailedCount(source, component);
-                streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, component, currentPosition);
-                throw new StreamProcessingException(format("Failed to process event. name: '%s', eventId: '%s', streamId: '%s'", eventName, eventId, streamId), e);
+                streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, component, streamCurrentPosition);
+                throw new StreamProcessingException(format("Failed to process event. name: '%s', eventId: '%s', streamId: '%s'", metadata.name(), metadata.id(), streamId), e);
             }
         } else {
-            try {
-                transactionHandler.commit(userTransaction);
-            } catch (final Exception e) {
-                transactionHandler.rollback(userTransaction);
-            }
+            commitWithFallBackToRollback();
             return false;
         }
     }
 
-    private JsonEnvelope findNextEventInTheStreamAfterPosition(final String source, final UUID streamId, final long position) {
-        final LinkedEventSource linkedEventSource = linkedEventSourceProvider.getLinkedEventSource(source);
-        Optional<LinkedEvent> linkedEvent = linkedEventSource.findNextEventInTheStreamAfterPosition(streamId, position);
-        return linkedEvent.map(eventConverter::envelopeOf).orElseThrow(() -> new StreamProcessingException(
-                format("Failed to find event to process, streamId: '%s', position: '%d'", streamId, position)));
+    private void commitWithFallBackToRollback() {
+        try {
+            transactionHandler.commit(userTransaction);
+        } catch (final Exception e) {
+            transactionHandler.rollback(userTransaction);
+        }
+    }
+
+    private Optional<PulledEvent> pullEventToProcess(final String source, final String component) {
+        final Optional<LockedStreamStatus> lockedStreamStatus;
+        try {
+            lockedStreamStatus = streamSelector.findStreamToProcess(source, component);
+        } catch (final Exception e) {
+            transactionHandler.rollback(userTransaction);
+            throw new StreamProcessingException(format("Failed to find stream to process, source: '%s', component: '%s'", source, component), e);
+        }
+
+        if (lockedStreamStatus.isPresent()) {
+            final JsonEnvelope eventJsonEnvelope =  findNextEventInTheStreamAfterPosition(source, component, lockedStreamStatus.get());
+            return Optional.of(new PulledEvent(eventJsonEnvelope, lockedStreamStatus.get()));
+        }
+
+        return Optional.empty();
+    }
+
+    private JsonEnvelope findNextEventInTheStreamAfterPosition(final String source, final String component, final LockedStreamStatus lockedStreamStatus) {
+        final Optional<JsonEnvelope> eventJsonEnvelope;
+        final UUID streamId = lockedStreamStatus.streamId();
+        final Long position = lockedStreamStatus.position();
+        final Long latestKnownPosition = lockedStreamStatus.latestKnownPosition();
+
+        try {
+            final LinkedEventSource linkedEventSource = linkedEventSourceProvider.getLinkedEventSource(source);
+            Optional<LinkedEvent> linkedEvent = linkedEventSource.findNextEventInTheStreamAfterPosition(streamId, position);
+            eventJsonEnvelope = linkedEvent.map(eventConverter::envelopeOf);
+        } catch (Exception e) {
+            micrometerMetricsCounters.incrementEventsFailedCount(source, component);
+            transactionHandler.rollback(userTransaction);
+            throw new StreamProcessingException(
+                    format("Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d", streamId, position, latestKnownPosition));
+        }
+
+        //TODO revisit this later to understand the requirement on whether to mark the stream as failed if this ever happens, but with current db schema without an event stream can not be marked as error
+        return eventJsonEnvelope.orElseThrow(() -> {
+            micrometerMetricsCounters.incrementEventsFailedCount(source, component);
+            transactionHandler.rollback(userTransaction);
+            throw new StreamProcessingException(
+                    format("Unable to find next event to process for streamId: '%s', position: %d, latestKnownPosition: %d", streamId, position, latestKnownPosition));
+        });
+    }
+
+    private record PulledEvent(JsonEnvelope jsonEnvelope, LockedStreamStatus lockedStreamStatus) {
     }
 }

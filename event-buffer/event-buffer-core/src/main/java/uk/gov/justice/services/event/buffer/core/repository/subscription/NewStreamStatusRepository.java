@@ -1,16 +1,5 @@
 package uk.gov.justice.services.event.buffer.core.repository.subscription;
 
-import static java.lang.String.format;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
-import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
-import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
-
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
-import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,9 +10,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
+import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
+
+import static java.lang.String.format;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
+import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 @SuppressWarnings("java:S1192")
 public class NewStreamStatusRepository {
@@ -57,6 +55,20 @@ public class NewStreamStatusRepository {
                 WHERE stream_id = ?
                 AND source = ?
                 AND component = ?
+            """;
+    private static final String SELECT_OLDEST_HEALTHY_STREAM_SQL = """
+                SELECT
+                    stream_id,
+                    position,
+                    latest_known_position
+                FROM stream_status
+                WHERE source = ?
+                  AND component = ?
+                  AND stream_error_id IS NULL
+                  AND position != latest_known_position
+                ORDER BY updated_at ASC
+                LIMIT 1
+                FOR UPDATE SKIP LOCKED
             """;
     private static final String FIND_ALL_SQL = """
                 SELECT
@@ -172,6 +184,35 @@ public class NewStreamStatusRepository {
         } catch (final SQLException e) {
             throw new StreamStatusException("Failed to find all from stream_status table", e);
         }
+    }
+
+    public Optional<LockedStreamStatus> findOldestStreamToProcessByAcquiringLock(final String source, final String component) {
+
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_OLDEST_HEALTHY_STREAM_SQL)) {
+
+            preparedStatement.setString(1, source);
+            preparedStatement.setString(2, component);
+
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+
+                if (resultSet.next()) {
+                    final UUID streamId = (UUID) resultSet.getObject("stream_id");
+                    final Long position = resultSet.getLong("position");
+                    final Long latestKnownPosition = resultSet.getLong("latest_known_position");
+                    return of(new LockedStreamStatus(streamId, position, latestKnownPosition));
+                }
+            }
+
+        } catch (final SQLException e) {
+            throw new StreamStatusException(format(
+                    "Failed to select stream to process from stream_status table; source '%s', component '%s",
+                    source,
+                    component),
+                    e);
+        }
+
+        return empty();
     }
 
     public StreamUpdateContext lockStreamAndGetStreamUpdateContext(final UUID streamId, final String source, final String componentName, final long incomingEventPosition) {

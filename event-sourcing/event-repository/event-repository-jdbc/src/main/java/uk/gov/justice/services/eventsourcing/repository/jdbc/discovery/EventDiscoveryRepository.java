@@ -1,6 +1,7 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.discovery;
 
 import static java.lang.String.format;
+import static javax.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 
@@ -13,32 +14,34 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.inject.Inject;
+import javax.transaction.Transactional;
 
 public class EventDiscoveryRepository {
 
     static final String GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_SQL = """
             SELECT
-             stream_id,
-             MAX(position_in_stream) AS max_position_in_stream
-           FROM event_log
-           WHERE event_number >
-             (SELECT event_number FROM event_log WHERE id = ?)
-           GROUP BY stream_id
-           LIMIT ?;
-           """;
+                stream_id,
+                MAX(position_in_stream) AS max_position_in_stream
+            FROM event_log
+            WHERE event_number >
+                (SELECT event_number FROM event_log WHERE id = ?)
+            GROUP BY stream_id
+            LIMIT ?;
+            """;
     static final String GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_FROM_EVENT_NUMBER_SQL = """
             SELECT
-             stream_id,
-             MAX(position_in_stream) AS max_position_in_stream
-           FROM event_log
-           WHERE event_number > ?
-           GROUP BY stream_id
-           LIMIT ?;
-           """;
+                stream_id,
+                MAX(position_in_stream) AS max_position_in_stream
+            FROM event_log
+            WHERE event_number > ?
+            GROUP BY stream_id
+            LIMIT ?;
+            """;
 
     @Inject
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
 
+    @Transactional(REQUIRED)
     public List<StreamPosition> getLatestStreamPositions(final Long eventNumber, final int batchSize) {
 
         try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
@@ -61,6 +64,8 @@ public class EventDiscoveryRepository {
             throw new EventStoreEventDiscoveryException(format("Failed to get latest stream positions for eventNumber '%d', batchSize '%d'", eventNumber, batchSize), e);
         }
     }
+
+    @Transactional(REQUIRED)
     public List<StreamPosition> getLatestStreamPositions(final UUID eventId, final int batchSize) {
 
         try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();

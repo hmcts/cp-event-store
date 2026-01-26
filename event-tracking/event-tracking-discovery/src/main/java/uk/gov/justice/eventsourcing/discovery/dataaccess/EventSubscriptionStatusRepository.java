@@ -44,6 +44,7 @@ public class EventSubscriptionStatusRepository {
                 FROM event_subscription_status
                 WHERE source = ?
                 AND component = ?
+                FOR UPDATE SKIP LOCKED
                 """;
     static final String FIND_ALL_SQL = """
                 SELECT

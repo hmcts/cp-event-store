@@ -2,7 +2,6 @@ package uk.gov.justice.eventsourcing.discovery.workers;
 
 import static java.lang.String.format;
 
-import uk.gov.justice.eventsourcing.discovery.EventDiscoveryException;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
 import uk.gov.justice.eventsourcing.discovery.subscription.SourceComponentPair;
@@ -35,21 +34,19 @@ public class EventDiscoverer {
 
         final String source = sourceComponentPair.source();
         final String component = sourceComponentPair.component();
-        logger.info(format("Running event discovery for source '%s' component '%s'", source, component));
         final Optional<EventSubscriptionStatus> eventSubscriptionStatusOptional = eventSubscriptionStatusRepository.findBy(
                 source,
                 component);
 
         if (eventSubscriptionStatusOptional.isPresent()) {
+            logger.info(format("Running event discovery for source '%s' component '%s'", source, component));
             final EventSubscriptionStatus eventSubscriptionStatus = eventSubscriptionStatusOptional.get();
 
             final Optional<UUID> latestKnownEventId = eventSubscriptionStatus.latestEventId();
 
             eventSubscriptionDiscoveryBean.discoverNewEvents(latestKnownEventId)
                     .forEach(streamPosition -> runDiscoveryFor(streamPosition, source, component));
-        } else {
-            throw new EventDiscoveryException(format("Failed to run event discovery. No EventSubscriptionStatus found for source '%s' component '%s'", source, component));
-        }
+        } 
     }
 
     private void runDiscoveryFor(final StreamPosition streamPosition, final String source, final String component) {

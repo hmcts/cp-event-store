@@ -122,4 +122,31 @@ public class DefaultLinkedEventSourceTest {
         assertThat(envelopes.size(), is(1));
         assertThat(envelopes.get(0), is(linkedEvent));
     }
+
+    @Test
+    public void findNextEventInTheStreamAfterPositionShouldReturnEvent() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final Long position = 5L;
+        final Optional<LinkedEvent> linkedEvent = of(mock(LinkedEvent.class));
+
+        when(multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId, position)).thenReturn(linkedEvent);
+
+        final Optional<LinkedEvent> fetchedEvent = defaultPublishedEventSource.findNextEventInTheStreamAfterPosition(streamId, position);
+
+        assertThat(fetchedEvent, is(linkedEvent));
+    }
+
+    @Test
+    public void findNextEventInTheStreamAfterPositionShouldReturnEmptyWhenNoEventFound() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final Long position = 10L;
+
+        when(multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId, position)).thenReturn(empty());
+
+        final Optional<LinkedEvent> fetchedEvent = defaultPublishedEventSource.findNextEventInTheStreamAfterPosition(streamId, position);
+
+        assertThat(fetchedEvent, is(empty()));
+    }
 }

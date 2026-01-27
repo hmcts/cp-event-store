@@ -68,7 +68,7 @@ public class NewStreamStatusRepository {
                   AND position != latest_known_position
                 ORDER BY updated_at ASC
                 LIMIT 1
-                FOR NO KEY UPDATE SKIP LOCKED
+                FOR UPDATE SKIP LOCKED
             """;
     private static final String FIND_ALL_SQL = """
                 SELECT

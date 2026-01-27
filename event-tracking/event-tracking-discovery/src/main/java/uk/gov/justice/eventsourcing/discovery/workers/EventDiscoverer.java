@@ -1,20 +1,17 @@
 package uk.gov.justice.eventsourcing.discovery.workers;
 
-import static java.lang.String.format;
-
+import java.util.Optional;
+import java.util.UUID;
+import javax.inject.Inject;
+import org.slf4j.Logger;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
-import uk.gov.justice.eventsourcing.discovery.subscription.SourceComponentPair;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoveryBean;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
+import uk.gov.justice.subscription.SourceComponentPair;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import javax.inject.Inject;
-
-import org.slf4j.Logger;
+import static java.lang.String.format;
 
 public class EventDiscoverer {
 

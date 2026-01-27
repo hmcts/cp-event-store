@@ -1,18 +1,17 @@
 package uk.gov.justice.eventsourcing.discovery.workers;
 
-import static java.util.Arrays.asList;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import uk.gov.justice.eventsourcing.discovery.subscription.SourceComponentPair;
-import uk.gov.justice.eventsourcing.discovery.subscription.SubscriptionSourceComponentFinder;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.subscription.SourceComponentPair;
+import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
+
+import static java.util.Arrays.asList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class EventDiscoveryWorkerTest {

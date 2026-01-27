@@ -1,11 +1,9 @@
 package uk.gov.justice.eventsourcing.discovery.workers;
 
-import uk.gov.justice.eventsourcing.discovery.subscription.SourceComponentPair;
-import uk.gov.justice.eventsourcing.discovery.subscription.SubscriptionSourceComponentFinder;
-
 import java.util.List;
-
 import javax.inject.Inject;
+import uk.gov.justice.subscription.SourceComponentPair;
+import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 public class EventDiscoveryWorker {
 

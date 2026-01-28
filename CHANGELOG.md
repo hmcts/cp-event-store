@@ -11,6 +11,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 - Discovery in event store will return the latest positions for streams 
 - New JNDI value `event.discovery.timer.interval.milliseconds` that defines how often the new TimerBean runs
 - New Wildfly extension `EventDiscoveryBootstrapWildflyExtension` that will prime the `event_subscription_status` table
+### Changed
+- No events written to processed_event table if the new pull mechanism is running. Controlled by JNDI value `events.publishing.process.events.from.event.topic` set to false  
+
 
 # [17.104.0] - 2025-12-16
 ### Added

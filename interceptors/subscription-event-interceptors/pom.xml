@@ -26,6 +26,10 @@
             <artifactId>utilities-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>uk.gov.justice.services</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>uk.gov.justice.event-store</groupId>
             <artifactId>event-tracking-service</artifactId>
             <version>${project.version}</version>

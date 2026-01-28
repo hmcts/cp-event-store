@@ -1,5 +1,19 @@
 package uk.gov.justice.eventsourcing.discovery.workers;
 
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
+import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
+import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
+import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoveryBean;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
+import uk.gov.justice.subscription.SourceComponentPair;
+
 import static java.util.Arrays.asList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -9,22 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-
-import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
-import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
-import uk.gov.justice.eventsourcing.discovery.subscription.SourceComponentPair;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
-import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoveryBean;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
-
-import java.util.UUID;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.Logger;
 
 @ExtendWith(MockitoExtension.class)
 public class EventDiscovererTest {

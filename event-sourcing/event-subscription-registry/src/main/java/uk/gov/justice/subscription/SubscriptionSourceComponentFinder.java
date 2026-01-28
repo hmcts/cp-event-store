@@ -1,15 +1,13 @@
-package uk.gov.justice.eventsourcing.discovery.subscription;
+package uk.gov.justice.subscription;
 
+import java.util.ArrayList;
+import java.util.List;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import uk.gov.justice.services.common.util.LazyValue;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Subscription;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.SubscriptionsDescriptor;
 import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class SubscriptionSourceComponentFinder {

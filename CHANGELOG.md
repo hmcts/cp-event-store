@@ -5,6 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.105.0-M1] - 2026-01-29
 ### Added
 - New table `event_subscription_status` that will contain the latest events for each source/component pair
 - New Timer Bean 'EventDiscoveryTimerBean' that kicks of the discovery process
@@ -13,7 +14,6 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 - New Wildfly extension `EventDiscoveryBootstrapWildflyExtension` that will prime the `event_subscription_status` table
 ### Changed
 - No events written to processed_event table if the new pull mechanism is running. Controlled by JNDI value `events.publishing.process.events.from.event.topic` set to false  
-
 
 # [17.104.0] - 2025-12-16
 ### Added

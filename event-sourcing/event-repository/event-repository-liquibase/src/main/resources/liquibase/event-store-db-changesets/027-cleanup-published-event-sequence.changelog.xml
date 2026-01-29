@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.3.xsd">
+
+    <changeSet
+            id="event-store-027"
+            author="TechPod"
+            logicalFilePath="027-cleanup-published-event-sequence.changelog.xml">
+
+        <comment>Using sql rather than the drop tags, so we can use 'IF EXISTS'</comment>
+        <sql>DROP TABLE IF EXISTS published_event</sql>
+        <sql>DROP TABLE IF EXISTS pre_publish_queue</sql>
+        <sql>DROP SEQUENCE IF EXISTS event_sequence_seq</sql>
+    </changeSet>
+</databaseChangeLog>

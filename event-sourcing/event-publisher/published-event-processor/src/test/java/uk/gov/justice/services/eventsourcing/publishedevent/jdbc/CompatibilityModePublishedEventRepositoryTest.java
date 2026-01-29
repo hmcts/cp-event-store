@@ -13,8 +13,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository.FIND_ALL_SQL;
-import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository.INSERT_INTO_PUBLISHED_EVENT_SQL;
-import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository.SET_EVENT_NUMBER_SEQUENCE_SQL;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
@@ -47,68 +45,6 @@ public class CompatibilityModePublishedEventRepositoryTest {
 
     @InjectMocks
     private CompatibilityModePublishedEventRepository compatibilityModePublishedEventRepository;
-
-    @Test
-    public void shouldInsertJsonEnvelopeIntoDatabase() throws Exception {
-
-        final UUID eventId = randomUUID();
-        final Long eventNumber = 23L;
-        final Long previousEventNumber = 22L;
-
-
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(INSERT_INTO_PUBLISHED_EVENT_SQL)).thenReturn(preparedStatement);
-
-        compatibilityModePublishedEventRepository.insertIntoPublishedEvent(eventId, eventNumber, previousEventNumber);
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-        inOrder.verify(preparedStatement).setLong(1, eventNumber);
-        inOrder.verify(preparedStatement).setLong(2, previousEventNumber);
-        inOrder.verify(preparedStatement).setObject(3, eventId);
-        inOrder.verify(preparedStatement).executeUpdate();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
-    @Test
-    public void shouldThrowEventPublishingExceptionIfInsertingJsonEnvelopeIntoDatabaseFails() throws Exception {
-
-        final UUID eventId = fromString("c2e78414-a19b-455d-9288-6638f23958a0");
-        final Long eventNumber = 23L;
-        final Long previousEventNumber = 22L;
-
-        final SQLException sqlException = new SQLException("Ooops");
-
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(INSERT_INTO_PUBLISHED_EVENT_SQL)).thenReturn(preparedStatement);
-        doThrow(sqlException).when(preparedStatement).executeUpdate();
-
-        final EventPublishingException eventPublishingException = assertThrows(
-                EventPublishingException.class,
-                () -> compatibilityModePublishedEventRepository.insertIntoPublishedEvent(eventId, eventNumber, previousEventNumber));
-
-        assertThat(eventPublishingException.getCause(), is(sqlException));
-        assertThat(eventPublishingException.getMessage(), is("Failed to insert JsonEnvelope with id 'c2e78414-a19b-455d-9288-6638f23958a0' into published_event table"));
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-        inOrder.verify(preparedStatement).setLong(1, eventNumber);
-        inOrder.verify(preparedStatement).setLong(2, previousEventNumber);
-        inOrder.verify(preparedStatement).setObject(3, eventId);
-        inOrder.verify(preparedStatement).executeUpdate();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
 
     @Test
     public void shouldFindAllEventsInEventLogTable() throws Exception {
@@ -194,62 +130,6 @@ public class CompatibilityModePublishedEventRepositoryTest {
         final InOrder inOrder = inOrder(resultSet, preparedStatement, connection);
 
         inOrder.verify(resultSet).close();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
-    @Test
-    public void shouldSetTheEventNumberDatabaseSequence() throws Exception {
-
-        final long eventNumber = 23L;
-
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(SET_EVENT_NUMBER_SEQUENCE_SQL)).thenReturn(preparedStatement);
-
-        compatibilityModePublishedEventRepository.setEventNumberSequenceTo(eventNumber);
-
-        final InOrder inOrder = inOrder(connection, preparedStatement);
-
-        inOrder.verify(connection).prepareStatement(SET_EVENT_NUMBER_SEQUENCE_SQL);
-        inOrder.verify(preparedStatement).setLong(1, eventNumber);
-        inOrder.verify(preparedStatement).execute();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
-    @Test
-    public void shouldThrowEventPublishingExceptionIfSettingTheEventNumberDatabaseSequenceFails() throws Exception {
-
-        final long eventNumber = 23L;
-        final SQLException sqlException = new SQLException("Ooops");
-
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-
-        final String sql = format(SET_EVENT_NUMBER_SEQUENCE_SQL, eventNumber);
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(sql)).thenReturn(preparedStatement);
-        doThrow(sqlException).when(preparedStatement).execute();
-
-        final EventPublishingException eventPublishingException = assertThrows(
-                EventPublishingException.class,
-                () -> compatibilityModePublishedEventRepository.setEventNumberSequenceTo(eventNumber));
-
-        assertThat(eventPublishingException.getCause(), is(sqlException));
-        assertThat(eventPublishingException.getMessage(), is("Failed to set event number sequence 'event_sequence_seq' to 23"));
-
-        final InOrder inOrder = inOrder(connection, preparedStatement);
-
-        inOrder.verify(connection).prepareStatement(sql);
-        inOrder.verify(preparedStatement).execute();
         inOrder.verify(preparedStatement).close();
         inOrder.verify(connection).close();
     }

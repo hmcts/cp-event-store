@@ -3,7 +3,6 @@ package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 import javax.inject.Inject;
 import uk.gov.justice.services.common.configuration.Value;
 
-import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 
@@ -24,10 +23,6 @@ public class EventLinkingWorkerConfig {
     private String timeBetweenRunsMilliseconds;
 
     @Inject
-    @Value(key = "event.publishing.add.event.to.published.event.table.on.publish", defaultValue = "true")
-    private String insertEventIntoPublishedEventTable;
-
-    @Inject
     @Value(key = "event.linking.worker.transaction.timeout.seconds", defaultValue = DEFAULT_TIMEOUT_SECONDS)
     private String transactionTimeoutSeconds;
 
@@ -45,10 +40,6 @@ public class EventLinkingWorkerConfig {
 
     public long getTimeBetweenRunsMilliseconds() {
         return parseLong(timeBetweenRunsMilliseconds);
-    }
-
-    public boolean shouldAlsoInsertEventIntoPublishedEventTable() {
-        return parseBoolean(insertEventIntoPublishedEventTable);
     }
 
     public int getTransactionTimeoutSeconds() {

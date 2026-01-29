@@ -16,7 +16,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
-import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventPublishingRepository;
 import uk.gov.justice.services.eventsourcing.publisher.jms.EventPublisher;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -42,9 +41,6 @@ public class LinkedEventPublisherTest {
 
     @Mock
     private LinkedJsonEnvelopeCreator linkedJsonEnvelopeCreator;
-
-    @Mock
-    private CompatibilityModePublishedEventRepository compatibilityModePublishedEventRepository;
 
     @InjectMocks
     private LinkedEventPublisher linkedEventPublisher;
@@ -85,8 +81,7 @@ public class LinkedEventPublisherTest {
 
         final InOrder inOrder = inOrder(
                 eventPublisher,
-                eventPublishingRepository,
-                compatibilityModePublishedEventRepository);
+                eventPublishingRepository);
 
         inOrder.verify(eventPublisher).publish(linkedJsonEnvelope);
         inOrder.verify(eventPublishingRepository).setIsPublishedFlag(eventId, true);
@@ -101,7 +96,6 @@ public class LinkedEventPublisherTest {
 
         verifyNoMoreInteractions(eventPublishingRepository);
         verifyNoInteractions(eventPublisher);
-        verifyNoInteractions(compatibilityModePublishedEventRepository);
     }
 
     @Test
@@ -119,6 +113,5 @@ public class LinkedEventPublisherTest {
         assertThat(eventPublishingException.getMessage(), is("Failed to find LinkedEvent in event_log with id '933248cd-a5d4-417c-b28c-709ab009ab50' when id exists in publish_queue table"));
 
         verify(eventPublishingRepository, never()).setIsPublishedFlag(eventId, true);
-        verifyNoInteractions(compatibilityModePublishedEventRepository);
     }
 }

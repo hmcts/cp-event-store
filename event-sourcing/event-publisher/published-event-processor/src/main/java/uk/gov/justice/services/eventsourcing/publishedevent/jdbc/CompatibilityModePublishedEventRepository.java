@@ -1,18 +1,12 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
-import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 import static javax.transaction.Transactional.TxType.MANDATORY;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
 
-import uk.gov.justice.services.common.converter.ZonedDateTimes;
 import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MissingEventNumberException;
-import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
-import uk.gov.justice.services.messaging.JsonEnvelope;
-import uk.gov.justice.services.messaging.Metadata;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -29,31 +23,6 @@ import javax.transaction.Transactional;
 
 public class CompatibilityModePublishedEventRepository {
 
-    final static String INSERT_INTO_PUBLISHED_EVENT_SQL = """
-                INSERT INTO published_event (
-                    id,
-                    stream_id,
-                    position_in_stream,
-                    name,
-                    payload,
-                    metadata,
-                    date_created,
-                    event_number,
-                    previous_event_number) 
-                    (SELECT id,
-                        stream_id,
-                        position_in_stream,
-                        name,
-                        payload,
-                        jsonb_set(
-                                jsonb_set(metadata::jsonb ||  '{"event": {}}'::jsonb, '{event,eventNumber}', to_jsonb(?), true),
-                                '{event,previousEventNumber}', to_jsonb(?), true
-                            ),
-                        date_created,
-                        event_number,
-                        previous_event_number FROM event_log WHERE id=?)
-                """;
-
     final static String FIND_ALL_SQL = """
                 SELECT
                     id,
@@ -67,38 +36,9 @@ public class CompatibilityModePublishedEventRepository {
                     previous_event_number
                 FROM PUBLISHED_EVENT
                 """;
-    static final String SET_EVENT_NUMBER_SEQUENCE_SQL = """
-        SELECT setval('event_sequence_seq', ?);
-        """;
 
     @Inject
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
-
-    @Transactional(MANDATORY)
-    public void insertIntoPublishedEvent(final UUID eventId, final Long eventNumber, final Long previousEventNumber) {
-
-        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(INSERT_INTO_PUBLISHED_EVENT_SQL)) {
-            preparedStatement.setLong(1, eventNumber);
-            preparedStatement.setLong(2, previousEventNumber);
-            preparedStatement.setObject(3, eventId);
-            preparedStatement.executeUpdate();
-
-        } catch (final SQLException e) {
-            throw new EventPublishingException(format("Failed to insert JsonEnvelope with id '%s' into published_event table", eventId), e);
-        }
-    }
-
-    @Transactional(MANDATORY)
-    public void setEventNumberSequenceTo(final Long eventNumber) {
-        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(SET_EVENT_NUMBER_SEQUENCE_SQL)) {
-            preparedStatement.setLong(1,eventNumber);
-            preparedStatement.execute();
-        } catch (final SQLException e) {
-            throw new EventPublishingException(format("Failed to set event number sequence 'event_sequence_seq' to %d", eventNumber), e);
-        }
-    }
 
     @Transactional(MANDATORY)
     public List<LinkedEvent> findAll() {

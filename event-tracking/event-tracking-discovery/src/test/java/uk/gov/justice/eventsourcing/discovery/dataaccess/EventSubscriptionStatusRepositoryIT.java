@@ -56,14 +56,12 @@ public class EventSubscriptionStatusRepositoryIT {
                 source_1,
                 component_1,
                 of(randomUUID()),
-                23L,
                 new UtcClock().now()
                 );
         final EventSubscriptionStatus eventSubscriptionStatus_2 = new EventSubscriptionStatus(
                 source_2,
                 component_2,
                 of(randomUUID()),
-                234L,
                 new UtcClock().now()
                 );
 
@@ -82,13 +80,10 @@ public class EventSubscriptionStatusRepositoryIT {
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(frameworkTestDataSourceFactory.createViewStoreDataSource());
 
-        final long firstLatestKnownPosition = 23L;
-        final long updatedLatestKnownPosition = 27L;
         final EventSubscriptionStatus eventSubscriptionStatus = new EventSubscriptionStatus(
                 "some-source",
                 "some-component",
                 of(randomUUID()),
-                firstLatestKnownPosition,
                 new UtcClock().now().minusMinutes(2)
         );
 
@@ -104,7 +99,6 @@ public class EventSubscriptionStatusRepositoryIT {
                 eventSubscriptionStatus.source(),
                 eventSubscriptionStatus.component(),
                 eventSubscriptionStatus.latestEventId(),
-                updatedLatestKnownPosition,
                 new UtcClock().now()
         );
 
@@ -125,21 +119,18 @@ public class EventSubscriptionStatusRepositoryIT {
                 "some-source_1",
                 "some-component_1",
                 of(randomUUID()),
-                23L,
                 new UtcClock().now().minusMinutes(5)
         );
         final EventSubscriptionStatus eventSubscriptionStatus_2 = new EventSubscriptionStatus(
                 "some-source_2",
                 "some-component_2",
                 of(randomUUID()),
-                234L,
                 new UtcClock().now().minusMinutes(2)
         );
         final EventSubscriptionStatus eventSubscriptionStatus_3 = new EventSubscriptionStatus(
                 "some-source_3",
                 "some-component_3",
                 of(randomUUID()),
-                897L,
                 new UtcClock().now().minusMinutes(1)
         );
 
@@ -178,7 +169,6 @@ public class EventSubscriptionStatusRepositoryIT {
         if (eventSubscriptionStatus.isPresent()) {
             assertThat(eventSubscriptionStatus.get().source(), is(source));
             assertThat(eventSubscriptionStatus.get().component(), is(component));
-            assertThat(eventSubscriptionStatus.get().latestKnownPosition(), is(-1L));
             assertThat(eventSubscriptionStatus.get().latestEventId(), is(empty()));
             assertThat(eventSubscriptionStatus.get().updatedAt(), is(updatedAt));
         } else {

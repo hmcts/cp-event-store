@@ -56,7 +56,6 @@ public class EventSubscriptionStatusRepositoryTest {
                 "some-source",
                 "some-component",
                 of(latestEventId),
-                23L,
                 new UtcClock().now()
         );
 
@@ -75,8 +74,7 @@ public class EventSubscriptionStatusRepositoryTest {
         inOrder.verify(preparedStatement).setString(1, eventSubscriptionStatus.source());
         inOrder.verify(preparedStatement).setString(2, eventSubscriptionStatus.component());
         inOrder.verify(preparedStatement).setObject(3, latestEventId);
-        inOrder.verify(preparedStatement).setLong(4, eventSubscriptionStatus.latestKnownPosition());
-        inOrder.verify(preparedStatement).setTimestamp(5, toSqlTimestamp(eventSubscriptionStatus.updatedAt()));
+        inOrder.verify(preparedStatement).setTimestamp(4, toSqlTimestamp(eventSubscriptionStatus.updatedAt()));
         inOrder.verify(preparedStatement).execute();
 
         inOrder.verify(preparedStatement).close();
@@ -92,7 +90,6 @@ public class EventSubscriptionStatusRepositoryTest {
                 "some-source",
                 "some-component",
                 of(latestEventId),
-                23L,
                 updatedAt
         );
         final SQLException sqlException = new SQLException("Ooops");
@@ -111,15 +108,14 @@ public class EventSubscriptionStatusRepositoryTest {
                 () -> eventSubscriptionStatusRepository.save(eventSubscriptionStatus));
 
         assertThat(eventDiscoveryException.getCause(), is(sqlException));
-        assertThat(eventDiscoveryException.getMessage(), is("Failed to upsert EventSubscriptionStatus[source=some-source, component=some-component, latestEventId=Optional[5246fb9c-ecde-4d1c-9cc4-09ec520ff1c3], latestKnownPosition=23, updatedAt=2026-01-02T11:22:46Z]"));
+        assertThat(eventDiscoveryException.getMessage(), is("Failed to upsert EventSubscriptionStatus[source=some-source, component=some-component, latestEventId=Optional[5246fb9c-ecde-4d1c-9cc4-09ec520ff1c3], updatedAt=2026-01-02T11:22:46Z]"));
 
         final InOrder inOrder = inOrder(preparedStatement, connection);
 
         inOrder.verify(preparedStatement).setString(1, eventSubscriptionStatus.source());
         inOrder.verify(preparedStatement).setString(2, eventSubscriptionStatus.component());
         inOrder.verify(preparedStatement).setObject(3, latestEventId);
-        inOrder.verify(preparedStatement).setLong(4, eventSubscriptionStatus.latestKnownPosition());
-        inOrder.verify(preparedStatement).setTimestamp(5, toSqlTimestamp(eventSubscriptionStatus.updatedAt()));
+        inOrder.verify(preparedStatement).setTimestamp(4, toSqlTimestamp(eventSubscriptionStatus.updatedAt()));
         inOrder.verify(preparedStatement).execute();
 
         inOrder.verify(preparedStatement).close();
@@ -132,7 +128,6 @@ public class EventSubscriptionStatusRepositoryTest {
         final String source = "some-source";
         final String component = "some-component";
         final UUID latestEventId = randomUUID();
-        final long latestKnownPosition = 23L;
         final ZonedDateTime updatedAt = new UtcClock().now();
         final Timestamp updatedAtTimestamp = toSqlTimestamp(updatedAt);
 
@@ -147,7 +142,6 @@ public class EventSubscriptionStatusRepositoryTest {
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
         when(resultSet.getObject("latest_event_id", UUID.class)).thenReturn(latestEventId);
-        when(resultSet.getLong("latest_known_position")).thenReturn(latestKnownPosition);
         when(resultSet.getTimestamp("updated_at")).thenReturn(updatedAtTimestamp);
 
         final Optional<EventSubscriptionStatus> eventSubscriptionStatus = eventSubscriptionStatusRepository.findBy(source, component);
@@ -235,14 +229,12 @@ public class EventSubscriptionStatusRepositoryTest {
                 "some-source_1",
                 "some-component_1",
                 of(randomUUID()),
-                23L,
                 new UtcClock().now().minusMinutes(2)
         );
         final EventSubscriptionStatus eventSubscriptionStatus_2 = new EventSubscriptionStatus(
                 "some-source_2",
                 "some-component_2",
                 of(randomUUID()),
-                25L,
                 new UtcClock().now()
         );
 
@@ -259,7 +251,6 @@ public class EventSubscriptionStatusRepositoryTest {
         when(resultSet.getString("source")).thenReturn(eventSubscriptionStatus_1.source(), eventSubscriptionStatus_2.source());
         when(resultSet.getString("component")).thenReturn(eventSubscriptionStatus_1.component(), eventSubscriptionStatus_2.component());
         when(resultSet.getObject("latest_event_id", UUID.class)).thenReturn(eventSubscriptionStatus_1.latestEventId().orElse(null), eventSubscriptionStatus_2.latestEventId().orElse(null));
-        when(resultSet.getLong("latest_known_position")).thenReturn(eventSubscriptionStatus_1.latestKnownPosition(), eventSubscriptionStatus_2.latestKnownPosition());
         when(resultSet.getTimestamp("updated_at")).thenReturn(toSqlTimestamp(eventSubscriptionStatus_1.updatedAt()), toSqlTimestamp(eventSubscriptionStatus_2.updatedAt()));
 
         final List<EventSubscriptionStatus> eventSubscriptionStatus = eventSubscriptionStatusRepository.findAll();
@@ -270,13 +261,11 @@ public class EventSubscriptionStatusRepositoryTest {
         assertThat(eventSubscriptionStatus.get(0).component(), is(eventSubscriptionStatus_1.component()));
         assertThat(eventSubscriptionStatus.get(0).latestEventId(), is(eventSubscriptionStatus_1.latestEventId()));
         assertThat(eventSubscriptionStatus.get(0).updatedAt(), is(eventSubscriptionStatus_1.updatedAt()));
-        assertThat(eventSubscriptionStatus.get(0).latestKnownPosition(), is(eventSubscriptionStatus_1.latestKnownPosition()));
 
         assertThat(eventSubscriptionStatus.get(1).source(), is(eventSubscriptionStatus_2.source()));
         assertThat(eventSubscriptionStatus.get(1).component(), is(eventSubscriptionStatus_2.component()));
         assertThat(eventSubscriptionStatus.get(1).latestEventId(), is(eventSubscriptionStatus_2.latestEventId()));
         assertThat(eventSubscriptionStatus.get(1).updatedAt(), is(eventSubscriptionStatus_2.updatedAt()));
-        assertThat(eventSubscriptionStatus.get(1).latestKnownPosition(), is(eventSubscriptionStatus_2.latestKnownPosition()));
 
         final InOrder inOrder = inOrder(preparedStatement, connection, resultSet);
 

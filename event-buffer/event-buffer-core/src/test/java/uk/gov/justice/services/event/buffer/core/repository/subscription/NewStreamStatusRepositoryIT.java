@@ -1,6 +1,7 @@
 package uk.gov.justice.services.event.buffer.core.repository.subscription;
 
 import java.sql.Connection;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import uk.gov.justice.services.common.converter.ZonedDateTimes;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
@@ -25,6 +28,7 @@ import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.TestJdbcDataSourceProvider;
 
+import static java.time.ZoneOffset.UTC;
 import static java.util.Optional.empty;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
@@ -152,7 +156,7 @@ public class NewStreamStatusRepositoryIT {
     }
 
     @Test
-    public void shouldUpdatePositionOfAStream() throws Exception {
+    public void shouldUpsertPositionOfAStream() throws Exception {
 
         final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
@@ -161,33 +165,41 @@ public class NewStreamStatusRepositoryIT {
 
         final String source = "some-source";
         final String componentName = "some-component-name";
-        final boolean upToDate = false;
-        final ZonedDateTime updatedAt = new UtcClock().now();
-        final long newPosition = 23L;
+        final long position = 23L;
+        final long newPosition = 24L;
 
         assertThat(newStreamStatusRepository.findAll().isEmpty(), is(true));
 
-        assertThat(newStreamStatusRepository.insertIfNotExists(
+        newStreamStatusRepository.upsertCurrentPosition(
                 streamId,
                 source,
                 componentName,
-                updatedAt,
-                upToDate), is(1));
+                position
+        );
 
-        final Optional<StreamStatus> streamStatus = newStreamStatusRepository.find(streamId, source, componentName);
+        final Optional<StreamStatus> streamStatus = newStreamStatusRepository.find(
+                streamId,
+                source,
+                componentName);
         assertThat(streamStatus.isPresent(), is(true));
-        assertThat(streamStatus.get().position(), is(0L));
+        assertThat(streamStatus.get().position(), is(position));
+        assertThat(streamStatus.get().updatedAt(), is(ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)));
 
-        newStreamStatusRepository.updateCurrentPosition(
+
+        newStreamStatusRepository.upsertCurrentPosition(
                 streamId,
                 source,
                 componentName,
                 newPosition
         );
 
-        final Optional<StreamStatus> updatedStreamStatus = newStreamStatusRepository.find(streamId, source, componentName);
+        final Optional<StreamStatus> updatedStreamStatus = newStreamStatusRepository.find(
+                streamId,
+                source,
+                componentName);
         assertThat(updatedStreamStatus.isPresent(), is(true));
         assertThat(updatedStreamStatus.get().position(), is(newPosition));
+        assertThat(updatedStreamStatus.get().updatedAt(), is(ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)));
     }
 
     @Test
@@ -368,10 +380,10 @@ public class NewStreamStatusRepositoryIT {
                     updatedAt1,
                     upToDate), is(1));
 
-            newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position1);
-            newStreamStatusRepository.updateCurrentPosition(streamId2, source, componentName, position2);
-            newStreamStatusRepository.updateCurrentPosition(streamId1, otherSource, componentName, position1);
-            newStreamStatusRepository.updateCurrentPosition(streamId1, source, otherComponentName, position1);
+            newStreamStatusRepository.upsertCurrentPosition(streamId1, source, componentName, position1);
+            newStreamStatusRepository.upsertCurrentPosition(streamId2, source, componentName, position2);
+            newStreamStatusRepository.upsertCurrentPosition(streamId1, otherSource, componentName, position1);
+            newStreamStatusRepository.upsertCurrentPosition(streamId1, source, otherComponentName, position1);
 
             newStreamStatusRepository.updateLatestKnownPosition(streamId1, source, componentName, latestKnownPosition1);
             newStreamStatusRepository.updateLatestKnownPosition(streamId2, source, componentName, latestKnownPosition2);
@@ -430,8 +442,8 @@ public class NewStreamStatusRepositoryIT {
                     updatedAt.minusDays(1),
                     upToDate), is(1));
 
-            newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position);
-            newStreamStatusRepository.updateCurrentPosition(streamId2, source, componentName, position);
+            newStreamStatusRepository.upsertCurrentPosition(streamId1, source, componentName, position);
+            newStreamStatusRepository.upsertCurrentPosition(streamId2, source, componentName, position);
             newStreamStatusRepository.updateLatestKnownPosition(streamId1, source, componentName, latestKnownPosition);
             newStreamStatusRepository.updateLatestKnownPosition(streamId2, source, componentName, latestKnownPosition);
 
@@ -520,8 +532,8 @@ public class NewStreamStatusRepositoryIT {
                     updatedAt,
                     upToDate), is(1));
 
-            newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position1);
-            newStreamStatusRepository.updateCurrentPosition(streamId2, source, componentName, position2);
+            newStreamStatusRepository.upsertCurrentPosition(streamId1, source, componentName, position1);
+            newStreamStatusRepository.upsertCurrentPosition(streamId2, source, componentName, position2);
             newStreamStatusRepository.updateLatestKnownPosition(streamId1, source, componentName, latestKnownPosition1);
             newStreamStatusRepository.updateLatestKnownPosition(streamId2, source, componentName, latestKnownPosition2);
 

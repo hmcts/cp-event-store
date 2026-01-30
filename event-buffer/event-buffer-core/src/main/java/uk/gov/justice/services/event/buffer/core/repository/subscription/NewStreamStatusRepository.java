@@ -93,15 +93,18 @@ public class NewStreamStatusRepository {
             WHERE stream_id = ?
             AND source = ?
             AND component = ?
-            FOR NO KEY UPDATE 
+            FOR NO KEY UPDATE
             """;
-    private static final String UPDATE_CURRENT_POSITION_IN_STREAM = """
-                UPDATE stream_status
-                SET position = ?
-                WHERE stream_id = ?
-                AND source = ?
-                AND component = ?
-            """;
+    private static final String UPSERT_CURRENT_POSITION_IN_STREAM = """
+        INSERT INTO stream_status(
+            position,
+            stream_id,
+            source,
+            component
+        ) VALUES (?, ?, ?, ?)
+        ON CONFLICT(stream_id, source, component)
+        DO UPDATE SET position = EXCLUDED.position
+        """;
     private static final String UPDATE_LATEST_KNOWN_POSITION_AND_IS_UP_TO_DATE = """
                 UPDATE stream_status
                 SET latest_known_position = ?,
@@ -286,10 +289,10 @@ public class NewStreamStatusRepository {
         return empty();
     }
 
-    public void updateCurrentPosition(final UUID streamId, final String source, final String componentName, final long currentStreamPosition) {
+    public void upsertCurrentPosition(final UUID streamId, final String source, final String componentName, final long currentStreamPosition) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_CURRENT_POSITION_IN_STREAM)) {
+             final PreparedStatement preparedStatement = connection.prepareStatement(UPSERT_CURRENT_POSITION_IN_STREAM)) {
 
             preparedStatement.setLong(1, currentStreamPosition);
             preparedStatement.setObject(2, streamId);

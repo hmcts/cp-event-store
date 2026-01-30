@@ -96,7 +96,7 @@ public class SubscriptionEventProcessor {
 
                 interceptorChainProcessor.process(interceptorContext);
 
-                newStreamStatusRepository.updateCurrentPosition(streamId, source, component, eventPositionInStream);
+                newStreamStatusRepository.upsertCurrentPosition(streamId, source, component, eventPositionInStream);
                 newEventBufferRepository.remove(streamId, source, component, eventPositionInStream);
 
                 streamUpdateContext.streamErrorId().ifPresent(

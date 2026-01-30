@@ -8,6 +8,5 @@ public record EventSubscriptionStatus(
     String source,
     String component,
     Optional<UUID> latestEventId,
-    Long latestKnownPosition,
     ZonedDateTime updatedAt) {
 }

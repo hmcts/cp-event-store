@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Removed
+- Removed `latest_known_position` from `event_subscription_status` table
 
 # [17.105.0-M1] - 2026-01-29
 ### Added

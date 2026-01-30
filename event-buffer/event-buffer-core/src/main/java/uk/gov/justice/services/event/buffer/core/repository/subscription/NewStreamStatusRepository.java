@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
@@ -93,18 +94,16 @@ public class NewStreamStatusRepository {
             WHERE stream_id = ?
             AND source = ?
             AND component = ?
-            FOR NO KEY UPDATE
+            FOR NO KEY UPDATE 
             """;
-    private static final String UPSERT_CURRENT_POSITION_IN_STREAM = """
-        INSERT INTO stream_status(
-            position,
-            stream_id,
-            source,
-            component
-        ) VALUES (?, ?, ?, ?)
-        ON CONFLICT(stream_id, source, component)
-        DO UPDATE SET position = EXCLUDED.position
-        """;
+    private static final String UPDATE_CURRENT_POSITION_IN_STREAM = """
+                UPDATE stream_status
+                SET position = ?
+                WHERE stream_id = ?
+                AND source = ?
+                AND component = ?
+            """;
+
     private static final String UPDATE_LATEST_KNOWN_POSITION_AND_IS_UP_TO_DATE = """
                 UPDATE stream_status
                 SET latest_known_position = ?,
@@ -113,13 +112,21 @@ public class NewStreamStatusRepository {
                 AND source = ?
                 AND component = ?
             """;
-    private static final String UPDATE_LATEST_KNOWN_POSITION = """
-                UPDATE stream_status
-                SET latest_known_position = ?
-                WHERE stream_id = ?
-                AND source = ?
-                AND component = ?
+    private static final String UPSERT_LATEST_KNOWN_POSITION = """
+              INSERT INTO stream_status (
+                stream_id,
+                position,
+                source,
+                component,
+                updated_at,
+                latest_known_position,
+                is_up_to_date
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (stream_id, source, component) DO UPDATE SET
+                    latest_known_position = EXCLUDED.latest_known_position,
+                    is_up_to_date = EXCLUDED.is_up_to_date
             """;
+
     private static final String SET_IS_UP_TO_DATE_SQL = """
             UPDATE stream_status
             SET is_up_to_date = ?
@@ -289,10 +296,10 @@ public class NewStreamStatusRepository {
         return empty();
     }
 
-    public void upsertCurrentPosition(final UUID streamId, final String source, final String componentName, final long currentStreamPosition) {
+    public void updateCurrentPosition(final UUID streamId, final String source, final String componentName, final long currentStreamPosition) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(UPSERT_CURRENT_POSITION_IN_STREAM)) {
+             final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_CURRENT_POSITION_IN_STREAM)) {
 
             preparedStatement.setLong(1, currentStreamPosition);
             preparedStatement.setObject(2, streamId);
@@ -312,20 +319,27 @@ public class NewStreamStatusRepository {
     }
 
     @Transactional(REQUIRES_NEW)
-    public void updateLatestKnownPosition(final UUID streamId, final String source, final String componentName, final long latestKnownPosition) {
+    public void upsertLatestKnownPosition(final UUID streamId, final String source, final String componentName, final long latestKnownPosition,
+                                          final ZonedDateTime discoveredAt) {
+
+        final Timestamp updatedAtTimestamp = toSqlTimestamp(discoveredAt);
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_LATEST_KNOWN_POSITION)) {
+             final PreparedStatement preparedStatement = connection.prepareStatement(UPSERT_LATEST_KNOWN_POSITION)) {
 
-            preparedStatement.setLong(1, latestKnownPosition);
-            preparedStatement.setObject(2, streamId);
+
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setLong(2, INITIAL_POSITION_IN_STREAM);
             preparedStatement.setString(3, source);
             preparedStatement.setString(4, componentName);
+            preparedStatement.setTimestamp(5, updatedAtTimestamp);
+            preparedStatement.setLong(6, latestKnownPosition);
+            preparedStatement.setBoolean(7, false);
 
             preparedStatement.executeUpdate();
         } catch (final SQLException e) {
             throw new StreamStatusException(format(
-                    "Failed to update stream_status latest_known_position; stream_id '%s', source '%s', component '%s', latestKnownPosition '%d'",
+                    "Failed to upsert stream_status latest_known_position; stream_id '%s', source '%s', component '%s', latestKnownPosition '%d'",
                     streamId,
                     source,
                     componentName,

@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.inject.Inject;
@@ -18,36 +19,26 @@ import javax.transaction.Transactional;
 
 public class EventDiscoveryRepository {
 
-    static final String GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_SQL = """
+    static final String GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_BETWEEN_EVENT_NUMBERS_SQL = """
             SELECT
                 stream_id,
                 MAX(position_in_stream) AS max_position_in_stream
             FROM event_log
-            WHERE event_number >
-                (SELECT event_number FROM event_log WHERE id = ?)
+            WHERE event_number > ? AND event_number <= ?
             GROUP BY stream_id
-            LIMIT ?;
-            """;
-    static final String GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_FROM_EVENT_NUMBER_SQL = """
-            SELECT
-                stream_id,
-                MAX(position_in_stream) AS max_position_in_stream
-            FROM event_log
-            WHERE event_number > ?
-            GROUP BY stream_id
-            LIMIT ?;
+            ORDER BY MAX(event_number) ASC
             """;
 
     @Inject
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
 
     @Transactional(REQUIRED)
-    public List<StreamPosition> getLatestStreamPositions(final Long eventNumber, final int batchSize) {
+    public List<StreamPosition> getLatestStreamPositionsBetween(final long firstEventNumber, final long lastEventNumber) {
 
         try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-            final PreparedStatement preparedStatement = connection.prepareStatement(GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_FROM_EVENT_NUMBER_SQL)) {
-            preparedStatement.setLong(1, eventNumber);
-            preparedStatement.setInt(2, batchSize);
+            final PreparedStatement preparedStatement = connection.prepareStatement(GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_BETWEEN_EVENT_NUMBERS_SQL)) {
+            preparedStatement.setLong(1, firstEventNumber);
+            preparedStatement.setLong(2, lastEventNumber);
 
             try(final ResultSet resultSet = preparedStatement.executeQuery()) {
                 final List<StreamPosition> streamPositions = new ArrayList<>();
@@ -61,31 +52,43 @@ public class EventDiscoveryRepository {
                 return streamPositions;
             }
         } catch (final SQLException e) {
-            throw new EventStoreEventDiscoveryException(format("Failed to get latest stream positions for eventNumber '%d', batchSize '%d'", eventNumber, batchSize), e);
+            throw new EventStoreEventDiscoveryException(format("Failed to get latest stream positions between eventNumbers '%d' and '%d'", firstEventNumber, lastEventNumber), e);
         }
     }
 
     @Transactional(REQUIRED)
-    public List<StreamPosition> getLatestStreamPositions(final UUID eventId, final int batchSize) {
-
-        try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-            final PreparedStatement preparedStatement = connection.prepareStatement(GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_SQL)) {
+    public Long getEventNumberFor(final UUID eventId) {
+        final String sql = "SELECT event_number FROM event_log WHERE id = ?";
+        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setObject(1, eventId);
-            preparedStatement.setInt(2, batchSize);
-
-            try(final ResultSet resultSet = preparedStatement.executeQuery()) {
-                final List<StreamPosition> streamPositions = new ArrayList<>();
-                while (resultSet.next()) {
-                    final UUID streamId = resultSet.getObject("stream_id", UUID.class);
-                    final Long positionInStream = resultSet.getObject("max_position_in_stream", Long.class);
-
-                    streamPositions.add(new StreamPosition(streamId, positionInStream));
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getLong("event_number");
                 }
-
-                return streamPositions;
+                throw new EventStoreEventDiscoveryException(format("Event with id '%s' not found", eventId));
             }
         } catch (final SQLException e) {
-            throw new EventStoreEventDiscoveryException(format("Failed to get latest stream positions for eventId '%s', batchSize '%d'", eventId, batchSize), e);
+            throw new EventStoreEventDiscoveryException(format("Failed to get event number for eventId '%s'", eventId), e);
+        }
+    }
+
+    @Transactional(REQUIRED)
+    public Optional<EventIdNumber> getLatestEventIdAndNumberAtOffset(final long lastEventNumber, final int batchSize) {
+        final String sql = "SELECT id, event_number FROM event_log WHERE event_number <= ? ORDER BY event_number DESC LIMIT 1";
+        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, lastEventNumber + batchSize);
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(new EventIdNumber(
+                            resultSet.getObject("id", UUID.class),
+                            resultSet.getLong("event_number")));
+                }
+                return Optional.empty();
+            }
+        } catch (final SQLException e) {
+            throw new EventStoreEventDiscoveryException(format("Failed to get latest event id and number at offset for lastEventNumber '%d', batchSize '%d'", lastEventNumber, batchSize), e);
         }
     }
 }

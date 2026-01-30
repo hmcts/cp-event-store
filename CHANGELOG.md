@@ -5,7 +5,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 ### Changed
-- Insert of `position` into `stream_status` table changed into an upsert 
+- Insert of `position` into `stream_status` table changed into an upsert
+- Discovery now records latest event id after each run
 ### Removed
 - Removed `latest_known_position` from `event_subscription_status` table
 

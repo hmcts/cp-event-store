@@ -129,7 +129,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(interceptorChainProcessorProducer).produceLocalProcessor(component);
         inOrder.verify(interceptorContextProvider).getInterceptorContext(eventJsonEnvelope);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
-        inOrder.verify(newStreamStatusRepository).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
+        inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
@@ -191,7 +191,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(interceptorChainProcessorProducer).produceLocalProcessor(component);
         inOrder.verify(interceptorContextProvider).getInterceptorContext(eventJsonEnvelope);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
-        inOrder.verify(newStreamStatusRepository).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
+        inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
 
@@ -224,7 +224,7 @@ public class StreamEventProcessorTest {
 
         verify(linkedEventSourceProvider, never()).getLinkedEventSource(any());
         verify(interceptorChainProcessorProducer, never()).produceLocalProcessor(any());
-        verify(newStreamStatusRepository, never()).upsertCurrentPosition(any(), any(), any(), anyLong());
+        verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
     }
@@ -332,7 +332,7 @@ public class StreamEventProcessorTest {
 
         verify(eventConverter, never()).envelopeOf(any());
         verify(interceptorChainProcessorProducer, never()).produceLocalProcessor(any());
-        verify(newStreamStatusRepository, never()).upsertCurrentPosition(any(), any(), any(), anyLong());
+        verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
     }
 
@@ -404,7 +404,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
         inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, component, currentPosition);
 
-        verify(newStreamStatusRepository, never()).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
+        verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
         verify(transactionHandler, never()).commit(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
@@ -464,7 +464,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(currentPosition));
 
         verify(interceptorChainProcessorProducer, never()).produceLocalProcessor(any());
-        verify(newStreamStatusRepository, never()).upsertCurrentPosition(any(), any(), any(), anyLong());
+        verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
     }
 
@@ -510,7 +510,7 @@ public class StreamEventProcessorTest {
 
         verify(eventConverter, never()).envelopeOf(any());
         verify(interceptorChainProcessorProducer, never()).produceLocalProcessor(any());
-        verify(newStreamStatusRepository, never()).upsertCurrentPosition(any(), any(), any(), anyLong());
+        verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
         verifyNoInteractions(streamErrorStatusHandler);
     }
@@ -561,7 +561,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(transactionHandler).rollback(userTransaction);
 
         verify(interceptorChainProcessorProducer, never()).produceLocalProcessor(any());
-        verify(newStreamStatusRepository, never()).upsertCurrentPosition(any(), any(), any(), anyLong());
+        verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
         verifyNoInteractions(streamErrorStatusHandler);
     }

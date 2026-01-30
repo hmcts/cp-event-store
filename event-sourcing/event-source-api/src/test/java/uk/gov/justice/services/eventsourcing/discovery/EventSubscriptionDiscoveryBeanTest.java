@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventDiscoveryRepository;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventIdNumber;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
 
 import java.util.List;
@@ -37,44 +38,59 @@ public class EventSubscriptionDiscoveryBeanTest {
     public void shouldDiscoverLatestPositionsFromTheEventStoreAndUpdateStreamStatus() throws Exception {
 
         final UUID latestKnownEventId = randomUUID();
+        final long firstEventNumber = 10L;
         final int batchSize = 23;
+        final long lastEventNumber = 20L;
 
         final StreamPosition streamPosition_1 = mock(StreamPosition.class);
         final StreamPosition streamPosition_2 = mock(StreamPosition.class);
+        final UUID newLatestEventId = randomUUID();
 
         when(eventDiscoveryConfig.getBatchSize()).thenReturn(batchSize);
-        when(eventDiscoveryRepository.getLatestStreamPositions(latestKnownEventId, batchSize))
+        when(eventDiscoveryRepository.getEventNumberFor(latestKnownEventId)).thenReturn(firstEventNumber);
+        when(eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize))
+                .thenReturn(of(new EventIdNumber(newLatestEventId, lastEventNumber)));
+
+        when(eventDiscoveryRepository.getLatestStreamPositionsBetween(firstEventNumber, lastEventNumber))
                 .thenReturn(asList(
                         streamPosition_1,
                         streamPosition_2)
                 );
 
-        final List<StreamPosition> streamPositions = eventSubscriptionDiscoveryBean.discoverNewEvents(of(latestKnownEventId));
+        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(of(latestKnownEventId));
 
-        assertThat(streamPositions.size(), is(2));
-        assertThat(streamPositions.get(0), is(streamPosition_1));
-        assertThat(streamPositions.get(1), is(streamPosition_2));
+        assertThat(discoveryResult.streamPositions().size(), is(2));
+        assertThat(discoveryResult.streamPositions().get(0), is(streamPosition_1));
+        assertThat(discoveryResult.streamPositions().get(1), is(streamPosition_2));
+        assertThat(discoveryResult.latestKnownEventId(), is(of(newLatestEventId)));
     }
 
     @Test
     public void shouldDiscoverLatestPositionsFromZerothEventIfLatestKnownEventIdNotFound() throws Exception {
 
         final int batchSize = 23;
+        final long firstEventNumber = 0L;
+        final long lastEventNumber = 20L;
 
         final StreamPosition streamPosition_1 = mock(StreamPosition.class);
         final StreamPosition streamPosition_2 = mock(StreamPosition.class);
+        final UUID newLatestEventId = randomUUID();
 
         when(eventDiscoveryConfig.getBatchSize()).thenReturn(batchSize);
-        when(eventDiscoveryRepository.getLatestStreamPositions(0L, batchSize))
+        when(eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize))
+                .thenReturn(of(new EventIdNumber(newLatestEventId, lastEventNumber)));
+
+        when(eventDiscoveryRepository.getLatestStreamPositionsBetween(firstEventNumber, lastEventNumber))
                 .thenReturn(asList(
                         streamPosition_1,
                         streamPosition_2)
                 );
 
-        final List<StreamPosition> streamPositions = eventSubscriptionDiscoveryBean.discoverNewEvents(empty());
+        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(empty());
 
-        assertThat(streamPositions.size(), is(2));
-        assertThat(streamPositions.get(0), is(streamPosition_1));
-        assertThat(streamPositions.get(1), is(streamPosition_2));
+        assertThat(discoveryResult.streamPositions().size(), is(2));
+        assertThat(discoveryResult.streamPositions().get(0), is(streamPosition_1));
+        assertThat(discoveryResult.streamPositions().get(1), is(streamPosition_2));
+        assertThat(discoveryResult.latestKnownEventId(), is(of(newLatestEventId)));
     }
 }

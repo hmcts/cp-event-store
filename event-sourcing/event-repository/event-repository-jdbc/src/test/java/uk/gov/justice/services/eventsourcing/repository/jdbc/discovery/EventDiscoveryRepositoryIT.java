@@ -17,6 +17,7 @@ import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFac
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -45,7 +46,7 @@ public class EventDiscoveryRepositoryIT {
     }
 
     @Test
-    public void shouldFindMaxPositionInStreamForAllStreamsWithEventNumberGreaterThanEventNumberOfEventId() throws Exception {
+    public void shouldFindMaxPositionInStreamForAllStreamsBetweenEventNumbers() throws Exception {
 
         final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
 
@@ -55,19 +56,18 @@ public class EventDiscoveryRepositoryIT {
         final UUID streamId_2 = fromString("200bdbb4-da77-4f9f-b461-3980e3170002");
         final long maxPositionInStream_stream_1 = 11L;
         final long maxPositionInStream_stream_2 = 22L;
-        final int batchSize = 100;
 
         final Event event_1_1 = anEvent(streamId_1, 1L, "event_1_stream_1", 1L);
         final Event event_1_2 = anEvent(streamId_1, maxPositionInStream_stream_1, "event_2_stream_2", 2L);
         final Event event_2_1 = anEvent(streamId_2, 1L, "event_1_stream_2", 3L);
         final Event event_2_2 = anEvent(streamId_2, maxPositionInStream_stream_2, "event_2_stream_12", 4L);
-        
+
         insert(event_1_1);
         insert(event_1_2);
         insert(event_2_1);
         insert(event_2_2);
 
-        final List<StreamPosition> streamPositions = eventDiscoveryRepository.getLatestStreamPositions(event_1_1.getId(), batchSize);
+        final List<StreamPosition> streamPositions = eventDiscoveryRepository.getLatestStreamPositionsBetween(1L, 4L);
 
         assertThat(streamPositions.size(), is(2));
 
@@ -77,89 +77,50 @@ public class EventDiscoveryRepositoryIT {
     }
 
     @Test
-    public void shouldIgnoreRowsWithNullEventNumbers() throws Exception {
-
+    public void shouldGetEventNumberForEventId() throws Exception {
         final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
-
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
 
-        final UUID streamId = fromString("100bdbb4-da77-4f9f-b461-3980e3170001");
-        final int batchSize = 100;
+        final UUID streamId = randomUUID();
+        final Event event = anEvent(streamId, 1L, "event-1", 123L);
+        insert(event);
 
-        final Event event_1 = anEvent(streamId, 1L, "event_1", 1L);
-        final Event event_2 = anEvent(streamId, 2L, "event_2", 2L);
-        final Event event_3 = anEvent(streamId, 3L, "event_3", 3L);
-        final Event event_4 = anEvent(streamId, 4L, "event_4", null);
+        final Long eventNumber = eventDiscoveryRepository.getEventNumberFor(event.getId());
+
+        assertThat(eventNumber, is(123L));
+    }
+
+    @Test
+    public void shouldGetLatestEventIdAndNumberAtOffset() throws Exception {
+        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
+
+        final UUID streamId = randomUUID();
+        final Event event_1 = anEvent(streamId, 1L, "event-1", 100L);
+        final Event event_2 = anEvent(streamId, 2L, "event-2", 105L);
+        final Event event_3 = anEvent(streamId, 3L, "event-3", 115L);
 
         insert(event_1);
         insert(event_2);
         insert(event_3);
-        insert(event_4);
 
-        final List<StreamPosition> streamPositions = eventDiscoveryRepository.getLatestStreamPositions(event_1.getId(), batchSize);
+        // lastEventNumber = 100, batchSize = 10 -> look for event_number <= 110. Should return event_2 (105).
+        final Optional<EventIdNumber> result_1 = eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(100L, 10);
+        assertThat(result_1.isPresent(), is(true));
+        assertThat(result_1.get().id(), is(event_2.getId()));
+        assertThat(result_1.get().eventNumber(), is(105L));
 
-        assertThat(streamPositions.size(), is(1));
+        // lastEventNumber = 100, batchSize = 20 -> look for event_number <= 120. Should return event_3 (115).
+        final Optional<EventIdNumber> result_2 = eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(100L, 20);
+        assertThat(result_2.isPresent(), is(true));
+        assertThat(result_2.get().id(), is(event_3.getId()));
+        assertThat(result_2.get().eventNumber(), is(115L));
 
-        assertThat(streamPositions.get(0), is(new StreamPosition(streamId, 3L)));
-    }
-
-    @Test
-    public void shouldLimitResultsByBatchSize() throws Exception {
-
-        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
-        final int batchSize_1 = 2;
-        final int batchSize_2 = 3;
-
-        // create events on different streams
-        final Event event_1 = anEvent(fromString("100bdbb4-da77-4f9f-b461-3980e3170001"), 11L, "some-event", 1L);
-        final Event event_2 = anEvent(fromString("200bdbb4-da77-4f9f-b461-3980e3170002"), 12L, "some-event", 2L);
-        final Event event_3 = anEvent(fromString("300bdbb4-da77-4f9f-b461-3980e3170003"), 13L, "some-event", 3L);
-        final Event event_4 = anEvent(fromString("400bdbb4-da77-4f9f-b461-3980e3170004"), 14L, "some-event", 4L);
-        final Event event_5 = anEvent(fromString("500bdbb4-da77-4f9f-b461-3980e3170005"), 15L, "some-event", 5L);
-
-        insert(event_1);
-        insert(event_2);
-        insert(event_3);
-        insert(event_4);
-        insert(event_5);
-
-        assertThat(eventDiscoveryRepository.getLatestStreamPositions(event_2.getId(), batchSize_1).size(), is(batchSize_1));
-        assertThat(eventDiscoveryRepository.getLatestStreamPositions(event_2.getId(), batchSize_2).size(), is(batchSize_2));
-    }
-
-    @Test
-    public void shouldFindMaxPositionInStreamForAllStreamsGreaterThanEventNumber() throws Exception {
-        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
-        final UUID streamId_1 = fromString("100bdbb4-da77-4f9f-b461-3980e3170001");
-        final UUID streamId_2 = fromString("200bdbb4-da77-4f9f-b461-3980e3170002");
-        final long maxPositionInStream_stream_1 = 11L;
-        final long maxPositionInStream_stream_2 = 22L;
-        final long eventNumberToSearchFrom = 2L;
-        final int batchSize = 100;
-
-        final Event event_1_1 = anEvent(streamId_1, 1L, "event_1_stream_1", 1L);
-        final Event event_1_2 = anEvent(streamId_1, maxPositionInStream_stream_1, "event_2_stream_2", eventNumberToSearchFrom);
-        final Event event_2_1 = anEvent(streamId_2, 1L, "event_1_stream_2", 3L);
-        final Event event_2_2 = anEvent(streamId_2, maxPositionInStream_stream_2, "event_2_stream_12", 4L);
-
-        insert(event_1_1);
-        insert(event_1_2);
-        insert(event_2_1);
-        insert(event_2_2);
-
-        final List<StreamPosition> streamPositions = eventDiscoveryRepository.getLatestStreamPositions(event_1_2.getId(), batchSize);
-
-        assertThat(streamPositions.size(), is(1));
-
-        assertThat(streamPositions, hasItems(
-                new StreamPosition(streamId_2, maxPositionInStream_stream_2)));
-
+        // lastEventNumber = 120, batchSize = 10 -> look for event_number <= 130. Should return event_3 (115).
+        final Optional<EventIdNumber> result_3 = eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(120L, 10);
+        assertThat(result_3.isPresent(), is(true));
+        assertThat(result_3.get().id(), is(event_3.getId()));
+        assertThat(result_3.get().eventNumber(), is(115L));
     }
 
     private void insert(final Event event) throws Exception {

@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- Insert of `position` into `stream_status` table changed into an upsert 
 ### Removed
 - Removed `latest_known_position` from `event_subscription_status` table
 

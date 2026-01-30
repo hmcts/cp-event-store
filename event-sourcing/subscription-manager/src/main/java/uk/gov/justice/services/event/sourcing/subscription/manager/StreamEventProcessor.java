@@ -79,7 +79,7 @@ public class StreamEventProcessor {
                 final InterceptorContext interceptorContext = interceptorContextProvider.getInterceptorContext(eventJsonEnvelope);
                 interceptorChainProcessor.process(interceptorContext);
 
-                newStreamStatusRepository.updateCurrentPosition(streamId, source, component, eventPositionInStream);
+                newStreamStatusRepository.upsertCurrentPosition(streamId, source, component, eventPositionInStream);
 
                 if (latestKnownPosition == eventPositionInStream) {
                     newStreamStatusRepository.setUpToDate(true, streamId, source, component);

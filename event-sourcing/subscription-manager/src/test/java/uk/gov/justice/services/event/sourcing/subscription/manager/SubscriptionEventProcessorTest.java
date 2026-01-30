@@ -141,7 +141,7 @@ public class SubscriptionEventProcessorTest {
                 component,
                 eventPositionInStream);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
-        inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
+        inOrder.verify(newStreamStatusRepository).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
@@ -205,7 +205,7 @@ public class SubscriptionEventProcessorTest {
                 component,
                 eventPositionInStream);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
-        inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
+        inOrder.verify(newStreamStatusRepository).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
@@ -270,7 +270,7 @@ public class SubscriptionEventProcessorTest {
                 component,
                 eventPositionInStream);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
-        inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
+        inOrder.verify(newStreamStatusRepository).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(streamErrorRepository).markStreamAsFixed(previousStreamErrorId, streamId, source, component);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
@@ -334,7 +334,7 @@ public class SubscriptionEventProcessorTest {
                 component,
                 eventPositionInStream);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
-        inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
+        inOrder.verify(newStreamStatusRepository).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
@@ -397,7 +397,7 @@ public class SubscriptionEventProcessorTest {
                 component,
                 eventPositionInStream);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
-        inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
+        inOrder.verify(newStreamStatusRepository).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
@@ -458,7 +458,7 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(transactionHandler).commit(userTransaction);
 
         verify(interceptorChainProcessor, never()).process(interceptorContext);
-        verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
+        verify(newStreamStatusRepository, never()).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newEventBufferRepository, never()).remove(streamId, source, component, eventPositionInStream);
         verify(streamErrorRepository, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
@@ -518,7 +518,7 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(transactionHandler).commit(userTransaction);
 
         verify(interceptorChainProcessor, never()).process(interceptorContext);
-        verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
+        verify(newStreamStatusRepository, never()).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newEventBufferRepository, never()).remove(streamId, source, component, eventPositionInStream);
         verify(streamErrorRepository, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
@@ -589,7 +589,7 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(transactionHandler).rollback(userTransaction);
         inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, source, component, streamUpdateContext);
 
-        verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
+        verify(newStreamStatusRepository, never()).upsertCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newEventBufferRepository, never()).remove(streamId, source, component, eventPositionInStream);
         verify(transactionHandler, never()).commit(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);

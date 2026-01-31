@@ -1,5 +1,6 @@
 package uk.gov.justice.services.eventsourcing.source.core;
 
+import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
 import static javax.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -42,7 +43,7 @@ public class DefaultLinkedEventSource implements LinkedEventSource {
         return multipleDataSourceEventRepository.findByEventId(eventId);
     }
 
-    @Transactional(REQUIRED)
+    @Transactional(NOT_SUPPORTED)
     @Override
     public Optional<LinkedEvent> findNextEventInTheStreamAfterPosition(final UUID streamId, final Long position) {
         return multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId, position);

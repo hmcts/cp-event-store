@@ -20,14 +20,22 @@ import javax.transaction.Transactional;
 public class EventDiscoveryRepository {
 
     static final String GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_BETWEEN_EVENT_NUMBERS_SQL = """
-            SELECT
-                stream_id,
-                MAX(position_in_stream) AS max_position_in_stream
-            FROM event_log
-            WHERE event_number > ? AND event_number <= ?
-            GROUP BY stream_id
-            ORDER BY MAX(event_number) ASC
+                    SELECT
+                        stream_id,
+                        MAX(position_in_stream) AS max_position_in_stream
+                    FROM event_log
+                    WHERE event_number > ? AND event_number <= ?
+                    GROUP BY stream_id
+                    ORDER BY MAX(event_number) ASC
             """;
+    public static final String SELECT_LE_EVENT_BY_BATCH_SIZE = """
+                    SELECT id, event_number 
+                    FROM event_log 
+                    WHERE event_number <= ? 
+                    ORDER BY event_number DESC 
+                    LIMIT 1
+            """;
+    public static final String SELECT_EVENT_NUMBER = "SELECT event_number FROM event_log WHERE id = ?";
 
     @Inject
     private EventStoreDataSourceProvider eventStoreDataSourceProvider;
@@ -35,12 +43,12 @@ public class EventDiscoveryRepository {
     @Transactional(REQUIRED)
     public List<StreamPosition> getLatestStreamPositionsBetween(final long firstEventNumber, final long lastEventNumber) {
 
-        try(final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-            final PreparedStatement preparedStatement = connection.prepareStatement(GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_BETWEEN_EVENT_NUMBERS_SQL)) {
+        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(GET_HIGHEST_POSITION_IN_STREAM_FOR_EACH_STREAM_BETWEEN_EVENT_NUMBERS_SQL)) {
             preparedStatement.setLong(1, firstEventNumber);
             preparedStatement.setLong(2, lastEventNumber);
 
-            try(final ResultSet resultSet = preparedStatement.executeQuery()) {
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 final List<StreamPosition> streamPositions = new ArrayList<>();
                 while (resultSet.next()) {
                     final UUID streamId = resultSet.getObject("stream_id", UUID.class);
@@ -58,9 +66,8 @@ public class EventDiscoveryRepository {
 
     @Transactional(REQUIRED)
     public Long getEventNumberFor(final UUID eventId) {
-        final String sql = "SELECT event_number FROM event_log WHERE id = ?";
         try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+             final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_EVENT_NUMBER)) {
             preparedStatement.setObject(1, eventId);
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
@@ -75,9 +82,8 @@ public class EventDiscoveryRepository {
 
     @Transactional(REQUIRED)
     public Optional<EventIdNumber> getLatestEventIdAndNumberAtOffset(final long lastEventNumber, final int batchSize) {
-        final String sql = "SELECT id, event_number FROM event_log WHERE event_number <= ? ORDER BY event_number DESC LIMIT 1";
         try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+             final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_LE_EVENT_BY_BATCH_SIZE)) {
             preparedStatement.setLong(1, lastEventNumber + batchSize);
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {

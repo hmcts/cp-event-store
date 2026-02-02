@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Added
+- New method on `DatabaseCleaner` test helper class to set `latest_event_id` from `event_subscription_status` table to NULL
 ### Changed
 - Insert of `position` into `stream_status` table changed into an upsert
 - Discovery now records latest event id after each run

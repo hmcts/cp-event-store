@@ -1,6 +1,5 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.discovery;
 
-import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -147,7 +146,13 @@ public class EventDiscoveryRepositoryTest {
 
         when(dataSource.getConnection()).thenReturn(connection);
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(connection.prepareStatement("SELECT id, event_number FROM event_log WHERE event_number <= ? ORDER BY event_number DESC LIMIT 1")).thenReturn(preparedStatement);
+        when(connection.prepareStatement("""
+                    SELECT id, event_number
+                    FROM event_log
+                    WHERE event_number <= ?
+                    ORDER BY event_number DESC
+                    LIMIT 1
+            """)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
         when(resultSet.getObject("id", UUID.class)).thenReturn(eventId);

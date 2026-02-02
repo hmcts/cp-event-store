@@ -8,6 +8,7 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPos
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,11 +39,12 @@ public class EventSubscriptionDiscoveryBean {
                 .orElse(ZEROTH_EVENT_NUMBER);
 
         return eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize)
-                .map(latestEvent -> {
+                .filter(newLatestEvent -> !Objects.equals(newLatestEvent.id(),latestKnownEventId.orElse(null)))
+                .map(newLatestEvent -> {
                     final List<StreamPosition> streamPositions = eventDiscoveryRepository.getLatestStreamPositionsBetween(
                             firstEventNumber,
-                            latestEvent.eventNumber());
-                    return new DiscoveryResult(streamPositions, Optional.of(latestEvent.id()));
+                            newLatestEvent.eventNumber());
+                    return new DiscoveryResult(streamPositions, Optional.of(newLatestEvent.id()));
                 })
                 .orElseGet(() -> new DiscoveryResult(Collections.emptyList(), Optional.empty()));
     }

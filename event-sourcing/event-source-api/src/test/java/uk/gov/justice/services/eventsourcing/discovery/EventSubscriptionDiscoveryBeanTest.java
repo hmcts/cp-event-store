@@ -13,7 +13,6 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventDisc
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventIdNumber;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
 
-import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -92,5 +91,23 @@ public class EventSubscriptionDiscoveryBeanTest {
         assertThat(discoveryResult.streamPositions().get(0), is(streamPosition_1));
         assertThat(discoveryResult.streamPositions().get(1), is(streamPosition_2));
         assertThat(discoveryResult.latestKnownEventId(), is(of(newLatestEventId)));
+    }
+
+    @Test
+    public void shouldReturnEmptyDiscoveryResultIfNoNewEventsFound() throws Exception {
+
+        final UUID latestKnownEventId = randomUUID();
+        final long firstEventNumber = 10L;
+        final int batchSize = 23;
+
+        when(eventDiscoveryConfig.getBatchSize()).thenReturn(batchSize);
+        when(eventDiscoveryRepository.getEventNumberFor(latestKnownEventId)).thenReturn(firstEventNumber);
+        when(eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize))
+                .thenReturn(of(new EventIdNumber(latestKnownEventId, firstEventNumber)));
+
+        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(of(latestKnownEventId));
+
+        assertThat(discoveryResult.streamPositions().isEmpty(), is(true));
+        assertThat(discoveryResult.latestKnownEventId(), is(empty()));
     }
 }

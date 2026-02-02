@@ -28,7 +28,7 @@ public class TableRowCounterTest {
     @Test
     public void shouldCountTheRowsInTheSpecifiedTable() throws Exception {
 
-        final String tableName = "published_event";
+        final String tableName = "event_log";
         final int rowCount = 2347;
 
         final DataSource eventStoreDataSource = mock(DataSource.class);
@@ -37,7 +37,7 @@ public class TableRowCounterTest {
         final ResultSet resultSet = mock(ResultSet.class);
 
         when(eventStoreDataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement("SELECT count(*) FROM published_event")).thenReturn(preparedStatement);
+        when(connection.prepareStatement("SELECT count(*) FROM event_log")).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
         when(resultSet.getInt(1)).thenReturn(rowCount);
@@ -50,7 +50,7 @@ public class TableRowCounterTest {
 
         final SQLException sqlException = new SQLException("Ooops");
 
-        final String tableName = "published_event";
+        final String tableName = "event_log";
 
         final DataSource eventStoreDataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
@@ -58,7 +58,7 @@ public class TableRowCounterTest {
         final ResultSet resultSet = mock(ResultSet.class);
 
         when(eventStoreDataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement("SELECT count(*) FROM published_event")).thenReturn(preparedStatement);
+        when(connection.prepareStatement("SELECT count(*) FROM event_log")).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
         when(resultSet.getInt(1)).thenThrow(sqlException);
@@ -68,14 +68,14 @@ public class TableRowCounterTest {
             fail();
         } catch (final CatchupVerificationException expected) {
             assertThat(expected.getCause(), is(sqlException));
-            assertThat(expected.getMessage(), is("Failed to count rows in published_event table"));
+            assertThat(expected.getMessage(), is("Failed to count rows in event_log table"));
         }
     }
 
     @Test
     public void shouldFailIfNoResultsReturned() throws Exception {
 
-        final String tableName = "published_event";
+        final String tableName = "event_log";
 
         final DataSource eventStoreDataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
@@ -83,7 +83,7 @@ public class TableRowCounterTest {
         final ResultSet resultSet = mock(ResultSet.class);
 
         when(eventStoreDataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement("SELECT count(*) FROM published_event")).thenReturn(preparedStatement);
+        when(connection.prepareStatement("SELECT count(*) FROM event_log")).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(false);
 
@@ -91,7 +91,7 @@ public class TableRowCounterTest {
             tableRowCounter.countRowsIn(tableName, eventStoreDataSource);
             fail();
         } catch (final CatchupVerificationException expected) {
-            assertThat(expected.getMessage(), is("Counting rows in published_event table did not return any results"));
+            assertThat(expected.getMessage(), is("Counting rows in event_log table did not return any results"));
         }
     }
 }

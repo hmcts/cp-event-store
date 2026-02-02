@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.AdvisoryLockDataAccess;
-import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventNumberLinkingException;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess;
 
@@ -30,9 +29,6 @@ import static uk.gov.justice.services.eventsourcing.eventpublishing.EventNumberL
 public class EventNumberLinkerTest {
     @Mock
     private EventLinkingWorkerConfig eventLinkingWorkerConfig;
-
-    @Mock
-    private CompatibilityModePublishedEventRepository compatibilityModePublishedEventRepository;
 
     @Mock
     private LinkEventsInEventLogDatabaseAccess linkEventsInEventLogDatabaseAccess;
@@ -60,11 +56,10 @@ public class EventNumberLinkerTest {
         when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)).thenReturn(true);
         when(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable()).thenReturn(previousEventNumber);
         when(linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink()).thenReturn(of(eventId));
-        when(eventLinkingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable()).thenReturn(true);
 
         assertThat(eventNumberLinker.findAndAndLinkNextUnlinkedEvent(), is(true));
 
-        final InOrder inOrder = inOrder(userTransaction, eventLinkingWorkerConfig, linkEventsInEventLogDatabaseAccess, advisoryLockDataAccess, compatibilityModePublishedEventRepository);
+        final InOrder inOrder = inOrder(userTransaction, eventLinkingWorkerConfig, linkEventsInEventLogDatabaseAccess, advisoryLockDataAccess);
         inOrder.verify(eventLinkingWorkerConfig).getTransactionTimeoutSeconds();
         inOrder.verify(eventLinkingWorkerConfig).getLocalStatementTimeoutSeconds();
         inOrder.verify(userTransaction).setTransactionTimeout(transactionTimeoutSeconds);
@@ -73,8 +68,6 @@ public class EventNumberLinkerTest {
         inOrder.verify(advisoryLockDataAccess).tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).linkEvent(eventId, newEventNumber, previousEventNumber);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).insertLinkedEventIntoPublishQueue(eventId);
-        inOrder.verify(compatibilityModePublishedEventRepository).insertIntoPublishedEvent(eventId, newEventNumber, previousEventNumber);
-        inOrder.verify(compatibilityModePublishedEventRepository).setEventNumberSequenceTo(newEventNumber);
         inOrder.verify(userTransaction).commit();
 
     }
@@ -100,7 +93,6 @@ public class EventNumberLinkerTest {
         inOrder.verify(userTransaction).commit();
 
         verifyNoMoreInteractions(linkEventsInEventLogDatabaseAccess);
-        verifyNoMoreInteractions(compatibilityModePublishedEventRepository);
     }
 
     @Test
@@ -126,7 +118,6 @@ public class EventNumberLinkerTest {
         inOrder.verify(userTransaction).commit();
 
         verifyNoMoreInteractions(linkEventsInEventLogDatabaseAccess);
-        verifyNoMoreInteractions(compatibilityModePublishedEventRepository);
     }
 
     @Test

@@ -46,16 +46,6 @@ public class EventLinkingWorkerConfigTest {
     }
 
     @Test
-    public void shouldGetPublishEventToPublishedEventTable() throws Exception {
-
-        assertThat(eventLinkingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable(), is(false));
-
-        setField(eventLinkingWorkerConfig, "insertEventIntoPublishedEventTable", "true");
-
-        assertThat(eventLinkingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable(), is(true));
-    }
-
-    @Test
     public void shouldGetTransactionTimeoutSeconds() throws Exception {
 
         final int timeoutSeconds = 120;

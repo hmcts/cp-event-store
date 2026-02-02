@@ -19,16 +19,15 @@ public class SubscriptionSourceComponentFinder {
     @Inject
     private SubscriptionsDescriptorsRegistry subscriptionsDescriptorsRegistry;
 
-    private final LazyValue lazyValue = new LazyValue();
+    private final LazyValue allSourceComponentPairs = new LazyValue();
+    private final LazyValue listenerOrIndexerSourceComponentPairs = new LazyValue();
 
     public List<SourceComponentPair> findSourceComponentPairsFromSubscriptionRegistry() {
-
-        return lazyValue.createIfAbsent(this::lookupAllInSubscriptionRegistry);
+        return allSourceComponentPairs.createIfAbsent(this::lookupAllInSubscriptionRegistry);
     }
 
     public List<SourceComponentPair> findListenerOrIndexerPairs() {
-
-        return lazyValue.createIfAbsent(() -> lookupAllInSubscriptionRegistry()
+        return listenerOrIndexerSourceComponentPairs.createIfAbsent(() -> findSourceComponentPairsFromSubscriptionRegistry()
                 .stream().filter(this::isListenerOrIndexer)
                 .toList()
         );

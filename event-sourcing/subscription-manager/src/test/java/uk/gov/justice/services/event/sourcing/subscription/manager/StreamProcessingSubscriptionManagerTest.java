@@ -29,7 +29,7 @@ public class StreamProcessingSubscriptionManagerTest {
 
         when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(false);
 
-        streamProcessingSubscriptionManager.process(source, component);
+        streamProcessingSubscriptionManager.process(source, component, null);
 
         verify(streamEventProcessor).processSingleEvent(source, component);
     }
@@ -46,7 +46,7 @@ public class StreamProcessingSubscriptionManagerTest {
                 .thenReturn(true)
                 .thenReturn(false);
 
-        streamProcessingSubscriptionManager.process(source, component);
+        streamProcessingSubscriptionManager.process(source, component, () -> true);
 
         final InOrder inOrder = inOrder(streamEventProcessor);
 
@@ -61,7 +61,7 @@ public class StreamProcessingSubscriptionManagerTest {
 
         when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(false);
 
-        streamProcessingSubscriptionManager.process(source, component);
+        streamProcessingSubscriptionManager.process(source, component, null);
 
         verify(streamEventProcessor).processSingleEvent(source, component);
     }

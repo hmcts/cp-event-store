@@ -94,8 +94,7 @@ public class StreamProcessingTimerBeanTest {
         when(timer.getInfo()).thenReturn(pair);
 
         streamProcessingTimerBean.processStreamEvents(timer);
-
-        verify(streamProcessingSubscriptionManager).process(source, component);
+        verify(streamProcessingSubscriptionManager).process(eq(source), eq(component), any());
     }
 
     @Test
@@ -107,7 +106,7 @@ public class StreamProcessingTimerBeanTest {
         final RuntimeException exception = new RuntimeException("Processing failed");
 
         when(timer.getInfo()).thenReturn(pair);
-        doThrow(exception).when(streamProcessingSubscriptionManager).process(source, component);
+        doThrow(exception).when(streamProcessingSubscriptionManager).process(eq(source), eq(component), any());
 
         streamProcessingTimerBean.processStreamEvents(timer);
 

@@ -6,7 +6,9 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
+import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
+import uk.gov.justice.services.eventsourcing.discovery.DiscoveryResult;
 import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoveryBean;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
 import uk.gov.justice.subscription.SourceComponentPair;
@@ -27,6 +29,9 @@ public class EventDiscoverer {
     @Inject
     private Logger logger;
 
+    @Inject
+    private UtcClock clock;
+
     public void runEventDiscoveryForSourceComponentPair(final SourceComponentPair sourceComponentPair) {
 
         final String source = sourceComponentPair.source();
@@ -36,14 +41,25 @@ public class EventDiscoverer {
                 component);
 
         if (eventSubscriptionStatusOptional.isPresent()) {
-            logger.info(format("Running event discovery for source '%s' component '%s'", source, component));
+            logger.debug(format("Running event discovery for source '%s' component '%s'", source, component));
             final EventSubscriptionStatus eventSubscriptionStatus = eventSubscriptionStatusOptional.get();
 
             final Optional<UUID> latestKnownEventId = eventSubscriptionStatus.latestEventId();
 
-            eventSubscriptionDiscoveryBean.discoverNewEvents(latestKnownEventId)
+            final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(latestKnownEventId);
+
+            discoveryResult.streamPositions()
                     .forEach(streamPosition -> runDiscoveryFor(streamPosition, source, component));
-        } 
+
+            if (discoveryResult.latestKnownEventId().isPresent()) {
+                eventSubscriptionStatusRepository.save(new EventSubscriptionStatus(
+                        source,
+                        component,
+                        discoveryResult.latestKnownEventId(),
+                        clock.now()
+                ));
+            }
+        }
     }
 
     private void runDiscoveryFor(final StreamPosition streamPosition, final String source, final String component) {
@@ -51,13 +67,14 @@ public class EventDiscoverer {
         final UUID streamId = streamPosition.streamId();
         final Long latestKnownPosition = streamPosition.positionInStream();
 
-        logger.info(format("Updating latest known position to '%d' for stream id '%s', source '%s' component '%s'", latestKnownPosition, streamId, source, component));
+        logger.debug(format("Updating latest known position to '%d' for stream id '%s', source '%s' component '%s'", latestKnownPosition, streamId, source, component));
 
-        newStreamStatusRepository.updateLatestKnownPosition(
+        newStreamStatusRepository.upsertLatestKnownPosition(
                 streamId,
                 source,
                 component,
-                latestKnownPosition
+                latestKnownPosition,
+                clock.now()
         );
     }
 }

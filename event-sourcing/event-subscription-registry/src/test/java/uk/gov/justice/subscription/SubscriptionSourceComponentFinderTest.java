@@ -142,4 +142,50 @@ public class SubscriptionSourceComponentFinderTest {
     }
 
 
+    @Test
+    public void shouldFindOnlyListenerOrIndexerSourceComponentPairs() throws Exception {
+
+        final String source_1 = "source_1";
+        final String component_listener = "something_EVENT_LISTENER";
+        final String component_indexer = "something_EVENT_INDEXER";
+        final String component_other = "something_EVENT_PROCESSOR";
+
+        final SubscriptionsDescriptor subscriptionsDescriptor_listener = mock(SubscriptionsDescriptor.class);
+        final SubscriptionsDescriptor subscriptionsDescriptor_indexer = mock(SubscriptionsDescriptor.class);
+        final SubscriptionsDescriptor subscriptionsDescriptor_other = mock(SubscriptionsDescriptor.class);
+
+        final Subscription subscription_1 = mock(Subscription.class);
+        final Subscription subscription_2 = mock(Subscription.class);
+        final Subscription subscription_3 = mock(Subscription.class);
+
+        when(subscriptionsDescriptorsRegistry.getAll()).thenReturn(asList(
+                subscriptionsDescriptor_listener,
+                subscriptionsDescriptor_indexer,
+                subscriptionsDescriptor_other
+        ));
+
+        when(subscriptionsDescriptor_listener.getServiceComponent()).thenReturn(component_listener);
+        when(subscriptionsDescriptor_indexer.getServiceComponent()).thenReturn(component_indexer);
+        when(subscriptionsDescriptor_other.getServiceComponent()).thenReturn(component_other);
+
+        when(subscriptionsDescriptor_listener.getSubscriptions()).thenReturn(asList(subscription_1));
+        when(subscriptionsDescriptor_indexer.getSubscriptions()).thenReturn(asList(subscription_2));
+        when(subscriptionsDescriptor_other.getSubscriptions()).thenReturn(asList(subscription_3));
+
+        when(subscription_1.getEventSourceName()).thenReturn(source_1);
+        when(subscription_2.getEventSourceName()).thenReturn(source_1);
+        when(subscription_3.getEventSourceName()).thenReturn(source_1);
+
+        final List<SourceComponentPair> sourceComponentPairs = subscriptionSourceComponentFinder
+                .findListenerOrIndexerPairs();
+
+        assertThat(sourceComponentPairs.size(), is(2));
+
+        assertThat(sourceComponentPairs.get(0).source(), is(source_1));
+        assertThat(sourceComponentPairs.get(0).component(), is(component_listener));
+
+        assertThat(sourceComponentPairs.get(1).source(), is(source_1));
+        assertThat(sourceComponentPairs.get(1).component(), is(component_indexer));
+    }
+
 }

@@ -155,7 +155,7 @@ public class EventStreamJdbcRepository {
         }
     }
 
-    public long getPosition(final UUID streamId) {
+    public Long getPosition(final UUID streamId) {
 
         final DataSource dataSource = eventStoreDataSourceProvider.getDefaultDataSource();
 
@@ -163,7 +163,7 @@ public class EventStreamJdbcRepository {
             psquery.setObject(1, streamId);
             ResultSet resultSet = psquery.executeQuery();
             if (resultSet.next()) {
-                return resultSet.getLong(1);
+                return resultSet.getLong("position_in_stream");
             }
             throw new InvalidStreamIdException("Invalid Stream Id: " + streamId.toString());
         } catch (final SQLException e) {
@@ -175,7 +175,7 @@ public class EventStreamJdbcRepository {
         return resultSet -> {
             try {
                 return new EventStream((UUID) resultSet.getObject(COL_STREAM_ID),
-                        resultSet.getLong(COL_POSITION),
+                        resultSet.getObject(COL_POSITION, Long.class),
                         resultSet.getBoolean(COL_ACTIVE),
                         fromSqlTimestamp(resultSet.getTimestamp(COL_DATE_CREATED)));
             } catch (final SQLException e) {

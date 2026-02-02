@@ -73,13 +73,13 @@ public class EventPublishingRepositoryTest {
         when(resultSet.next()).thenReturn(true);
 
         when(resultSet.getObject("stream_id", UUID.class)).thenReturn(streamId);
-        when(resultSet.getLong("position_in_stream")).thenReturn(positionInStream);
+        when(resultSet.getObject("position_in_stream", Long.class)).thenReturn(positionInStream);
         when(resultSet.getString("name")).thenReturn(name);
         when(resultSet.getString("metadata")).thenReturn(metadata);
         when(resultSet.getString("payload")).thenReturn(payload);
         when(resultSet.getTimestamp("date_created")).thenReturn(toSqlTimestamp(createdAt));
-        when(resultSet.getLong("event_number")).thenReturn(eventNumber);
-        when(resultSet.getLong("previous_event_number")).thenReturn(previousEventNumber);
+        when(resultSet.getObject("event_number", Long.class)).thenReturn(eventNumber);
+        when(resultSet.getObject("previous_event_number", Long.class)).thenReturn(previousEventNumber);
 
         final Optional<LinkedEvent> linkedEvent = eventPublishingRepository.findEventFromEventLog(eventId);
 

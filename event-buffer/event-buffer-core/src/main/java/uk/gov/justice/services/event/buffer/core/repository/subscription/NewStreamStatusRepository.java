@@ -236,8 +236,8 @@ public class NewStreamStatusRepository {
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    final long currentStreamPosition = resultSet.getLong("position");
-                    final long latestKnownPosition = resultSet.getLong("latest_known_position");
+                    final Long currentStreamPosition = resultSet.getObject("position", Long.class);
+                    final long latestKnownPosition = resultSet.getObject("latest_known_position", Long.class);
                     final UUID streamErrorId = resultSet.getObject("stream_error_id", UUID.class);
                     final Timestamp lastUpdatedAt = resultSet.getObject("updated_at", Timestamp.class);
 

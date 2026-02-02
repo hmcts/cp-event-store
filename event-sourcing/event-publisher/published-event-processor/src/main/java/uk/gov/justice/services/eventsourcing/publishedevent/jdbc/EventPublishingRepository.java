@@ -68,13 +68,13 @@ public class EventPublishingRepository {
 
                 if (resultSet.next()) {
                     final UUID streamId = resultSet.getObject("stream_id", UUID.class);
-                    final long positionInStream = resultSet.getLong("position_in_stream");
+                    final Long positionInStream = resultSet.getObject("position_in_stream", Long.class);
                     final String name = resultSet.getString("name");
                     final String metadata = resultSet.getString("metadata");
                     final String payload = resultSet.getString("payload");
                     final ZonedDateTime createdAt = fromSqlTimestamp(resultSet.getTimestamp("date_created"));
-                    final long eventNumber = resultSet.getLong("event_number");
-                    final long previousEventNumber = resultSet.getLong("previous_event_number");
+                    final Long eventNumber = resultSet.getObject("event_number", Long.class);
+                    final Long previousEventNumber = resultSet.getObject("previous_event_number", Long.class);
 
                     final LinkedEvent linkedEvent = new LinkedEvent(
                             eventId,

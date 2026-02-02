@@ -66,7 +66,7 @@ public class NewStreamStatusRepository {
                 WHERE source = ?
                   AND component = ?
                   AND stream_error_id IS NULL
-                  AND position != latest_known_position
+                  AND position < latest_known_position
                 ORDER BY updated_at ASC
                 LIMIT 1
                 FOR NO KEY UPDATE SKIP LOCKED

@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.105.0-M2] - 2026-02-02
 ### Added
 - New method on `DatabaseCleaner` test helper class to set `latest_event_id` from `event_subscription_status` table to NULL
 ### Changed

@@ -93,14 +93,14 @@ public class EventDiscovererTest {
                 eq(component),
                 eq(positionInStream_1),
                 eq(now));
-        verify(logger).info("Updating latest known position to '111' for stream id '1111ef5f-2b26-42a2-a01c-4591d2911111', source 'some-source' component 'some-component'");
+        verify(logger).debug("Updating latest known position to '111' for stream id '1111ef5f-2b26-42a2-a01c-4591d2911111', source 'some-source' component 'some-component'");
         verify(newStreamStatusRepository).upsertLatestKnownPosition(
                 eq(streamId_2),
                 eq(source),
                 eq(component),
                 eq(positionInStream_2),
                 eq(now));
-        verify(logger).info("Updating latest known position to '222' for stream id '2222ef5f-2b26-42a2-a01c-4591d2912222', source 'some-source' component 'some-component'");
+        verify(logger).debug("Updating latest known position to '222' for stream id '2222ef5f-2b26-42a2-a01c-4591d2912222', source 'some-source' component 'some-component'");
 
         verify(eventSubscriptionStatusRepository).save(new EventSubscriptionStatus(
                 source,

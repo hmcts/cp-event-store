@@ -19,6 +19,7 @@ import uk.gov.justice.services.common.annotation.ComponentNameExtractor;
 import uk.gov.justice.services.common.configuration.GlobalValueProducer;
 import uk.gov.justice.services.common.configuration.JndiBasedServiceContextNameProvider;
 import uk.gov.justice.services.common.configuration.ValueProducer;
+import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.services.common.converter.ObjectToJsonValueConverter;
 import uk.gov.justice.services.common.converter.StringToJsonObjectConverter;
 import uk.gov.justice.services.common.converter.jackson.ObjectMapperProducer;
@@ -256,7 +257,9 @@ public class SubscriptionEventInterceptorIT {
             JmsMessagingConfiguration.class,
             ValueProducer.class,
             OversizeMessageGuard.class,
-            JndiBasedServiceContextNameProvider.class
+            JndiBasedServiceContextNameProvider.class,
+
+            EventPullConfiguration.class
     })
 
     public WebApp war() {

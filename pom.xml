@@ -12,7 +12,7 @@
 
     <groupId>uk.gov.justice.event-store</groupId>
     <artifactId>event-store</artifactId>
-    <version>17.104.0-M13-SNAPSHOT</version>
+    <version>17.105.0-M3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Event Store</name>
@@ -32,7 +32,6 @@
         <module>event-store-metric-meters</module>
         <module>framework-rest-resources</module>
         <module>event-store-version</module>
-        <module>framework-rest-resources/framework-version-rest-resources</module>
     </modules>
 
     <scm>
@@ -43,7 +42,7 @@
 
     <properties>
         <cpp.repo.name>event-store</cpp.repo.name>
-        <framework.version>17.104.0-M6</framework.version>
+        <framework.version>17.105.0-M2</framework.version>
 
         <!-- junit 4 version needed for deltaspike tests. Should be moved to common bom -->
         <junit4.version>4.13.2</junit4.version>

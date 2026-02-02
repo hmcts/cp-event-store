@@ -1,5 +1,6 @@
 package uk.gov.justice.services.eventsourcing.source.core;
 
+import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
 import static javax.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -42,6 +43,12 @@ public class DefaultLinkedEventSource implements LinkedEventSource {
         return multipleDataSourceEventRepository.findByEventId(eventId);
     }
 
+    @Transactional(NOT_SUPPORTED)
+    @Override
+    public Optional<LinkedEvent> findNextEventInTheStreamAfterPosition(final UUID streamId, final Long position) {
+        return multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId, position);
+    }
+
     @Transactional(REQUIRED)
     @Override
     public Long getHighestPublishedEventNumber() {
@@ -52,5 +59,10 @@ public class DefaultLinkedEventSource implements LinkedEventSource {
                         .getEventNumber()
                         .orElse(0L))
                 .orElse(0L);
+    }
+
+    @Override
+    public Stream<LinkedEvent> pollStreamEvents(UUID streamId, long fromPosition, long toPosition, int batchLimit) {
+        return multipleDataSourceEventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(streamId, fromPosition, toPosition, batchLimit);
     }
 }

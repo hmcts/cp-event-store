@@ -5,7 +5,7 @@
     <parent>
         <artifactId>event-sourcing</artifactId>
         <groupId>uk.gov.justice.event-store</groupId>
-        <version>17.104.0-M13-SNAPSHOT</version>
+        <version>17.105.0-M3-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -25,6 +25,11 @@
         <dependency>
             <groupId>uk.gov.justice.services</groupId>
             <artifactId>event-subscription</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>uk.gov.justice.event-store</groupId>
+            <artifactId>event-subscription-registry</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>uk.gov.justice.event-store</groupId>
@@ -154,7 +159,6 @@
                     <execution>
                         <phase>pre-integration-test</phase>
                         <goals>
-                            <goal>dropAll</goal>
                             <goal>update</goal>
                         </goals>
                     </execution>

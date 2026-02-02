@@ -13,8 +13,6 @@ import javax.transaction.Transactional;
 
 public class MissingEventRangeFinder {
 
-    private static final long FIRST_POSSIBLE_EVENT_NUMBER = 0L;
-
     @Inject
     private ProcessedEventTrackingRepository processedEventTrackingRepository;
 
@@ -47,8 +45,9 @@ public class MissingEventRangeFinder {
             );
         }
 
-        if (eventNumberAccumulator.isInitialised() && eventNumberAccumulator.getLastPreviousEventNumber() != FIRST_POSSIBLE_EVENT_NUMBER) {
-            eventNumberAccumulator.addRangeFrom(FIRST_POSSIBLE_EVENT_NUMBER);
+        if (eventNumberAccumulator.isInitialised() &&
+            eventNumberAccumulator.getLastPreviousEventNumber() != runFromEventNumber -1) {
+            eventNumberAccumulator.addRangeFrom(runFromEventNumber - 1);
         }
 
         return eventNumberAccumulator.getMissingEventRanges();

@@ -1,15 +1,5 @@
 package uk.gov.justice.services.event.buffer.core.repository.subscription;
 
-import static java.lang.String.format;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
-import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
-
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
-import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,8 +10,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
 import javax.inject.Inject;
+import javax.transaction.Transactional;
+
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
+import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
+
+import static java.lang.String.format;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
+import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 @SuppressWarnings("java:S1192")
 public class NewStreamStatusRepository {
@@ -56,6 +57,20 @@ public class NewStreamStatusRepository {
                 AND source = ?
                 AND component = ?
             """;
+    private static final String SELECT_OLDEST_HEALTHY_STREAM_SQL = """
+                SELECT
+                    stream_id,
+                    position,
+                    latest_known_position
+                FROM stream_status
+                WHERE source = ?
+                  AND component = ?
+                  AND stream_error_id IS NULL
+                  AND position != latest_known_position
+                ORDER BY updated_at ASC
+                LIMIT 1
+                FOR NO KEY UPDATE SKIP LOCKED
+            """;
     private static final String FIND_ALL_SQL = """
                 SELECT
                     stream_id,
@@ -88,7 +103,8 @@ public class NewStreamStatusRepository {
                 AND source = ?
                 AND component = ?
             """;
-    private static final String UPDATE_LATEST_KNOWN_POSITION_IN_STREAM = """
+
+    private static final String UPDATE_LATEST_KNOWN_POSITION_AND_IS_UP_TO_DATE = """
                 UPDATE stream_status
                 SET latest_known_position = ?,
                 is_up_to_date = ?
@@ -96,6 +112,21 @@ public class NewStreamStatusRepository {
                 AND source = ?
                 AND component = ?
             """;
+    private static final String UPSERT_LATEST_KNOWN_POSITION = """
+              INSERT INTO stream_status (
+                stream_id,
+                position,
+                source,
+                component,
+                updated_at,
+                latest_known_position,
+                is_up_to_date
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (stream_id, source, component) DO UPDATE SET
+                    latest_known_position = EXCLUDED.latest_known_position,
+                    is_up_to_date = EXCLUDED.is_up_to_date
+            """;
+
     private static final String SET_IS_UP_TO_DATE_SQL = """
             UPDATE stream_status
             SET is_up_to_date = ?
@@ -163,6 +194,35 @@ public class NewStreamStatusRepository {
         } catch (final SQLException e) {
             throw new StreamStatusException("Failed to find all from stream_status table", e);
         }
+    }
+
+    public Optional<LockedStreamStatus> findOldestStreamToProcessByAcquiringLock(final String source, final String component) {
+
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_OLDEST_HEALTHY_STREAM_SQL)) {
+
+            preparedStatement.setString(1, source);
+            preparedStatement.setString(2, component);
+
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+
+                if (resultSet.next()) {
+                    final UUID streamId = (UUID) resultSet.getObject("stream_id");
+                    final Long position = resultSet.getLong("position");
+                    final Long latestKnownPosition = resultSet.getLong("latest_known_position");
+                    return of(new LockedStreamStatus(streamId, position, latestKnownPosition));
+                }
+            }
+
+        } catch (final SQLException e) {
+            throw new StreamStatusException(format(
+                    "Failed to select stream to process from stream_status table; source '%s', component '%s",
+                    source,
+                    component),
+                    e);
+        }
+
+        return empty();
     }
 
     public StreamUpdateContext lockStreamAndGetStreamUpdateContext(final UUID streamId, final String source, final String componentName, final long incomingEventPosition) {
@@ -258,10 +318,40 @@ public class NewStreamStatusRepository {
         }
     }
 
+    @Transactional(REQUIRES_NEW)
+    public void upsertLatestKnownPosition(final UUID streamId, final String source, final String componentName, final long latestKnownPosition,
+                                          final ZonedDateTime discoveredAt) {
+
+        final Timestamp updatedAtTimestamp = toSqlTimestamp(discoveredAt);
+
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(UPSERT_LATEST_KNOWN_POSITION)) {
+
+
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setLong(2, INITIAL_POSITION_IN_STREAM);
+            preparedStatement.setString(3, source);
+            preparedStatement.setString(4, componentName);
+            preparedStatement.setTimestamp(5, updatedAtTimestamp);
+            preparedStatement.setLong(6, latestKnownPosition);
+            preparedStatement.setBoolean(7, false);
+
+            preparedStatement.executeUpdate();
+        } catch (final SQLException e) {
+            throw new StreamStatusException(format(
+                    "Failed to upsert stream_status latest_known_position; stream_id '%s', source '%s', component '%s', latestKnownPosition '%d'",
+                    streamId,
+                    source,
+                    componentName,
+                    latestKnownPosition),
+                    e);
+        }
+    }
+
     public void updateLatestKnownPositionAndIsUpToDateToFalse(final UUID streamId, final String source, final String componentName, final long latestKnownPosition) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_LATEST_KNOWN_POSITION_IN_STREAM)) {
+             final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_LATEST_KNOWN_POSITION_AND_IS_UP_TO_DATE)) {
 
             preparedStatement.setLong(1, latestKnownPosition);
             preparedStatement.setBoolean(2, false);

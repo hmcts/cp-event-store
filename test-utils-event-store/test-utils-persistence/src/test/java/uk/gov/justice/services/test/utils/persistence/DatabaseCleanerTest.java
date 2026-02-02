@@ -3,6 +3,7 @@ package uk.gov.justice.services.test.utils.persistence;
 import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -72,6 +73,51 @@ public class DatabaseCleanerTest {
         verify(preparedStatement, times(4)).executeUpdate();
         verify(connection).close();
         verify(preparedStatement, times(4)).close();
+    }
+
+    @Test
+    public void shouldResetLatestEventIdOnEventSubscriptionTableToNull() throws Exception {
+
+        final String contextName = "some-context";
+
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(testJdbcConnectionProvider.getEventStoreConnection(contextName)).thenReturn(connection);
+        when(connection.prepareStatement("UPDATE event_subscription_status SET latest_event_id = NULL")).thenReturn(preparedStatement);
+
+        databaseCleaner.resetEventSubscriptionStatusTable(contextName);
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldThrowDataAccessExceptionIfResettingLatestEventToNullFails() throws Exception {
+
+        final String contextName = "some-context";
+        final SQLException sqlException = new SQLException("Ooops");
+
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(testJdbcConnectionProvider.getEventStoreConnection(contextName)).thenReturn(connection);
+        when(connection.prepareStatement("UPDATE event_subscription_status SET latest_event_id = NULL")).thenReturn(preparedStatement);
+        doThrow(sqlException).when(preparedStatement).executeUpdate();
+
+        final DataAccessException dataAccessException = assertThrows(
+                DataAccessException.class,
+                () -> databaseCleaner.resetEventSubscriptionStatusTable(contextName));
+
+        assertThat(dataAccessException.getCause(), is(sqlException));
+        assertThat(dataAccessException.getMessage(), is("Failed to set 'event_subscription_status.latest_event_id' to NULL"));
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
     }
 
     @Test

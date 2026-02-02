@@ -1,19 +1,16 @@
 package uk.gov.justice.services.event.sourcing.subscription.error;
 
+import java.util.Objects;
+import java.util.Optional;
+import javax.inject.Inject;
+import javax.transaction.UserTransaction;
+import org.slf4j.Logger;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamUpdateContext;
 import uk.gov.justice.services.event.sourcing.subscription.manager.TransactionHandler;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
-
-import java.util.Objects;
-import java.util.Optional;
-
-import javax.inject.Inject;
-import javax.transaction.UserTransaction;
-
-import org.slf4j.Logger;
 
 public class StreamErrorStatusHandler {
 
@@ -52,6 +49,21 @@ public class StreamErrorStatusHandler {
             else {
                 streamErrorRepository.markStreamAsErrored(newStreamError, streamUpdateContext.currentStreamPosition());
             }
+
+            transactionHandler.commit(userTransaction);
+        } catch (final Exception e) {
+            transactionHandler.rollback(userTransaction);
+            logger.error("Failed to mark stream as errored: streamId '%s'".formatted(newStreamError.streamErrorDetails().streamId()), e);
+        }
+    }
+
+    public void onStreamProcessingFailure(final JsonEnvelope jsonEnvelope, final Throwable exception, final String component, final long currentPosition) {
+        final ExceptionDetails exceptionDetails = exceptionDetailsRetriever.getExceptionDetailsFrom(exception);
+        final StreamError newStreamError = streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component);
+        try {
+            transactionHandler.begin(userTransaction);
+
+            streamErrorRepository.markStreamAsErrored(newStreamError, currentPosition);
 
             transactionHandler.commit(userTransaction);
         } catch (final Exception e) {

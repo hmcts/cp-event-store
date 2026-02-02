@@ -1,0 +1,70 @@
+package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
+
+import java.util.List;
+import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
+import javax.ejb.Timeout;
+import javax.ejb.Timer;
+import javax.ejb.TimerConfig;
+import javax.ejb.TimerService;
+import javax.inject.Inject;
+import org.slf4j.Logger;
+import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
+import uk.gov.justice.services.event.sourcing.subscription.manager.StreamProcessingSubscriptionManager;
+import uk.gov.justice.subscription.SourceComponentPair;
+import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
+
+@Singleton
+@Startup
+public class StreamProcessingTimerBean {
+
+    @Inject
+    private Logger logger;
+
+    @Resource
+    private TimerService timerService;
+
+    @Inject
+    private StreamProcessingTimerConfig streamProcessingTimerConfig;
+
+    @Inject
+    private SubscriptionSourceComponentFinder subscriptionSourceComponentFinder;
+
+    @Inject
+    private StreamProcessingSubscriptionManager streamProcessingSubscriptionManager;
+
+    @Inject
+    private EventPullConfiguration eventPullConfiguration;
+
+    @PostConstruct
+    public void startTimerService() {
+        if (eventPullConfiguration.shouldProcessEventsByPullMechanism()) {
+            final List<SourceComponentPair> sourceComponentPairs = subscriptionSourceComponentFinder
+                    .findSourceComponentPairsFromSubscriptionRegistry();
+
+            sourceComponentPairs.forEach(sourceComponentPair -> {
+                final TimerConfig timerConfig = new TimerConfig();
+                timerConfig.setPersistent(false);
+                timerConfig.setInfo(sourceComponentPair);
+
+                timerService.createIntervalTimer(
+                        streamProcessingTimerConfig.getTimerStartWaitMilliseconds(),
+                        streamProcessingTimerConfig.getTimerIntervalMilliseconds(),
+                        timerConfig
+                );
+            });
+        }
+    }
+
+    @Timeout
+    public void processStreamEvents(final Timer timer) {
+        final SourceComponentPair pair = (SourceComponentPair) timer.getInfo();
+        try {
+            streamProcessingSubscriptionManager.process(pair.source(), pair.component());
+        } catch (final Exception e) {
+            logger.error("Failed to process stream events of source: {}, component: {}", pair.source(), pair.component(), e);
+        }
+    }
+}

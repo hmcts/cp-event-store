@@ -6,6 +6,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
@@ -155,5 +156,63 @@ public class StreamErrorStatusHandlerTest {
 
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(streamErrorRepository, never()).markStreamAsErrored(newStreamError, streamUpdateContext.currentStreamPosition());
+    }
+
+    @Test
+    public void shouldCreateEventErrorFromExceptionAndJsonEnvelopeAndSaveWhenNoStreamUpdateContext() throws Exception {
+
+        final long currentPosition = 456L;
+        final NullPointerException nullPointerException = new NullPointerException();
+        final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
+        final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
+        final StreamError streamError = mock(StreamError.class);
+        final String component = "SOME_COMPONENT";
+
+        when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
+        when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(streamError);
+
+        streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition);
+
+        final InOrder inOrder = inOrder(transactionHandler, streamErrorRepository);
+
+        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(streamErrorRepository).markStreamAsErrored(streamError, currentPosition);
+        inOrder.verify(transactionHandler).commit(userTransaction);
+
+        verify(transactionHandler, never()).rollback(userTransaction);
+        verifyNoInteractions(micrometerMetricsCounters);
+    }
+
+    @Test
+    public void shouldRollBackAndLogIfUpdatingErrorTableFailsWhenNoStreamUpdateContext() throws Exception {
+
+        final long currentPosition = 789L;
+        final NullPointerException nullPointerException = new NullPointerException();
+        final StreamErrorHandlingException streamErrorHandlingException = new StreamErrorHandlingException("error occurred");
+        final String component = "SOME_COMPONENT";
+        final UUID streamId = fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+
+        final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
+        final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
+        final StreamError streamError = mock(StreamError.class);
+        final StreamErrorDetails streamErrorDetails = mock(StreamErrorDetails.class);
+
+        when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
+        when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(streamError);
+        when(streamError.streamErrorDetails()).thenReturn(streamErrorDetails);
+        when(streamErrorDetails.streamId()).thenReturn(streamId);
+        doThrow(streamErrorHandlingException).when(streamErrorRepository).markStreamAsErrored(streamError, currentPosition);
+
+        streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition);
+
+        final InOrder inOrder = inOrder(transactionHandler, streamErrorRepository, logger);
+
+        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(streamErrorRepository).markStreamAsErrored(streamError, currentPosition);
+        inOrder.verify(transactionHandler).rollback(userTransaction);
+        inOrder.verify(logger).error("Failed to mark stream as errored: streamId 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'", streamErrorHandlingException);
+
+        verify(transactionHandler, never()).commit(userTransaction);
+        verifyNoInteractions(micrometerMetricsCounters);
     }
 }

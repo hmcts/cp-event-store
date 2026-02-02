@@ -32,6 +32,13 @@ public class MultipleDataSourceEventRepository {
             FROM event_log 
             ORDER BY event_number DESC 
             LIMIT 1""";
+    private static final String SQL_FIND_NEXT_EVENT_IN_THE_STREAM_AFTER_POSITION = """
+            SELECT id, stream_id, position_in_stream, name, payload, metadata, date_created, event_number, previous_event_number 
+            FROM event_log
+            WHERE stream_id = ? 
+            AND position_in_stream > ?
+            ORDER BY position_in_stream ASC
+            LIMIT 1""";
 
     private static final String SQL_FIND_RANGE = """
             SELECT
@@ -58,6 +65,11 @@ public class MultipleDataSourceEventRepository {
             AND event_stream.active = TRUE
             ORDER BY e.event_number;
             """;
+
+    static final String SQL_FIND_BY_STREAM_ID_AND_POSITION_RANGE = """
+        SELECT id, stream_id, position_in_stream, name, payload, metadata, date_created, event_number, previous_event_number FROM event_log 
+            WHERE stream_id = ? and position_in_stream > ? and position_in_stream <= ? 
+            ORDER BY position_in_stream ASC LIMIT ?""";
 
     private static final String ID = "id";
     private static final String STREAM_ID = "stream_id";
@@ -147,6 +159,31 @@ public class MultipleDataSourceEventRepository {
         }
     }
 
+    /**
+     * Returns Optional of LinkedEvent for a given streamId, position.
+     *
+     * @param streamId - id of the stream
+     * @param position - position in the stream
+     * @return Optional of LinkedEvent
+     */
+    public Optional<LinkedEvent> findNextEventInTheStreamAfterPosition(final UUID streamId, Long position) {
+
+        try {
+            final PreparedStatementWrapper psWrapper = preparedStatementWrapperFactory.preparedStatementWrapperOf(dataSource, SQL_FIND_NEXT_EVENT_IN_THE_STREAM_AFTER_POSITION);
+
+            psWrapper.setObject(1, streamId);
+            psWrapper.setLong(2, position);
+
+            final ResultSet resultSet = psWrapper.executeQuery();
+
+            return resultSet.next()
+                    ? Optional.of(asEvent().apply(resultSet))
+                    : Optional.empty();
+        } catch (final SQLException e) {
+            throw new JdbcRepositoryException(format("Failed to find event with streamId: %s, position: %d", streamId, position), e);
+        }
+    }
+
     @SuppressWarnings("DuplicatedCode")
     public Optional<LinkedEvent> getLatestLinkedEvent() {
         try {
@@ -185,6 +222,34 @@ public class MultipleDataSourceEventRepository {
         } catch (SQLException e) {
             throw new JdbcRepositoryException("Failed to get latest LinkedEvent", e);
         }
+    }
+
+    /***
+     * Returns a stream of events for the given stream within the specified position range.
+     * @param streamId
+     * @param fromPosition
+     * @param toPosition
+     * @param limit
+     * @return
+     */
+    public Stream<LinkedEvent> findByStreamIdInPositionRangeOrderByPositionAsc(final UUID streamId,
+                                                                         final long fromPosition,
+                                                                         final long toPosition,
+                                                                         final int limit) {
+
+        try {
+            final PreparedStatementWrapper psWrapper = preparedStatementWrapperFactory.preparedStatementWrapperOf(dataSource, SQL_FIND_BY_STREAM_ID_AND_POSITION_RANGE);
+
+            psWrapper.setObject(1, streamId);
+            psWrapper.setLong(2, fromPosition);
+            psWrapper.setLong(3, toPosition);
+            psWrapper.setInt(4, limit);
+
+            return jdbcResultSetStreamer.streamOf(psWrapper, asEvent());
+        } catch (final SQLException e) {
+            throw new JdbcRepositoryException(format("Exception while reading events in stream and position range %s", streamId), e);
+        }
+
     }
 
     private Function<ResultSet, LinkedEvent> asEvent() {

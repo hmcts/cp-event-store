@@ -14,10 +14,9 @@ import java.util.List;
 import com.google.common.annotations.VisibleForTesting;
 
 /**
- * Test utility class for easy cleaning of a context's database.
- * Can clean both buffer tables and the event log table.
- * Plus clean a list of other tables
- *
+ * Test utility class for easy cleaning of a context's database. Can clean both buffer tables and
+ * the event log table. Plus clean a list of other tables
+ * <p>
  * To use:
  *
  * <pre>
@@ -36,6 +35,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class DatabaseCleaner {
 
     private static final String SQL_PATTERN = "TRUNCATE TABLE %s CASCADE";
+    private static final String SET_LATEST_EVENT_ID_ON_EVENT_SUBSCRIPTION_STATUS_TABLE_TO_NULL_SQL = "UPDATE event_subscription_status SET latest_event_id = NULL";
 
     private final TestJdbcConnectionProvider testJdbcConnectionProvider;
 
@@ -100,7 +100,6 @@ public class DatabaseCleaner {
             truncateTable("event_stream", EVENT_STORE_DATABASE_NAME, connection);
             truncateTable("publish_queue", EVENT_STORE_DATABASE_NAME, connection);
             truncateTable("published_event", EVENT_STORE_DATABASE_NAME, connection);
-
         } catch (SQLException e) {
             throw new DataAccessException("Failed to commit or close database connection", e);
         }
@@ -116,7 +115,7 @@ public class DatabaseCleaner {
 
             truncateTable(tableName, EVENT_STORE_DATABASE_NAME, connection);
 
-            for(String additionalTable: additionalTableNames) {
+            for (String additionalTable : additionalTableNames) {
                 truncateTable(additionalTable, EVENT_STORE_DATABASE_NAME, connection);
             }
 
@@ -128,7 +127,7 @@ public class DatabaseCleaner {
     /**
      * Deprecated from 3.2.0, please use {@link #cleanEventStoreTables(String)} to clean all tables
      * belonging to the event-store.
-     *
+     * <p>
      * Deletes all the data in the 'event_log' table
      *
      * @param contextName the name of the context who's tables you are cleaning
@@ -167,6 +166,25 @@ public class DatabaseCleaner {
     }
 
     /**
+     * Resets latest_event_id on event_subscription_status table to null. Table needs source and
+     * component pairs in it to make event publishing work (normally run on deployment), but having
+     * a rogue latest_event_id from a previous test causes stack traces in logs
+     *
+     * @param contextName the name of the context whose tables you are cleaning
+     */
+    public void resetEventSubscriptionStatusTable(final String contextName) {
+
+        try (final Connection connection = testJdbcConnectionProvider.getEventStoreConnection(contextName);
+             final PreparedStatement preparedStatement = connection.prepareStatement(SET_LATEST_EVENT_ID_ON_EVENT_SUBSCRIPTION_STATUS_TABLE_TO_NULL_SQL)) {
+            preparedStatement.executeUpdate();
+        } catch (final SQLException e) {
+            throw new DataAccessException("Failed to set 'event_subscription_status.latest_event_id' to NULL", e);
+        }
+    }
+
+
+
+    /**
      * Cleans all the tables in the specified list
      *
      * @param contextName the name of the context who's tables you are cleaning
@@ -196,4 +214,5 @@ public class DatabaseCleaner {
             throw new DataAccessException("Failed to delete content from table " + tableName, e);
         }
     }
+
 }

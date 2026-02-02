@@ -5,62 +5,87 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
-# [17.104.0-M12] - 2025-11-21
+# [17.105.0-M2] - 2026-02-02
+### Added
+- New method on `DatabaseCleaner` test helper class to set `latest_event_id` from `event_subscription_status` table to NULL
+### Changed
+- Insert of `position` into `stream_status` table changed into an upsert
+- Discovery now records latest event id after each run
+### Removed
+- Removed `latest_known_position` from `event_subscription_status` table
+
+# [17.105.0-M1] - 2026-01-29
+### Added
+- New table `event_subscription_status` that will contain the latest events for each source/component pair
+- New Timer Bean 'EventDiscoveryTimerBean' that kicks of the discovery process
+- Discovery in event store will return the latest positions for streams 
+- New JNDI value `event.discovery.timer.interval.milliseconds` that defines how often the new TimerBean runs
+- New Wildfly extension `EventDiscoveryBootstrapWildflyExtension` that will prime the `event_subscription_status` table
+### Changed
+- No events written to processed_event table if the new pull mechanism is running. Controlled by JNDI value `events.publishing.process.events.from.event.topic` set to false  
+
+# [17.104.0] - 2025-12-16
+### Added
+- Added [framework E rollout and rollback SQLs document](event-sourcing/event-repository/event-repository-liquibase/docs/framework-E-sqls.md)
+- Catchup can now be run with the id of the event you wish to run catchup from. Catchup
+  will ignore events before this event and only catchup this event and events with higher
+  event numbers. The event id should be sent to jmx using the `--commandRuntimeId` switch.
+  If no eventId is sent then catchup will run from the first event as normal
+- Re-introduced the event-number database sequence in case we need to roll back, in which case the
+  sequence will be up to date
+- Event publishing now also saves events into deprecated published_event table for compatibility with previous event publishing
+- New JNDI value `event.publishing.add.event.to.published.event.table.on.publish` to control whether event is also inserted into published_event table. This value is true by default.
+- New index on date_created in event_log
+- New column `previous_event_number` on `event_log` table
+- New column `is_published` on `event_log` table
+- New index `idx_event_log_not_sequenced` on `event_log(date_created)`
+- New index `idx_event_log_not_published` on `event_log(date_created)`
+- New index `idx_event_log_global_sequence` on `event_log(previous_event_number,event_number);`
+- New column `previous_event_number` on `event_log` table
+- New column `is_published` on `event_log` table
+- New index `idx_event_log_not_sequenced` on `event_log(date_created)`
+- New index `idx_event_log_not_published` on `event_log(date_created)`
+- New index `idx_event_log_global_sequence` on `event_log(previous_event_number,event_number);`
+- New REST endpoint that will serve json showing the various framework project versions on the path `/internal/framework/versions`
+- New module `framework-libraries-version` that contains a maven generated json file that has this project's version number
+### Security
+- Updated to latest common-bom for latest third party security fixes:
+  - Update commons.beanutils version to **1.11.0** to fix **security vulnerability CVE-2025-48734**
+    Detail: https://cwe.mitre.org/data/definitions/284.html
+  - Update resteasy version to **3.15.5.Final** to fix **security vulnerability CVE-2023-0482**
+    Detail: https://cwe.mitre.org/data/definitions/378.html
+  - Update classgraph version to **4.8.112** to fix **security vulnerability CVE-2021-47621**
+    Detail: https://cwe.mitre.org/data/definitions/611.html
+  - Update commons-lang version to **3.18.0** to fix **security vulnerability CVE-2025-48924**
+    Detail: https://cwe.mitre.org/data/definitions/674.html
+
 ## Changed
+- Fixed CATCHUP will run from specific event_number correctly when the event_id is provided
+- Liquibase is_published is not true by default
+- Liquibase event_status is now VARCHAR(64)
 - Catchup will now ignore events on inactive streams and events that are not marked as `HEALTHY`
 - EntityManagerFlushInterceptor will now only flush the EntityManager if a transaction is active
 - TransactionHandler will now roll back except if transaction is `STATUS_NO_TRANSACTION`
 - The `is_published` flag in event_log table is now true by default.
 - `is_published` flag in event_log now set to false when the event is first inserted. Will be set 
   to true once publishing has sent the event to the event topic
-
-# [17.104.0-M11] - 2025-11-13
-## Changed
 - Save of ProcessedEvent will now throw ProcessedEventTrackingException if eventNumber, source or component are not unique
 - ReplaySingleEvent JMX commands can now take an optional commandRuntimeString of the component name
   to work with MI contexts
 - Configure timeouts for releasing transactional advisory locks in event linking
-
-# [17.104.0-M10] - 2025-11-03
-### Added
-- Added [framework E rollout and rollback SQLs document](event-sourcing/event-repository/event-repository-liquibase/docs/framework-E-sqls.md)
-### Changed
 - Inserts of new events into event_log now explicitly set event_number and previous_event_number
   to NULL, for rollback purposes
 - Refactor JsonObject usages to more proper api
 - Fix HttpClient lifecycle.
 - published_events insertion moved to EventNumberLinker from LinkedEventPublisher
-
-# [17.104.0-M8] - 2025-10-24
-### Added
-- Catchup can now be run with the id of the event you wish to run catchup from. Catchup
-  will ignore events before this event and only catchup this event and events with higher 
-  event numbers. The event id should be sent to jmx using the `--commandRuntimeId` switch.
-  If no eventId is sent then catchup will run from the first event as normal
-- Re-introduced the event-number database sequence in case we need to roll back, in which case the 
-  sequence will be up to date
-### Changed
 - Catchup now calculates previousEventNumber for each event from the previous row in 
     the event_log table rather than the previous_event_number column.
     This is to allow catchup to run with the new publishing where the previous_event_number
     has not yet been migrated and inserted
 - The event-number sequence is clicked forward by one each time we publish a new event
-
-# [17.104.0-M6] - 2025-10-15
-### Added
-- Event publishing now also saves events into deprecated published_event table for compatibility with previous event publishing
-- New JNDI value `event.publishing.add.event.to.published.event.table.on.publish` to control whether event is also inserted into published_event table. This value is true by default.
-
-# [17.104.0-M5] - 2025-10-13
-### Changed
 - use popNextEventIdFromPublishQueue to pop event number from publish_queue table
 - Used JsonFactory instead of Json.create methods as per https://github.com/jakartaee/jsonp-api/issues/154
 - 'is_published' flag on event_log now set to true once an event has been successfully published
-### Removed
-- Removed `AnsiSQLEventInsertionStrategy` and `EventInsertionStrategyProducer`
-
-# [17.104.0-M4] - 2025-10-02
-### Changed
 - Refactored event publishing;
   - Event numbers now calculated in EventLinkingTimerBean rather that on the insert of the event into event log
   - Advisory locks are used during the calculation of event numbers rather than SELECT FOR UPDATE
@@ -68,49 +93,29 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
   - Catchup changed to add event numbers to event on publishing
   - ReplayEventToEventListener changed to add event numbers to event on publishing
   - Event numbers no longer use a database sequence but are calculated from the highest published event number
-### Added
-- New index on date_created in event_log
+  - removed `SKIP LOCKED` when querying for earliest unlinked event in event_log table
+  - Locking of stream_status table when publishing events, no longer calls error tables updates on locking errors
+  - Refactor of event publishing:
+    - New timer bean worker and database access for linking events (previous and current event numbers in event_log table)
+    - previous_event_number and event_number moved to event_log table
+    - Events now exist solely in event_log table, removing the need for published_event
+    - Publish queue now reads directly from event_log table and ignores published_event
+    - `PublishedEvent` renamed to `LinkedEvent` and fetched directly from event_log table
+    - published_event table to be deprecated
+    - Runs of `EventLinkingTimerBean` now configured using new jndi values:
+      - `event.linking.worker.start.wait.milliseconds`
+      - `event.linking.worker.timer.interval.milliseconds`
+      - `event.linking.worker.time.between.runs.milliseconds`
+    - Runs of `EventPublishingTimerBean` now configured using new jndi values:
+      - `event.publishing.worker.start.wait.milliseconds`
+      - `event.publishing.worker.timer.interval.milliseconds`
+      - `event.publishing.worker.time.between.runs.milliseconds`
+  - New jndi values are no longer global can can be configured per context
+  
 ### Removed
-  - Removed `event_sequence_seq` database sequence as it's no longer used 
-
-# [17.104.0-M3] - 2025-09-22
-### Changed
-- removed `SKIP LOCKED` when querying for earliest unlinked event in event_log table
-### Removed
+- Removed `AnsiSQLEventInsertionStrategy` and `EventInsertionStrategyProducer`
+- Removed `event_sequence_seq` database sequence as it's no longer used
 - Removed `pre_publish_queue` table from event_store database
-
-# [17.104.0-M2] - 2025-09-17
-### Added
-- New column `previous_event_number` on `event_log` table
-- New column `is_published` on `event_log` table
-- New index `idx_event_log_not_sequenced` on `event_log(date_created)`
-- New index `idx_event_log_not_published` on `event_log(date_created)`
-- New index `idx_event_log_global_sequence` on `event_log(previous_event_number,event_number);`
-### Changed
-- Locking of stream_status table when publishing events, no longer calls error tables updates on locking errors
-- Refactor of event publishing:
-  - New timer bean worker and database access for linking events (previous and current event numbers in event_log table)
-  - previous_event_number and event_number moved to event_log table
-  - Events now exist solely in event_log table, removing the need for published_event
-  - Publish queue now reads directly from event_log table and ignores published_event
-  - `PublishedEvent` renamed to `LinkedEvent` and fetched directly from event_log table
-  - published_event table to be deprecated
-  - Runs of `EventLinkingTimerBean` now configured using new jndi values:
-    - `event.linking.worker.start.wait.milliseconds`
-    - `event.linking.worker.timer.interval.milliseconds`
-    - `event.linking.worker.time.between.runs.milliseconds`
-  - Runs of `EventPublishingTimerBean` now configured using new jndi values:
-    - `event.publishing.worker.start.wait.milliseconds`
-    - `event.publishing.worker.timer.interval.milliseconds`
-    - `event.publishing.worker.time.between.runs.milliseconds`
-- New jndi values are no longer global can can be configured per context
-### Added
-- New column `previous_event_number` on `event_log` table
-- New column `is_published` on `event_log` table
-- New index `idx_event_log_not_sequenced` on `event_log(date_created)`
-- New index `idx_event_log_not_published` on `event_log(date_created)`
-- New index `idx_event_log_global_sequence` on `event_log(previous_event_number,event_number);`
-### Removed
 - Removed old jndi values used to configure publishing (and replaced with the above)
   - `pre.publish.start.wait.milliseconds`
   - `pre.publish.timer.interval.milliseconds`
@@ -124,22 +129,6 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
   - Removed `ENABLE_PUBLISHING` jmx command and associated classes
   - Removed `DISABLE_PUBLISHING` jmx command and associated classes
   - Removed `VALIDATE_EVENTS` jmx command and associated classes
-
-# [17.104.0-M1] - 2025-07-29
-### Added
-- New REST endpoint that will serve json showing the various framework project versions on the path `/internal/framework/versions`
-- New module `framework-libraries-version` that contains a maven generated json file that has this project's version number
-### Security
-- Updated to latest common-bom for latest third party security fixes:
-    - Update commons.beanutils version to **1.11.0** to fix **security vulnerability CVE-2025-48734**
-      Detail: https://cwe.mitre.org/data/definitions/284.html
-    - Update resteasy version to **3.15.5.Final** to fix **security vulnerability CVE-2023-0482**
-      Detail: https://cwe.mitre.org/data/definitions/378.html
-    - Update classgraph version to **4.8.112** to fix **security vulnerability CVE-2021-47621**
-      Detail: https://cwe.mitre.org/data/definitions/611.html
-    - Update commons-lang version to **3.18.0** to fix **security vulnerability CVE-2025-48924**
-      Detail: https://cwe.mitre.org/data/definitions/674.html
-
 
 # [17.103.1-M6] - 2025-08-14
 ### Changed

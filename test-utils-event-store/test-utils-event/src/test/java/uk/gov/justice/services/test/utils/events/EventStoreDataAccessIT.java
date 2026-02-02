@@ -1,22 +1,17 @@
 package uk.gov.justice.services.test.utils.events;
 
+import java.util.List;
+import java.util.UUID;
+import javax.sql.DataSource;
+import org.junit.jupiter.api.Test;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.Event;
+import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
+import uk.gov.justice.services.test.utils.persistence.TableCleaner;
+
 import static java.util.Collections.emptyList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static uk.gov.justice.services.test.utils.events.EventBuilder.eventBuilder;
-import static uk.gov.justice.services.test.utils.events.LinkedEventBuilder.linkedEventBuilder;
-
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.Event;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
-import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
-import uk.gov.justice.services.test.utils.persistence.TableCleaner;
-
-import java.util.List;
-import java.util.UUID;
-
-import javax.sql.DataSource;
-
-import org.junit.jupiter.api.Test;
 
 public class EventStoreDataAccessIT {
 
@@ -126,75 +121,5 @@ public class EventStoreDataAccessIT {
 
         assertThat(eventsOfStream_2.size(), is(1));
         assertThat(eventsOfStream_2.get(0), is(event_2));
-    }
-
-    @Test
-    public void shouldInsertAndGetPublishedEvents() throws Exception {
-
-        new TableCleaner().clean("published_event", eventStoreDataSource);
-
-        assertThat(eventStoreDataAccess.findAllPublishedEvents(), is(emptyList()));
-
-        final LinkedEvent linkedEvent_1 = linkedEventBuilder()
-                .withName("published event 1")
-                .withPreviousEventNumber(0)
-                .withEventNumber(1)
-                .build();
-        final LinkedEvent linkedEvent_2 = linkedEventBuilder()
-                .withName("published event 2")
-                .withPreviousEventNumber(1)
-                .withEventNumber(2)
-                .build();
-        final LinkedEvent linkedEvent_3 = linkedEventBuilder()
-                .withName("published event 3")
-                .withPreviousEventNumber(2)
-                .withEventNumber(3)
-                .build();
-
-        eventStoreDataAccess.insertIntoPublishedEvent(linkedEvent_1);
-        eventStoreDataAccess.insertIntoPublishedEvent(linkedEvent_2);
-        eventStoreDataAccess.insertIntoPublishedEvent(linkedEvent_3);
-
-        final List<LinkedEvent> linkedEvents = eventStoreDataAccess.findAllPublishedEvents();
-
-        assertThat(linkedEvents.size(), is(3));
-        assertThat(linkedEvents.get(0), is(linkedEvent_1));
-        assertThat(linkedEvents.get(1), is(linkedEvent_2));
-        assertThat(linkedEvents.get(2), is(linkedEvent_3));
-    }
-
-    @Test
-    public void shouldGetPublishedEventsByOrderedByEventNumber() throws Exception {
-
-        new TableCleaner().clean("published_event", eventStoreDataSource);
-
-        assertThat(eventStoreDataAccess.findAllPublishedEvents(), is(emptyList()));
-
-        final LinkedEvent linkedEvent_1 = linkedEventBuilder()
-                .withName("published event 1")
-                .withPreviousEventNumber(0)
-                .withEventNumber(1)
-                .build();
-        final LinkedEvent linkedEvent_2 = linkedEventBuilder()
-                .withName("published event 2")
-                .withPreviousEventNumber(1)
-                .withEventNumber(2)
-                .build();
-        final LinkedEvent linkedEvent_3 = linkedEventBuilder()
-                .withName("published event 3")
-                .withPreviousEventNumber(2)
-                .withEventNumber(3)
-                .build();
-
-        eventStoreDataAccess.insertIntoPublishedEvent(linkedEvent_3);
-        eventStoreDataAccess.insertIntoPublishedEvent(linkedEvent_1);
-        eventStoreDataAccess.insertIntoPublishedEvent(linkedEvent_2);
-
-        final List<LinkedEvent> linkedEvents = eventStoreDataAccess.findAllPublishedEventsOrderedByEventNumber();
-
-        assertThat(linkedEvents.size(), is(3));
-        assertThat(linkedEvents.get(0), is(linkedEvent_1));
-        assertThat(linkedEvents.get(1), is(linkedEvent_2));
-        assertThat(linkedEvents.get(2), is(linkedEvent_3));
     }
 }

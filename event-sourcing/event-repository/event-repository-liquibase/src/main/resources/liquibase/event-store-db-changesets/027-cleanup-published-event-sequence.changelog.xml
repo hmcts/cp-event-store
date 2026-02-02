@@ -9,7 +9,7 @@
             author="TechPod"
             logicalFilePath="027-cleanup-published-event-sequence.changelog.xml">
 
-        <comment>Using sql rather than the drop tags, so we can use 'IF EXISTS'</comment>
+        <sql>ALTER TABLE IF EXISTS event_log ALTER COLUMN event_number DROP DEFAULT</sql>
         <sql>DROP TABLE IF EXISTS published_event</sql>
         <sql>DROP TABLE IF EXISTS pre_publish_queue</sql>
         <sql>DROP SEQUENCE IF EXISTS event_sequence_seq</sql>

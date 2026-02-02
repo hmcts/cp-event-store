@@ -1,17 +1,13 @@
 package uk.gov.justice.services.eventstore.management.verification.process;
 
-import static java.util.Arrays.asList;
-
+import java.util.List;
+import javax.inject.Inject;
 import uk.gov.justice.services.eventstore.management.commands.VerificationCommand;
-import uk.gov.justice.services.eventstore.management.verification.process.verifiers.ProcessedEventCountVerifier;
 import uk.gov.justice.services.eventstore.management.verification.process.verifiers.ProcessedEventLinkVerifier;
-import uk.gov.justice.services.eventstore.management.verification.process.verifiers.PublishedEventCountVerifier;
 import uk.gov.justice.services.eventstore.management.verification.process.verifiers.PublishedEventLinkVerifier;
 import uk.gov.justice.services.eventstore.management.verification.process.verifiers.StreamBufferEmptyVerifier;
 
-import java.util.List;
-
-import javax.inject.Inject;
+import static java.util.Arrays.asList;
 
 public class VerifierProvider {
 
@@ -19,13 +15,7 @@ public class VerifierProvider {
     private AllEventsInStreamsVerifier allEventsInStreamsVerifier;
 
     @Inject
-    private ProcessedEventCountVerifier processedEventCountVerifier;
-
-    @Inject
     private ProcessedEventLinkVerifier processedEventLinkVerifier;
-
-    @Inject
-    private PublishedEventCountVerifier publishedEventCountVerifier;
 
     @Inject
     private PublishedEventLinkVerifier publishedEventLinkVerifier;
@@ -44,7 +34,6 @@ public class VerifierProvider {
 
     private List<Verifier> getRebuildVerifiers() {
         return asList(
-                publishedEventCountVerifier,
                 publishedEventLinkVerifier,
                 allEventsInStreamsVerifier
         );
@@ -53,8 +42,6 @@ public class VerifierProvider {
     private List<Verifier> getCatchupVerifiers() {
         return asList(
                 streamBufferEmptyVerifier,
-                publishedEventCountVerifier,
-                processedEventCountVerifier,
                 publishedEventLinkVerifier,
                 processedEventLinkVerifier,
                 allEventsInStreamsVerifier

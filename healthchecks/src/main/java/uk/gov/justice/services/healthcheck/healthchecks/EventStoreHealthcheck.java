@@ -24,7 +24,6 @@ public class EventStoreHealthcheck implements Healthcheck {
     public static final List<String> EVENT_STORE_TABLE_NAMES = of(
             "event_stream",
             "event_log",
-            "published_event",
             "publish_queue",
             "snapshot");
 

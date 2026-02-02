@@ -52,14 +52,6 @@ public class PublishQueuesDataAccess {
         }
     }
 
-    /**
-     * Method that gets the next event to process by
-     * querying the pre_publish_queue table for id & event_log_id,
-     * deleting the entry from the publish queue using the id and
-     * then gets the record from the event_log table using the event_log_id.
-     *
-     * @return Optional<Event>
-     */
     @Transactional(MANDATORY)
     public Optional<UUID> popNextEventId(final PublishQueueTableName publishQueueTableName) {
 
@@ -100,9 +92,6 @@ public class PublishQueuesDataAccess {
         throw new PublishedEventException(format("Query '%s' returned no results", sql));
     }
 
-    /**
-     * Method that deletes the next event from the pre_publish_queue table using the event_log_id.
-     */
     private void deletePublishQueueRow(final UUID eventLogId, final PublishQueueTableName publishQueueTableName, final Connection connection) throws SQLException {
 
         final String sql = format(DELETE_FROM_PUBLISH_TABLE_QUERY_PATTERN, publishQueueTableName.getTableName());

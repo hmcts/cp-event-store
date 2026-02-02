@@ -25,13 +25,13 @@ public class TableCleanerTest {
     @Test
     public void shouldTruncateDatabaseTable() throws Exception {
 
-        final String tableName = "published_event";
+        final String tableName = "event_log";
         final DataSource dataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
         when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement("TRUNCATE published_event")).thenReturn(preparedStatement);
+        when(connection.prepareStatement("TRUNCATE event_log")).thenReturn(preparedStatement);
 
         databaseTableTruncator.truncate(tableName, dataSource);
 

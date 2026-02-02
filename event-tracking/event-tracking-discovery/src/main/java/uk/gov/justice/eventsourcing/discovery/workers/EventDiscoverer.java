@@ -67,7 +67,7 @@ public class EventDiscoverer {
         final UUID streamId = streamPosition.streamId();
         final Long latestKnownPosition = streamPosition.positionInStream();
 
-        logger.info(format("Updating latest known position to '%d' for stream id '%s', source '%s' component '%s'", latestKnownPosition, streamId, source, component));
+        logger.debug(format("Updating latest known position to '%d' for stream id '%s', source '%s' component '%s'", latestKnownPosition, streamId, source, component));
 
         newStreamStatusRepository.upsertLatestKnownPosition(
                 streamId,

@@ -16,7 +16,7 @@ public class EventDiscoveryWorker {
     public void runEventDiscovery() {
 
         final List<SourceComponentPair> sourceComponentPairs = subscriptionSourceComponentFinder
-                .findSourceComponentPairsFromSubscriptionRegistry();
+                .findListenerOrIndexerPairs();
 
         sourceComponentPairs.forEach(eventDiscoverer::runEventDiscoveryForSourceComponentPair);
     }

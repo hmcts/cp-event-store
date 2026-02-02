@@ -32,7 +32,7 @@ public class EventDiscoveryWorkerTest {
         final SourceComponentPair sourceComponentPair_1 = mock(SourceComponentPair.class);
         final SourceComponentPair sourceComponentPair_2 = mock(SourceComponentPair.class);
 
-        when(subscriptionSourceComponentFinder.findSourceComponentPairsFromSubscriptionRegistry()).thenReturn(
+        when(subscriptionSourceComponentFinder.findListenerOrIndexerPairs()).thenReturn(
                 asList(sourceComponentPair_1, sourceComponentPair_2)
         );
 

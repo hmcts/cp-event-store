@@ -3,6 +3,8 @@ package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import javax.ejb.ConcurrencyManagement;
+import javax.ejb.ConcurrencyManagementType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.ejb.Timeout;
@@ -18,6 +20,7 @@ import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 @Singleton
 @Startup
+@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 public class StreamProcessingTimerBean {
 
     @Inject
@@ -42,7 +45,7 @@ public class StreamProcessingTimerBean {
     public void startTimerService() {
         if (eventPullConfiguration.shouldProcessEventsByPullMechanism()) {
             final List<SourceComponentPair> sourceComponentPairs = subscriptionSourceComponentFinder
-                    .findSourceComponentPairsFromSubscriptionRegistry();
+                    .findListenerOrIndexerPairs();
 
             sourceComponentPairs.forEach(sourceComponentPair -> {
                 final TimerConfig timerConfig = new TimerConfig();

@@ -62,7 +62,7 @@ public class StreamProcessingTimerBeanTest {
         final List<SourceComponentPair> pairs = asList(pair1, pair2);
 
         when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(true);
-        when(subscriptionSourceComponentFinder.findSourceComponentPairsFromSubscriptionRegistry()).thenReturn(pairs);
+        when(subscriptionSourceComponentFinder.findListenerOrIndexerPairs()).thenReturn(pairs);
         when(streamProcessingTimerConfig.getTimerStartWaitMilliseconds()).thenReturn(timerStartWaitMilliseconds);
         when(streamProcessingTimerConfig.getTimerIntervalMilliseconds()).thenReturn(timerIntervalMilliseconds);
 

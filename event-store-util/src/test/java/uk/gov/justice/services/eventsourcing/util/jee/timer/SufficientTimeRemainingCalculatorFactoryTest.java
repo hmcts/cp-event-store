@@ -1,4 +1,4 @@
-package uk.gov.justice.services.eventsourcing.eventpublishing;
+package uk.gov.justice.services.eventsourcing.util.jee.timer;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -16,7 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class SufficientTimeRemainingCalculatorFactoryTest {
 
     @InjectMocks
-    private SufficientTimeRemainingCalculatorFactory sufficientTimeRemainingCalculatorFactory;
+    private uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculatorFactory sufficientTimeRemainingCalculatorFactory;
 
     @Test
     public void shouldCreateNewSufficientTimeRemainingCalculatorWithCorrectMembers() throws Exception {

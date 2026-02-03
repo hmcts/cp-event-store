@@ -12,11 +12,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.services.event.sourcing.subscription.manager.StreamProcessingSubscriptionManager;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculatorFactory;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 import static java.util.Arrays.asList;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -47,6 +50,12 @@ public class StreamProcessingTimerBeanTest {
 
     @Mock
     private EventPullConfiguration eventPullConfiguration;
+
+    @Mock
+    private SufficientTimeRemainingCalculatorFactory sufficientTimeRemainingCalculatorFactory;
+
+    @Mock
+    private SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator;
 
     @InjectMocks
     private StreamProcessingTimerBean streamProcessingTimerBean;
@@ -92,9 +101,10 @@ public class StreamProcessingTimerBeanTest {
         final SourceComponentPair pair = new SourceComponentPair(source, component);
 
         when(timer.getInfo()).thenReturn(pair);
+        when(sufficientTimeRemainingCalculatorFactory.createNew(eq(timer), anyLong())).thenReturn(sufficientTimeRemainingCalculator);
 
         streamProcessingTimerBean.processStreamEvents(timer);
-        verify(streamProcessingSubscriptionManager).process(eq(source), eq(component), any());
+        verify(streamProcessingSubscriptionManager).process(eq(source), eq(component), eq(sufficientTimeRemainingCalculator));
     }
 
     @Test
@@ -106,7 +116,8 @@ public class StreamProcessingTimerBeanTest {
         final RuntimeException exception = new RuntimeException("Processing failed");
 
         when(timer.getInfo()).thenReturn(pair);
-        doThrow(exception).when(streamProcessingSubscriptionManager).process(eq(source), eq(component), any());
+        when(sufficientTimeRemainingCalculatorFactory.createNew(eq(timer), anyLong())).thenReturn(sufficientTimeRemainingCalculator);
+        doThrow(exception).when(streamProcessingSubscriptionManager).process(eq(source), eq(component), eq(sufficientTimeRemainingCalculator));
 
         streamProcessingTimerBean.processStreamEvents(timer);
 

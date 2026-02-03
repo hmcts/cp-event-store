@@ -18,11 +18,19 @@ public class StreamProcessingTimerConfig {
     @Value(key = "stream.processing.timer.interval.milliseconds", defaultValue = "100")
     private String timerIntervalMilliseconds;
 
+    @Inject
+    @Value(key = "stream.processing.timer.between.runs.milliseconds", defaultValue = "5")
+    private String timeBetweenRunsMilliseconds;
+
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
 
     public long getTimerIntervalMilliseconds() {
         return parseLong(timerIntervalMilliseconds);
+    }
+
+    public long getTimeBetweenRunsMilliseconds() {
+        return parseLong(timeBetweenRunsMilliseconds);
     }
 }

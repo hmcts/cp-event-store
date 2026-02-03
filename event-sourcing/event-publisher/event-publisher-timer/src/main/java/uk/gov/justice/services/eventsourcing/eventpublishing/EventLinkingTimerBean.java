@@ -13,6 +13,8 @@ import javax.inject.Inject;
 
 import uk.gov.justice.services.ejb.timer.TimerServiceManager;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculatorFactory;
 
 @Singleton
 @Startup

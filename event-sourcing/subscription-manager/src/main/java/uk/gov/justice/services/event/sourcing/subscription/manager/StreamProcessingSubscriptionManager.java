@@ -5,15 +5,17 @@ import javax.transaction.Transactional;
 
 import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
 
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
+
 public class StreamProcessingSubscriptionManager {
 
     @Inject
     private StreamEventProcessor streamEventProcessor;
 
     @Transactional(NOT_SUPPORTED)
-    public void process(final String source, final String component) {
-        while (streamEventProcessor.processSingleEvent(source, component)) {
-            // Continue processing events until no more events are available
+    public void process(final String source, final String component, SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator) {
+        while (streamEventProcessor.processSingleEvent(source, component) && sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()) {
+            // Continue processing events until no more events are available or timer expires
         }
     }
 }

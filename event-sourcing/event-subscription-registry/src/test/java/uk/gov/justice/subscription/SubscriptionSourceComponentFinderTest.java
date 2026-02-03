@@ -17,6 +17,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.services.core.annotation.Component.EVENT_INDEXER;
+import static uk.gov.justice.services.core.annotation.Component.EVENT_LISTENER;
 
 @ExtendWith(MockitoExtension.class)
 public class SubscriptionSourceComponentFinderTest {
@@ -135,8 +137,7 @@ public class SubscriptionSourceComponentFinderTest {
         subscriptionSourceComponentFinder.findSourceComponentPairsFromSubscriptionRegistry();
         subscriptionSourceComponentFinder.findSourceComponentPairsFromSubscriptionRegistry();
         subscriptionSourceComponentFinder.findSourceComponentPairsFromSubscriptionRegistry();
-        subscriptionSourceComponentFinder.findSourceComponentPairsFromSubscriptionRegistry();
-        subscriptionSourceComponentFinder.findSourceComponentPairsFromSubscriptionRegistry();
+        subscriptionSourceComponentFinder.findListenerOrIndexerPairs();
 
         verify(subscriptionsDescriptorsRegistry, times(1)).getAll();
     }
@@ -146,8 +147,8 @@ public class SubscriptionSourceComponentFinderTest {
     public void shouldFindOnlyListenerOrIndexerSourceComponentPairs() throws Exception {
 
         final String source_1 = "source_1";
-        final String component_listener = "something_EVENT_LISTENER";
-        final String component_indexer = "something_EVENT_INDEXER";
+        final String component_listener = "something_" + EVENT_LISTENER;
+        final String component_indexer = "something_" + EVENT_INDEXER;
         final String component_other = "something_EVENT_PROCESSOR";
 
         final SubscriptionsDescriptor subscriptionsDescriptor_listener = mock(SubscriptionsDescriptor.class);

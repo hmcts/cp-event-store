@@ -6,6 +6,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
 
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
@@ -18,6 +19,9 @@ public class StreamProcessingSubscriptionManagerTest {
     @Mock
     private StreamEventProcessor streamEventProcessor;
 
+    @Mock
+    private SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator;
+
     @InjectMocks
     private StreamProcessingSubscriptionManager streamProcessingSubscriptionManager;
 
@@ -29,7 +33,7 @@ public class StreamProcessingSubscriptionManagerTest {
 
         when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(false);
 
-        streamProcessingSubscriptionManager.process(source, component);
+        streamProcessingSubscriptionManager.process(source, component, sufficientTimeRemainingCalculator);
 
         verify(streamEventProcessor).processSingleEvent(source, component);
     }
@@ -45,8 +49,9 @@ public class StreamProcessingSubscriptionManagerTest {
                 .thenReturn(true)
                 .thenReturn(true)
                 .thenReturn(false);
+        when(sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()).thenReturn(true);
 
-        streamProcessingSubscriptionManager.process(source, component);
+        streamProcessingSubscriptionManager.process(source, component, sufficientTimeRemainingCalculator);
 
         final InOrder inOrder = inOrder(streamEventProcessor);
 
@@ -61,8 +66,23 @@ public class StreamProcessingSubscriptionManagerTest {
 
         when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(false);
 
-        streamProcessingSubscriptionManager.process(source, component);
+        streamProcessingSubscriptionManager.process(source, component, sufficientTimeRemainingCalculator);
 
         verify(streamEventProcessor).processSingleEvent(source, component);
+    }
+
+    @Test
+    public void shouldStopProcessingWhenNoSufficientTimeRemaining() {
+
+        final String source = "some-source";
+        final String component = "some-component";
+
+        when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(true);
+        when(sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()).thenReturn(false);
+
+        streamProcessingSubscriptionManager.process(source, component, sufficientTimeRemainingCalculator);
+
+        verify(streamEventProcessor).processSingleEvent(source, component);
+        verify(sufficientTimeRemainingCalculator).hasSufficientProcessingTimeRemaining();
     }
 }

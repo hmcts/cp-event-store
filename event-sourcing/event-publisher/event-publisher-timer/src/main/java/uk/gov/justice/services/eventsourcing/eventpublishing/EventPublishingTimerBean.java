@@ -2,6 +2,8 @@ package uk.gov.justice.services.eventsourcing.eventpublishing;
 
 import uk.gov.justice.services.ejb.timer.TimerServiceManager;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventPublishingWorkerConfig;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculatorFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;

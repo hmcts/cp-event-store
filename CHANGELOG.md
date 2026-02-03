@@ -5,6 +5,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.105.0-M3] - 2026-02-03
+### Changed
+- Event Discovery and Stream Processing only now only runs for EVENT_LISTENER and EVENT_INDEXER components, and ignores EVENT_PROCESSOR components  
+
 # [17.105.0-M2] - 2026-02-02
 ### Added
 - New method on `DatabaseCleaner` test helper class to set `latest_event_id` from `event_subscription_status` table to NULL

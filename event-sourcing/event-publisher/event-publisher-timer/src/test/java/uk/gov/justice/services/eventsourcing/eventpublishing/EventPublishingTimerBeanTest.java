@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculatorFactory;
 
 @ExtendWith(MockitoExtension.class)
 public class EventPublishingTimerBeanTest {
@@ -31,7 +32,7 @@ public class EventPublishingTimerBeanTest {
     private TimerServiceManager timerServiceManager;
 
     @Mock
-    private uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculatorFactory sufficientTimeRemainingCalculatorFactory;
+    private SufficientTimeRemainingCalculatorFactory sufficientTimeRemainingCalculatorFactory;
 
     @Mock
     private EventPublishingWorker eventPublishingWorker;

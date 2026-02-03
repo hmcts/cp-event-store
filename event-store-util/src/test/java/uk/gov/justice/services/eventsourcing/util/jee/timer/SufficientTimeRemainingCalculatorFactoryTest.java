@@ -16,7 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class SufficientTimeRemainingCalculatorFactoryTest {
 
     @InjectMocks
-    private uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculatorFactory sufficientTimeRemainingCalculatorFactory;
+    private SufficientTimeRemainingCalculatorFactory sufficientTimeRemainingCalculatorFactory;
 
     @Test
     public void shouldCreateNewSufficientTimeRemainingCalculatorWithCorrectMembers() throws Exception {

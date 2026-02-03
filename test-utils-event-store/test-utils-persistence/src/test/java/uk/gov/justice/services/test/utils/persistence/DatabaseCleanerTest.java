@@ -82,7 +82,7 @@ public class DatabaseCleanerTest {
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
-        when(testJdbcConnectionProvider.getEventStoreConnection(contextName)).thenReturn(connection);
+        when(testJdbcConnectionProvider.getViewStoreConnection(contextName)).thenReturn(connection);
         when(connection.prepareStatement("UPDATE event_subscription_status SET latest_event_id = NULL")).thenReturn(preparedStatement);
 
         databaseCleaner.resetEventSubscriptionStatusTable(contextName);
@@ -102,7 +102,7 @@ public class DatabaseCleanerTest {
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
-        when(testJdbcConnectionProvider.getEventStoreConnection(contextName)).thenReturn(connection);
+        when(testJdbcConnectionProvider.getViewStoreConnection(contextName)).thenReturn(connection);
         when(connection.prepareStatement("UPDATE event_subscription_status SET latest_event_id = NULL")).thenReturn(preparedStatement);
         doThrow(sqlException).when(preparedStatement).executeUpdate();
 

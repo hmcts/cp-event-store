@@ -174,7 +174,7 @@ public class DatabaseCleaner {
      */
     public void resetEventSubscriptionStatusTable(final String contextName) {
 
-        try (final Connection connection = testJdbcConnectionProvider.getEventStoreConnection(contextName);
+        try (final Connection connection = testJdbcConnectionProvider.getViewStoreConnection(contextName);
              final PreparedStatement preparedStatement = connection.prepareStatement(SET_LATEST_EVENT_ID_ON_EVENT_SUBSCRIPTION_STATUS_TABLE_TO_NULL_SQL)) {
             preparedStatement.executeUpdate();
         } catch (final SQLException e) {

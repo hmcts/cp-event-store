@@ -5,6 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.105.0-M5] - 2026-02-04
 ### Changed
 - EventDiscoveryTimerBean now starts new TimerBean instances for each source/component pair
 ### Fixed

@@ -11,6 +11,8 @@ import static org.mockito.Mockito.when;
 
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
+import uk.gov.justice.subscription.SourceComponentPair;
+import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,8 +21,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
-import uk.gov.justice.subscription.SourceComponentPair;
-import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 @ExtendWith(MockitoExtension.class)
 public class EventDiscoveryBootstrapperTest {

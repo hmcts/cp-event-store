@@ -4,7 +4,12 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
-- JNDI value 'event.processing.by.pull.mechanism.enabled' check is added to NewSubscriptionManager.
+
+### Changed
+- EventDiscoveryTimerBean now starts new TimerBean instances for each source/component pair
+### Fixed
+- Errors in event discovery no longer fail the entire discovery process
+- JNDI value 'event.processing.by.pull.mechanism.enabled' check is moved to NewSubscriptionManager.
 
 # [17.105.0-M4] - 2026-02-03
 ### Changed

@@ -4,6 +4,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+- JNDI value 'event.processing.by.pull.mechanism.enabled' check is added to NewSubscriptionManager.
 
 # [17.105.0-M4] - 2026-02-03
 ### Changed

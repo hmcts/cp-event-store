@@ -33,7 +33,7 @@ public class NewSubscriptionManagerTest {
     }
 
     @Test
-    public void shouldPassThroughToTheNewSubscriptionManagerDelegateWithTheComponentNameWhenPullMechanismFlagIsFalse() throws Exception {
+    public void shouldNotPassThroughToTheNewSubscriptionManagerDelegateWithTheComponentNameWhenPullMechanismFlagIsFalse() throws Exception {
         when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(false);
         final JsonEnvelope incomingJsonEnvelope = mock(JsonEnvelope.class);
 

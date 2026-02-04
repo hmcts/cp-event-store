@@ -4,6 +4,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- EventDiscoveryTimerBean now starts new TimerBean instances for each source/component pair
+### Fixed
+- Errors in event discovery no longer fail the entire discovery process
 
 # [17.105.0-M4] - 2026-02-03
 ### Changed

@@ -1,14 +1,17 @@
 package uk.gov.justice.eventsourcing.discovery.bootstrap;
 
-import java.util.Optional;
-import javax.inject.Inject;
-import org.slf4j.Logger;
+import static java.lang.String.format;
+
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
-import static java.lang.String.format;
+import java.util.Optional;
+
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
 
 public class EventDiscoveryBootstrapper {
 

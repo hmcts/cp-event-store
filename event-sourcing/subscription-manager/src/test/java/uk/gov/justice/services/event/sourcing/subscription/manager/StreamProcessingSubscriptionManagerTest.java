@@ -12,6 +12,8 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_FOUND;
+import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_NOT_FOUND;
 
 @ExtendWith(MockitoExtension.class)
 public class StreamProcessingSubscriptionManagerTest {
@@ -31,7 +33,7 @@ public class StreamProcessingSubscriptionManagerTest {
         final String source = "some-source";
         final String component = "some-component";
 
-        when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(false);
+        when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(EVENT_NOT_FOUND);
 
         streamProcessingSubscriptionManager.process(source, component, sufficientTimeRemainingCalculator);
 
@@ -45,10 +47,10 @@ public class StreamProcessingSubscriptionManagerTest {
         final String component = "some-component";
 
         when(streamEventProcessor.processSingleEvent(source, component))
-                .thenReturn(true)
-                .thenReturn(true)
-                .thenReturn(true)
-                .thenReturn(false);
+                .thenReturn(EVENT_FOUND)
+                .thenReturn(EVENT_FOUND)
+                .thenReturn(EVENT_FOUND)
+                .thenReturn(EVENT_NOT_FOUND);
         when(sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()).thenReturn(true);
 
         streamProcessingSubscriptionManager.process(source, component, sufficientTimeRemainingCalculator);
@@ -59,12 +61,12 @@ public class StreamProcessingSubscriptionManagerTest {
     }
 
     @Test
-    public void shouldNotProcessAnyEventsWhenFirstCallReturnsFalse() {
+    public void shouldNotProcessAnyEventsWhenFirstCallReturnsEventNotFound() {
 
         final String source = "some-source";
         final String component = "some-component";
 
-        when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(false);
+        when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(EVENT_NOT_FOUND);
 
         streamProcessingSubscriptionManager.process(source, component, sufficientTimeRemainingCalculator);
 
@@ -77,7 +79,7 @@ public class StreamProcessingSubscriptionManagerTest {
         final String source = "some-source";
         final String component = "some-component";
 
-        when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(true);
+        when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(EVENT_FOUND);
         when(sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()).thenReturn(false);
 
         streamProcessingSubscriptionManager.process(source, component, sufficientTimeRemainingCalculator);

@@ -23,6 +23,8 @@ import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCoun
 
 import static java.lang.String.format;
 import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
+import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_FOUND;
+import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_NOT_FOUND;
 
 public class StreamEventProcessor {
 
@@ -57,7 +59,7 @@ public class StreamEventProcessor {
     private MicrometerMetricsCounters micrometerMetricsCounters;
 
     @Transactional(value = NOT_SUPPORTED)
-    public boolean processSingleEvent(final String source, final String component) {
+    public EventProcessingStatus processSingleEvent(final String source, final String component) {
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
 
         transactionHandler.begin(userTransaction);
@@ -89,17 +91,17 @@ public class StreamEventProcessor {
 
                 transactionHandler.commit(userTransaction);
 
-                return true;
+                return EVENT_FOUND;
 
             } catch (final Exception e) {
                 transactionHandler.rollback(userTransaction);
                 micrometerMetricsCounters.incrementEventsFailedCount(source, component);
                 streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, component, streamCurrentPosition);
-                return true;
+                return EVENT_FOUND;
             }
         } else {
             commitWithFallBackToRollback();
-            return false;
+            return EVENT_NOT_FOUND;
         }
     }
 

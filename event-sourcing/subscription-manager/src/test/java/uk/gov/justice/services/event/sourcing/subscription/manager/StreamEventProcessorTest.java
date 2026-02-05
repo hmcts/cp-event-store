@@ -30,6 +30,8 @@ import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_FOUND;
+import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_NOT_FOUND;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -104,7 +106,7 @@ public class StreamEventProcessorTest {
         when(interceptorChainProcessorProducer.produceLocalProcessor(component)).thenReturn(interceptorChainProcessor);
         when(interceptorContextProvider.getInterceptorContext(eventJsonEnvelope)).thenReturn(interceptorContext);
 
-        assertThat(streamEventProcessor.processSingleEvent(source, component), is(true));
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
@@ -166,7 +168,7 @@ public class StreamEventProcessorTest {
         when(interceptorChainProcessorProducer.produceLocalProcessor(component)).thenReturn(interceptorChainProcessor);
         when(interceptorContextProvider.getInterceptorContext(eventJsonEnvelope)).thenReturn(interceptorContext);
 
-        assertThat(streamEventProcessor.processSingleEvent(source, component), is(true));
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
@@ -202,14 +204,14 @@ public class StreamEventProcessorTest {
     }
 
     @Test
-    public void shouldReturnFalseWhenNoStreamFound() throws Exception {
+    public void shouldReturnEventNotFoundWhenNoStreamFound() throws Exception {
 
         final String source = "some-source";
         final String component = "some-component";
 
         when(streamSelector.findStreamToProcess(source, component)).thenReturn(empty());
 
-        assertThat(streamEventProcessor.processSingleEvent(source, component), is(false));
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_NOT_FOUND));
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
@@ -239,7 +241,7 @@ public class StreamEventProcessorTest {
         when(streamSelector.findStreamToProcess(source, component)).thenReturn(empty());
         doThrow(commitException).when(transactionHandler).commit(userTransaction);
 
-        assertThat(streamEventProcessor.processSingleEvent(source, component), is(false));
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_NOT_FOUND));
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
@@ -337,7 +339,7 @@ public class StreamEventProcessorTest {
     }
 
     @Test
-    public void shouldReturnTrueAndRecordErrorIfEventProcessingFails() throws Exception {
+    public void shouldReturnEventFoundAndRecordErrorIfEventProcessingFails() throws Exception {
 
         final NullPointerException nullPointerException = new NullPointerException("Ooops");
 
@@ -366,7 +368,7 @@ public class StreamEventProcessorTest {
         when(interceptorContextProvider.getInterceptorContext(eventJsonEnvelope)).thenReturn(interceptorContext);
         doThrow(nullPointerException).when(interceptorChainProcessor).process(interceptorContext);
 
-        assertThat(streamEventProcessor.processSingleEvent(source, component), is(true));
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
@@ -402,7 +404,7 @@ public class StreamEventProcessorTest {
     }
 
     @Test
-    public void shouldReturnTrueAndRecordErrorIfNoPositionFoundInEvent() throws Exception {
+    public void shouldReturnEventFoundAndRecordErrorIfNoPositionFoundInEvent() throws Exception {
 
         final UUID streamId = randomUUID();
         final String source = "some-source";
@@ -423,7 +425,7 @@ public class StreamEventProcessorTest {
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(empty());
 
-        assertThat(streamEventProcessor.processSingleEvent(source, component), is(true));
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,

@@ -5,6 +5,14 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+# [17.105.0-M6] - 2026-02-05
+### Added
+- Add concurrency to stream processing
+### Changed
+- Rename streamprocessing timer config class
+### Fixed
+- Fix for NewSubscriptionManager enable/disable pull mechanism
+
 # [17.105.0-M5] - 2026-02-04
 ### Changed
 - EventDiscoveryTimerBean now starts new TimerBean instances for each source/component pair

@@ -95,7 +95,7 @@ public class StreamEventProcessor {
                 transactionHandler.rollback(userTransaction);
                 micrometerMetricsCounters.incrementEventsFailedCount(source, component);
                 streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, component, streamCurrentPosition);
-                throw new StreamProcessingException(format("Failed to process event. name: '%s', eventId: '%s', streamId: '%s'", metadata.name(), metadata.id(), streamId), e);
+                return true;
             }
         } else {
             commitWithFallBackToRollback();

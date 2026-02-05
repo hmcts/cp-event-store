@@ -337,13 +337,11 @@ public class StreamEventProcessorTest {
     }
 
     @Test
-    public void shouldThrowStreamProcessingExceptionAndRecordErrorIfEventProcessingFails() throws Exception {
+    public void shouldReturnTrueAndRecordErrorIfEventProcessingFails() throws Exception {
 
         final NullPointerException nullPointerException = new NullPointerException("Ooops");
 
         final UUID streamId = randomUUID();
-        final UUID eventId = randomUUID();
-        final String eventName = "some-event-name";
         final String source = "some-source";
         final String component = "some-component";
         final long currentPosition = 5L;
@@ -363,19 +361,12 @@ public class StreamEventProcessorTest {
         when(linkedEventSource.findNextEventInTheStreamAfterPosition(streamId, currentPosition)).thenReturn(of(linkedEvent));
         when(eventConverter.envelopeOf(linkedEvent)).thenReturn(eventJsonEnvelope);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
-        when(metadata.name()).thenReturn(eventName);
-        when(metadata.id()).thenReturn(eventId);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         when(interceptorChainProcessorProducer.produceLocalProcessor(component)).thenReturn(interceptorChainProcessor);
         when(interceptorContextProvider.getInterceptorContext(eventJsonEnvelope)).thenReturn(interceptorContext);
         doThrow(nullPointerException).when(interceptorChainProcessor).process(interceptorContext);
 
-        final StreamProcessingException streamProcessingException = assertThrows(
-                StreamProcessingException.class,
-                () -> streamEventProcessor.processSingleEvent(source, component));
-
-        assertThat(streamProcessingException.getCause(), is(nullPointerException));
-        assertThat(streamProcessingException.getMessage(), is("Failed to process event. name: 'some-event-name', eventId: '" + eventId + "', streamId: '" + streamId + "'"));
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(true));
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
@@ -411,11 +402,9 @@ public class StreamEventProcessorTest {
     }
 
     @Test
-    public void shouldThrowMissingPositionInStreamExceptionIfNoPositionFoundInEvent() throws Exception {
+    public void shouldReturnTrueAndRecordErrorIfNoPositionFoundInEvent() throws Exception {
 
         final UUID streamId = randomUUID();
-        final UUID eventId = randomUUID();
-        final String eventName = "some-event-name";
         final String source = "some-source";
         final String component = "some-component";
         final long currentPosition = 5L;
@@ -432,15 +421,9 @@ public class StreamEventProcessorTest {
         when(linkedEventSource.findNextEventInTheStreamAfterPosition(streamId, currentPosition)).thenReturn(of(linkedEvent));
         when(eventConverter.envelopeOf(linkedEvent)).thenReturn(eventJsonEnvelope);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
-        when(metadata.name()).thenReturn(eventName);
-        when(metadata.id()).thenReturn(eventId);
         when(metadata.position()).thenReturn(empty());
 
-        final StreamProcessingException streamProcessingException = assertThrows(
-                StreamProcessingException.class,
-                () -> streamEventProcessor.processSingleEvent(source, component));
-
-        assertThat(streamProcessingException.getCause().getMessage(), is("No position found in event: name 'some-event-name', eventId '" + eventId + "'"));
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(true));
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,

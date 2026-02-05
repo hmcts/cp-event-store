@@ -128,7 +128,7 @@ public class StreamEventProcessor {
         return Optional.empty();
     }
 
-    private JsonEnvelope  findNextEventInTheStreamAfterPosition(final String source, final String component, final LockedStreamStatus lockedStreamStatus) {
+    private JsonEnvelope findNextEventInTheStreamAfterPosition(final String source, final String component, final LockedStreamStatus lockedStreamStatus) {
         final Optional<JsonEnvelope> eventJsonEnvelope;
         final UUID streamId = lockedStreamStatus.streamId();
         final Long position = lockedStreamStatus.position();

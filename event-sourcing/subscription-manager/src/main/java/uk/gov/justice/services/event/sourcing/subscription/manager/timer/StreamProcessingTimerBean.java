@@ -1,11 +1,8 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
 import java.util.List;
-import java.util.function.Supplier;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.ejb.Timeout;
@@ -13,7 +10,6 @@ import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 import javax.ejb.TimerService;
 import javax.inject.Inject;
-
 import org.slf4j.Logger;
 import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.services.event.sourcing.subscription.manager.StreamProcessingSubscriptionManager;
@@ -24,7 +20,6 @@ import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 @Singleton
 @Startup
-@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 public class StreamProcessingTimerBean {
 
     @Inject
@@ -34,7 +29,7 @@ public class StreamProcessingTimerBean {
     private TimerService timerService;
 
     @Inject
-    private StreamProcessingTimerConfig streamProcessingTimerConfig;
+    private StreamProcessingConfig streamProcessingConfig;
 
     @Inject
     private SubscriptionSourceComponentFinder subscriptionSourceComponentFinder;
@@ -60,8 +55,8 @@ public class StreamProcessingTimerBean {
                 timerConfig.setInfo(sourceComponentPair);
 
                 timerService.createIntervalTimer(
-                        streamProcessingTimerConfig.getTimerStartWaitMilliseconds(),
-                        streamProcessingTimerConfig.getTimerIntervalMilliseconds(),
+                        streamProcessingConfig.getTimerStartWaitMilliseconds(),
+                        streamProcessingConfig.getTimerIntervalMilliseconds(),
                         timerConfig
                 );
             });
@@ -71,7 +66,7 @@ public class StreamProcessingTimerBean {
     @Timeout
     public void processStreamEvents(final Timer timer) {
         final SourceComponentPair pair = (SourceComponentPair) timer.getInfo();
-        final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = sufficientTimeRemainingCalculatorFactory.createNew(timer, streamProcessingTimerConfig.getTimeBetweenRunsMilliseconds());
+        final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = sufficientTimeRemainingCalculatorFactory.createNew(timer, streamProcessingConfig.getTimeBetweenRunsMilliseconds());
         try {
             streamProcessingSubscriptionManager.process(pair.source(), pair.component(), sufficientTimeRemainingCalculator);
         } catch (final Exception e) {

@@ -10,19 +10,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.setField;
 
 @ExtendWith(MockitoExtension.class)
-public class StreamProcessingTimerConfigTest {
+public class StreamProcessingConfigTest {
 
     @InjectMocks
-    private StreamProcessingTimerConfig streamProcessingTimerConfig;
+    private StreamProcessingConfig streamProcessingConfig;
 
     @Test
     public void shouldGetTheStartWaitTime() {
 
         final long milliseconds = 982374L;
 
-        setField(streamProcessingTimerConfig, "timerStartWaitMilliseconds", "" + milliseconds);
+        setField(streamProcessingConfig, "timerStartWaitMilliseconds", "" + milliseconds);
 
-        assertThat(streamProcessingTimerConfig.getTimerStartWaitMilliseconds(), is(milliseconds));
+        assertThat(streamProcessingConfig.getTimerStartWaitMilliseconds(), is(milliseconds));
     }
 
     @Test
@@ -30,8 +30,8 @@ public class StreamProcessingTimerConfigTest {
 
         final long milliseconds = 2998734L;
 
-        setField(streamProcessingTimerConfig, "timerIntervalMilliseconds", "" + milliseconds);
+        setField(streamProcessingConfig, "timerIntervalMilliseconds", "" + milliseconds);
 
-        assertThat(streamProcessingTimerConfig.getTimerIntervalMilliseconds(), is(milliseconds));
+        assertThat(streamProcessingConfig.getTimerIntervalMilliseconds(), is(milliseconds));
     }
 }

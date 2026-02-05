@@ -8,7 +8,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
-public class StreamProcessingTimerConfig {
+public class StreamProcessingConfig {
 
     @Inject
     @Value(key = "stream.processing.timer.start.wait.milliseconds", defaultValue = "7250")

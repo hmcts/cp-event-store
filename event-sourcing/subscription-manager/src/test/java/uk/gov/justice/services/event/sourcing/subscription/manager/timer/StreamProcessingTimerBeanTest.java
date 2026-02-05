@@ -37,7 +37,7 @@ public class StreamProcessingTimerBeanTest {
     private TimerService timerService;
 
     @Mock
-    private StreamProcessingTimerConfig streamProcessingTimerConfig;
+    private StreamProcessingConfig streamProcessingConfig;
 
     @Mock
     private SubscriptionSourceComponentFinder subscriptionSourceComponentFinder;
@@ -72,8 +72,8 @@ public class StreamProcessingTimerBeanTest {
 
         when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(true);
         when(subscriptionSourceComponentFinder.findListenerOrIndexerPairs()).thenReturn(pairs);
-        when(streamProcessingTimerConfig.getTimerStartWaitMilliseconds()).thenReturn(timerStartWaitMilliseconds);
-        when(streamProcessingTimerConfig.getTimerIntervalMilliseconds()).thenReturn(timerIntervalMilliseconds);
+        when(streamProcessingConfig.getTimerStartWaitMilliseconds()).thenReturn(timerStartWaitMilliseconds);
+        when(streamProcessingConfig.getTimerIntervalMilliseconds()).thenReturn(timerIntervalMilliseconds);
 
         streamProcessingTimerBean.startTimerService();
 

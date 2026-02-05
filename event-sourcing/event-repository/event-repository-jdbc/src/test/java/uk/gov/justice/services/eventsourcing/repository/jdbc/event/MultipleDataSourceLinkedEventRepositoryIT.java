@@ -384,42 +384,6 @@ public class MultipleDataSourceLinkedEventRepositoryIT {
         assertThat(multipleDataSourceEventRepository.getLatestLinkedEvent(), is(empty()));
     }
 
-    @Test
-    public void shouldReturnEventsByStreamIdForGivenPositionRangeOrderByPosition() throws SQLException {
-
-        final int batchLimit = 2;
-        final UUID STREAM_ID = randomUUID();
-        final UUID DIFFERENT_STREAM_ID = randomUUID();
-
-        final LinkedEvent event_1 = linkedEventBuilder().withStreamId(STREAM_ID).withPositionInStream(7L).withPreviousEventNumber(6L).build();
-        final LinkedEvent event_2 = linkedEventBuilder().withStreamId(STREAM_ID).withPositionInStream(4L).withPreviousEventNumber(3L).build();
-        final LinkedEvent event_3 = linkedEventBuilder().withStreamId(STREAM_ID).withPositionInStream(3L).withPreviousEventNumber(2L).build();
-        final LinkedEvent event_4 = linkedEventBuilder().withStreamId(DIFFERENT_STREAM_ID).withPositionInStream(5L).withPreviousEventNumber(4L).build();
-
-        final Connection connection = dataSource.getConnection();
-
-        insertLinkedEvent(event_1, connection);
-        insertLinkedEvent(event_2, connection);
-        insertLinkedEvent(event_3, connection);
-        insertLinkedEvent(event_4, connection);
-
-        final Stream<LinkedEvent> events = multipleDataSourceEventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(STREAM_ID, 3L, 7L, batchLimit);
-        final List<LinkedEvent> eventList = events.collect(toList());
-        assertThat(eventList, hasSize(2));
-        assertThat(eventList.get(0).getPositionInStream(), is(4L));
-        assertThat(eventList.get(1).getPositionInStream(), is(7L));
-    }
-
-    @Test
-    public void shouldReturnEmptyStreamWhenEventsByStreamIdForGivenPositionRangeRequested() {
-        final int batchLimit = 2;
-        final UUID STREAM_ID = randomUUID();
-
-        final Stream<LinkedEvent> events = multipleDataSourceEventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(STREAM_ID, 3L, 7L, batchLimit);
-        final List<LinkedEvent> eventList = events.collect(toList());
-        assertThat(eventList, hasSize(0));
-    }
-
     @Nested
     class FindNextEventInTheStreamAfterPositionTest {
 

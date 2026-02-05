@@ -28,7 +28,4 @@ public interface LinkedEventSource {
     Optional<LinkedEvent> findNextEventInTheStreamAfterPosition(final UUID streamId, final Long position);
 
     Long getHighestPublishedEventNumber();
-
-    @Deprecated(forRemoval = true, since = "introduced in framework F as per initial design, need to be removed as part of clean up activity")
-    Stream<LinkedEvent> pollStreamEvents(UUID streamId, long fromPosition, long toPosition, int batchLimit);
 }

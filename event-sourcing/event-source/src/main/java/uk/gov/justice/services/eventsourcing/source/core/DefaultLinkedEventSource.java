@@ -60,9 +60,4 @@ public class DefaultLinkedEventSource implements LinkedEventSource {
                         .orElse(0L))
                 .orElse(0L);
     }
-
-    @Override
-    public Stream<LinkedEvent> pollStreamEvents(UUID streamId, long fromPosition, long toPosition, int batchLimit) {
-        return multipleDataSourceEventRepository.findByStreamIdInPositionRangeOrderByPositionAsc(streamId, fromPosition, toPosition, batchLimit);
-    }
 }

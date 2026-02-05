@@ -19,7 +19,7 @@ public class NewSubscriptionManager implements SubscriptionManager  {
 
     @Override
     public void process(final JsonEnvelope incomingJsonEnvelope) {
-        if (eventPullConfiguration.shouldProcessEventsByPullMechanism()) {
+        if (!eventPullConfiguration.shouldProcessEventsByPullMechanism()) {
             newSubscriptionManagerDelegate.process(incomingJsonEnvelope, componentName);
         }
     }

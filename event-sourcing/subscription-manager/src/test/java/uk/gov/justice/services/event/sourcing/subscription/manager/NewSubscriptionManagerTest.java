@@ -23,8 +23,8 @@ public class NewSubscriptionManagerTest {
     );
 
     @Test
-    public void shouldPassThroughToTheNewSubscriptionManagerDelegateWithTheComponentNameWhenPullMechanismFlagIsTrue() throws Exception {
-        when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(true);
+    public void shouldPassThroughToTheNewSubscriptionManagerDelegateWithTheComponentNameWhenPullMechanismFlagIsFalse() throws Exception {
+        when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(false);
         final JsonEnvelope incomingJsonEnvelope = mock(JsonEnvelope.class);
 
         newSubscriptionManager.process(incomingJsonEnvelope);
@@ -33,8 +33,8 @@ public class NewSubscriptionManagerTest {
     }
 
     @Test
-    public void shouldNotPassThroughToTheNewSubscriptionManagerDelegateWithTheComponentNameWhenPullMechanismFlagIsFalse() throws Exception {
-        when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(false);
+    public void shouldNotPassThroughToTheNewSubscriptionManagerDelegateWithTheComponentNameWhenPullMechanismFlagIsTrue() throws Exception {
+        when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(true);
         final JsonEnvelope incomingJsonEnvelope = mock(JsonEnvelope.class);
 
         newSubscriptionManager.process(incomingJsonEnvelope);

@@ -1,5 +1,6 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
+import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 
 import uk.gov.justice.services.common.configuration.Value;
@@ -8,7 +9,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
-public class StreamProcessingTimerConfig {
+public class StreamProcessingConfig {
 
     @Inject
     @Value(key = "stream.processing.timer.start.wait.milliseconds", defaultValue = "7250")
@@ -22,6 +23,10 @@ public class StreamProcessingTimerConfig {
     @Value(key = "stream.processing.timer.between.runs.milliseconds", defaultValue = "5")
     private String timeBetweenRunsMilliseconds;
 
+    @Inject
+    @Value(key = "stream.processing.max.workers", defaultValue = "15")
+    private String maxWorkers;
+
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
@@ -32,5 +37,9 @@ public class StreamProcessingTimerConfig {
 
     public long getTimeBetweenRunsMilliseconds() {
         return parseLong(timeBetweenRunsMilliseconds);
+    }
+
+    public int getMaxWorkers() {
+        return parseInt(maxWorkers);
     }
 }

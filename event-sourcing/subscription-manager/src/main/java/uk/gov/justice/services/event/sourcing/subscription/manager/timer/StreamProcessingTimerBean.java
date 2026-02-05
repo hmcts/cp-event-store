@@ -1,11 +1,11 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.ejb.Timeout;
@@ -13,7 +13,6 @@ import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 import javax.ejb.TimerService;
 import javax.inject.Inject;
-
 import org.slf4j.Logger;
 import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.services.event.sourcing.subscription.manager.StreamProcessingSubscriptionManager;
@@ -24,8 +23,9 @@ import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 @Singleton
 @Startup
-@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 public class StreamProcessingTimerBean {
+
+    private final ConcurrentHashMap<WorkerTimerInfo, Lock> workerLocks = new ConcurrentHashMap<>();
 
     @Inject
     private Logger logger;
@@ -34,7 +34,7 @@ public class StreamProcessingTimerBean {
     private TimerService timerService;
 
     @Inject
-    private StreamProcessingTimerConfig streamProcessingTimerConfig;
+    private StreamProcessingConfig streamProcessingConfig;
 
     @Inject
     private SubscriptionSourceComponentFinder subscriptionSourceComponentFinder;
@@ -54,28 +54,51 @@ public class StreamProcessingTimerBean {
             final List<SourceComponentPair> sourceComponentPairs = subscriptionSourceComponentFinder
                     .findListenerOrIndexerPairs();
 
-            sourceComponentPairs.forEach(sourceComponentPair -> {
-                final TimerConfig timerConfig = new TimerConfig();
-                timerConfig.setPersistent(false);
-                timerConfig.setInfo(sourceComponentPair);
+            final int maxWorkers = streamProcessingConfig.getMaxWorkers();
 
-                timerService.createIntervalTimer(
-                        streamProcessingTimerConfig.getTimerStartWaitMilliseconds(),
-                        streamProcessingTimerConfig.getTimerIntervalMilliseconds(),
-                        timerConfig
-                );
+            sourceComponentPairs.forEach(sourceComponentPair -> {
+                for (int workerNumber = 0; workerNumber < maxWorkers; workerNumber++) {
+                    createTimerFor(sourceComponentPair, workerNumber);
+                }
             });
         }
     }
 
+    private void createTimerFor(SourceComponentPair sourceComponentPair, int workerNumber) {
+        final WorkerTimerInfo workerTimerInfo = new WorkerTimerInfo(sourceComponentPair, workerNumber);
+        workerLocks.put(workerTimerInfo, new ReentrantLock());
+
+        final TimerConfig timerConfig = new TimerConfig();
+        timerConfig.setPersistent(false);
+        timerConfig.setInfo(workerTimerInfo);
+
+        timerService.createIntervalTimer(
+                streamProcessingConfig.getTimerStartWaitMilliseconds(),
+                streamProcessingConfig.getTimerIntervalMilliseconds(),
+                timerConfig
+        );
+    }
+
     @Timeout
     public void processStreamEvents(final Timer timer) {
-        final SourceComponentPair pair = (SourceComponentPair) timer.getInfo();
-        final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = sufficientTimeRemainingCalculatorFactory.createNew(timer, streamProcessingTimerConfig.getTimeBetweenRunsMilliseconds());
-        try {
-            streamProcessingSubscriptionManager.process(pair.source(), pair.component(), sufficientTimeRemainingCalculator);
-        } catch (final Exception e) {
-            logger.error("Failed to process stream events of source: {}, component: {}", pair.source(), pair.component(), e);
+        final WorkerTimerInfo workerTimerInfo = (WorkerTimerInfo) timer.getInfo();
+        final SourceComponentPair pair = workerTimerInfo.sourceComponentPair();
+        final Lock lock = workerLocks.get(workerTimerInfo);
+
+        if (lock.tryLock()) {
+            try {
+                final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator =
+                        sufficientTimeRemainingCalculatorFactory.createNew(timer, streamProcessingConfig.getTimeBetweenRunsMilliseconds());
+                streamProcessingSubscriptionManager.process(pair.source(), pair.component(), sufficientTimeRemainingCalculator);
+            } catch (final Exception e) {
+                logger.error("Failed to process stream events of source: {}, component: {}, worker: {}",
+                        pair.source(), pair.component(), workerTimerInfo.workerNumber(), e);
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            logger.info("Skipping timer execution for source: {}, component: {}, worker: {} - previous execution still in progress",
+                    pair.source(), pair.component(), workerTimerInfo.workerNumber());
         }
     }
 }

@@ -36,12 +36,12 @@ public class StreamProcessingConfigTest {
     }
 
     @Test
-    public void shouldGetTheMaxThreads() {
+    public void shouldGetTheMaxWorkers() {
 
-        final int maxThreads = 5;
+        final int maxWorkers = 5;
 
-        setField(streamProcessingConfig, "maxThreads", "" + maxThreads);
+        setField(streamProcessingConfig, "maxWorkers", "" + maxWorkers);
 
-        assertThat(streamProcessingConfig.getMaxThreads(), is(maxThreads));
+        assertThat(streamProcessingConfig.getMaxWorkers(), is(maxWorkers));
     }
 }

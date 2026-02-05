@@ -74,7 +74,7 @@ public class StreamProcessingTimerBeanTest {
 
         final long timerStartWaitMilliseconds = 7250L;
         final long timerIntervalMilliseconds = 1000L;
-        final int maxThreads = 3;
+        final int maxWorkers = 3;
 
         final SourceComponentPair pair1 = new SourceComponentPair("source-1", "component-1");
         final SourceComponentPair pair2 = new SourceComponentPair("source-2", "component-2");
@@ -84,7 +84,7 @@ public class StreamProcessingTimerBeanTest {
         when(subscriptionSourceComponentFinder.findListenerOrIndexerPairs()).thenReturn(pairs);
         when(streamProcessingConfig.getTimerStartWaitMilliseconds()).thenReturn(timerStartWaitMilliseconds);
         when(streamProcessingConfig.getTimerIntervalMilliseconds()).thenReturn(timerIntervalMilliseconds);
-        when(streamProcessingConfig.getMaxThreads()).thenReturn(maxThreads);
+        when(streamProcessingConfig.getMaxWorkers()).thenReturn(maxWorkers);
 
         streamProcessingTimerBean.startTimerService();
 
@@ -197,12 +197,12 @@ public class StreamProcessingTimerBeanTest {
                 source, component, workerNumber);
     }
 
-    private void setupTimerWithWorker(final SourceComponentPair pair, final int maxThreads) {
+    private void setupTimerWithWorker(final SourceComponentPair pair, final int maxWorkers) {
         when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(true);
         when(subscriptionSourceComponentFinder.findListenerOrIndexerPairs()).thenReturn(singletonList(pair));
         when(streamProcessingConfig.getTimerStartWaitMilliseconds()).thenReturn(7250L);
         when(streamProcessingConfig.getTimerIntervalMilliseconds()).thenReturn(100L);
-        when(streamProcessingConfig.getMaxThreads()).thenReturn(maxThreads);
+        when(streamProcessingConfig.getMaxWorkers()).thenReturn(maxWorkers);
 
         streamProcessingTimerBean.startTimerService();
     }

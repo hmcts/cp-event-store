@@ -24,8 +24,8 @@ public class StreamProcessingConfig {
     private String timeBetweenRunsMilliseconds;
 
     @Inject
-    @Value(key = "stream.processing.max.threads", defaultValue = "15")
-    private String maxThreads;
+    @Value(key = "stream.processing.max.workers", defaultValue = "15")
+    private String maxWorkers;
 
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
@@ -39,7 +39,7 @@ public class StreamProcessingConfig {
         return parseLong(timeBetweenRunsMilliseconds);
     }
 
-    public int getMaxThreads() {
-        return parseInt(maxThreads);
+    public int getMaxWorkers() {
+        return parseInt(maxWorkers);
     }
 }

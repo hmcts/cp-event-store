@@ -54,10 +54,10 @@ public class StreamProcessingTimerBean {
             final List<SourceComponentPair> sourceComponentPairs = subscriptionSourceComponentFinder
                     .findListenerOrIndexerPairs();
 
-            final int maxThreads = streamProcessingConfig.getMaxThreads();
+            final int maxWorkers = streamProcessingConfig.getMaxWorkers();
 
             sourceComponentPairs.forEach(sourceComponentPair -> {
-                for (int workerNumber = 0; workerNumber < maxThreads; workerNumber++) {
+                for (int workerNumber = 0; workerNumber < maxWorkers; workerNumber++) {
                     createTimerFor(sourceComponentPair, workerNumber);
                 }
             });

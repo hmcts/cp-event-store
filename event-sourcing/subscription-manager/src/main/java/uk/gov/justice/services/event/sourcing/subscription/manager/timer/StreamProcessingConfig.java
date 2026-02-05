@@ -1,5 +1,6 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
+import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 
 import uk.gov.justice.services.common.configuration.Value;
@@ -22,6 +23,10 @@ public class StreamProcessingConfig {
     @Value(key = "stream.processing.timer.between.runs.milliseconds", defaultValue = "5")
     private String timeBetweenRunsMilliseconds;
 
+    @Inject
+    @Value(key = "stream.processing.max.threads", defaultValue = "15")
+    private String maxThreads;
+
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
@@ -32,5 +37,9 @@ public class StreamProcessingConfig {
 
     public long getTimeBetweenRunsMilliseconds() {
         return parseLong(timeBetweenRunsMilliseconds);
+    }
+
+    public int getMaxThreads() {
+        return parseInt(maxThreads);
     }
 }

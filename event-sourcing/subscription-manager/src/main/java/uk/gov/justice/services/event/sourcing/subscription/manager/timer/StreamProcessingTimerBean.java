@@ -1,6 +1,9 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.ejb.Singleton;
@@ -21,6 +24,8 @@ import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 @Singleton
 @Startup
 public class StreamProcessingTimerBean {
+
+    private final ConcurrentHashMap<WorkerTimerInfo, Lock> workerLocks = new ConcurrentHashMap<>();
 
     @Inject
     private Logger logger;
@@ -49,28 +54,51 @@ public class StreamProcessingTimerBean {
             final List<SourceComponentPair> sourceComponentPairs = subscriptionSourceComponentFinder
                     .findListenerOrIndexerPairs();
 
-            sourceComponentPairs.forEach(sourceComponentPair -> {
-                final TimerConfig timerConfig = new TimerConfig();
-                timerConfig.setPersistent(false);
-                timerConfig.setInfo(sourceComponentPair);
+            final int maxThreads = streamProcessingConfig.getMaxThreads();
 
-                timerService.createIntervalTimer(
-                        streamProcessingConfig.getTimerStartWaitMilliseconds(),
-                        streamProcessingConfig.getTimerIntervalMilliseconds(),
-                        timerConfig
-                );
+            sourceComponentPairs.forEach(sourceComponentPair -> {
+                for (int workerNumber = 0; workerNumber < maxThreads; workerNumber++) {
+                    createTimerFor(sourceComponentPair, workerNumber);
+                }
             });
         }
     }
 
+    private void createTimerFor(SourceComponentPair sourceComponentPair, int workerNumber) {
+        final WorkerTimerInfo workerTimerInfo = new WorkerTimerInfo(sourceComponentPair, workerNumber);
+        workerLocks.put(workerTimerInfo, new ReentrantLock());
+
+        final TimerConfig timerConfig = new TimerConfig();
+        timerConfig.setPersistent(false);
+        timerConfig.setInfo(workerTimerInfo);
+
+        timerService.createIntervalTimer(
+                streamProcessingConfig.getTimerStartWaitMilliseconds(),
+                streamProcessingConfig.getTimerIntervalMilliseconds(),
+                timerConfig
+        );
+    }
+
     @Timeout
     public void processStreamEvents(final Timer timer) {
-        final SourceComponentPair pair = (SourceComponentPair) timer.getInfo();
-        final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = sufficientTimeRemainingCalculatorFactory.createNew(timer, streamProcessingConfig.getTimeBetweenRunsMilliseconds());
-        try {
-            streamProcessingSubscriptionManager.process(pair.source(), pair.component(), sufficientTimeRemainingCalculator);
-        } catch (final Exception e) {
-            logger.error("Failed to process stream events of source: {}, component: {}", pair.source(), pair.component(), e);
+        final WorkerTimerInfo workerTimerInfo = (WorkerTimerInfo) timer.getInfo();
+        final SourceComponentPair pair = workerTimerInfo.sourceComponentPair();
+        final Lock lock = workerLocks.get(workerTimerInfo);
+
+        if (lock.tryLock()) {
+            try {
+                final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator =
+                        sufficientTimeRemainingCalculatorFactory.createNew(timer, streamProcessingConfig.getTimeBetweenRunsMilliseconds());
+                streamProcessingSubscriptionManager.process(pair.source(), pair.component(), sufficientTimeRemainingCalculator);
+            } catch (final Exception e) {
+                logger.error("Failed to process stream events of source: {}, component: {}, worker: {}",
+                        pair.source(), pair.component(), workerTimerInfo.workerNumber(), e);
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            logger.info("Skipping timer execution for source: {}, component: {}, worker: {} - previous execution still in progress",
+                    pair.source(), pair.component(), workerTimerInfo.workerNumber());
         }
     }
 }

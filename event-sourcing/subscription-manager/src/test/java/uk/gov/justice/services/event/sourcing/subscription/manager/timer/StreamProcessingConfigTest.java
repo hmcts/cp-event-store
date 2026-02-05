@@ -34,4 +34,14 @@ public class StreamProcessingConfigTest {
 
         assertThat(streamProcessingConfig.getTimerIntervalMilliseconds(), is(milliseconds));
     }
+
+    @Test
+    public void shouldGetTheMaxThreads() {
+
+        final int maxThreads = 5;
+
+        setField(streamProcessingConfig, "maxThreads", "" + maxThreads);
+
+        assertThat(streamProcessingConfig.getMaxThreads(), is(maxThreads));
+    }
 }

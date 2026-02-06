@@ -7,7 +7,7 @@
     <parent>
         <groupId>uk.gov.justice</groupId>
         <artifactId>maven-framework-parent-pom</artifactId>
-        <version>17.103.0</version>
+        <version>17.105.0-M1</version>
     </parent>
 
     <groupId>uk.gov.justice.event-store</groupId>

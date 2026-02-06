@@ -48,7 +48,7 @@ public class EventDiscoveryBootstrapperTest {
         final SourceComponentPair sourceComponentPair_1 = new SourceComponentPair(source_1, component_1);
         final SourceComponentPair sourceComponentPair_2 = new SourceComponentPair(source_2, component_2);
 
-        when(subscriptionSourceComponentFinder.findSourceComponentPairsFromSubscriptionRegistry())
+        when(subscriptionSourceComponentFinder.findListenerOrIndexerPairs())
                 .thenReturn(asList(sourceComponentPair_1, sourceComponentPair_2));
 
         when(eventSubscriptionStatusRepository.findBy(source_1, component_1)).thenReturn(of(mock(EventSubscriptionStatus.class)));

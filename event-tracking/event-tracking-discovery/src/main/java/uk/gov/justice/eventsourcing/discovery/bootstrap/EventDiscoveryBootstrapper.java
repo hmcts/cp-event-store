@@ -27,7 +27,7 @@ public class EventDiscoveryBootstrapper {
     public void bootstrapEventDiscovery() {
 
         subscriptionSourceComponentFinder
-                .findSourceComponentPairsFromSubscriptionRegistry()
+                .findListenerOrIndexerPairs()
                 .forEach(this::doBootstrap);
     }
 

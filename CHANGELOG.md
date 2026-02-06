@@ -4,6 +4,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- Introduce concurrency to stream processing through JNDI value 'stream.processing.max.workers'
+- Continue processing next stream on error of current stream processing
 
 # [17.105.0-M6] - 2026-02-05
 ### Added

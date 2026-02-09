@@ -12,8 +12,8 @@ import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsRowMapper;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
@@ -61,7 +61,7 @@ public class StreamErrorRepositoryIT {
     private StreamErrorDetailsRowMapper streamErrorDetailsRowMapper;
 
     @InjectMocks
-    private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
+    private StreamErrorOccurrencePersistence streamErrorOccurrencePersistence;
 
     @Spy
     private StreamErrorPersistence streamErrorPersistence;
@@ -86,7 +86,7 @@ public class StreamErrorRepositoryIT {
                 "stream_buffer",
                 "stream_error");
         setField(streamErrorPersistence, "streamErrorHashPersistence", streamErrorHashPersistence);
-        setField(streamErrorPersistence, "streamErrorDetailsPersistence", streamErrorDetailsPersistence);
+        setField(streamErrorPersistence, "streamErrorOccurrencePersistence", streamErrorOccurrencePersistence);
         setField(streamStatusErrorPersistence, "clock", new UtcClock());
     }
 
@@ -96,9 +96,9 @@ public class StreamErrorRepositoryIT {
         final long streamErrorPosition = 234L;
         final long currentStreamPosition = 233L;
         final StreamError streamError = aStreamError(streamErrorPosition);
-        final UUID streamId = streamError.streamErrorDetails().streamId();
-        final String source = streamError.streamErrorDetails().source();
-        final String componentName = streamError.streamErrorDetails().componentName();
+        final UUID streamId = streamError.streamErrorOccurrence().streamId();
+        final String source = streamError.streamErrorOccurrence().source();
+        final String componentName = streamError.streamErrorOccurrence().componentName();
 
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
@@ -107,18 +107,18 @@ public class StreamErrorRepositoryIT {
         streamErrorRepository.markStreamAsErrored(streamError, currentStreamPosition);
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
-            final Optional<StreamError> streamErrorOptional = streamErrorPersistence.findByErrorId(streamError.streamErrorDetails().id(), connection);
+            final Optional<StreamError> streamErrorOptional = streamErrorPersistence.findByErrorId(streamError.streamErrorOccurrence().id(), connection);
             assertThat(streamErrorOptional, is(of(streamError)));
         }
 
-        final Optional<StreamStatusErrorDetails> streamStatusErrorDetails = findErrorInStreamStatusTable(streamError.streamErrorDetails().id());
+        final Optional<StreamStatusErrorDetails> streamStatusErrorDetails = findErrorInStreamStatusTable(streamError.streamErrorOccurrence().id());
 
         if (streamStatusErrorDetails.isPresent()) {
-            assertThat(streamStatusErrorDetails.get().streamErrorId, is(streamError.streamErrorDetails().id()));
-            assertThat(streamStatusErrorDetails.get().streamId, is(streamError.streamErrorDetails().streamId()));
+            assertThat(streamStatusErrorDetails.get().streamErrorId, is(streamError.streamErrorOccurrence().id()));
+            assertThat(streamStatusErrorDetails.get().streamId, is(streamError.streamErrorOccurrence().streamId()));
             assertThat(streamStatusErrorDetails.get().streamErrorPosition, is(streamErrorPosition));
-            assertThat(streamStatusErrorDetails.get().source, is(streamError.streamErrorDetails().source()));
-            assertThat(streamStatusErrorDetails.get().component, is(streamError.streamErrorDetails().componentName()));
+            assertThat(streamStatusErrorDetails.get().source, is(streamError.streamErrorOccurrence().source()));
+            assertThat(streamStatusErrorDetails.get().component, is(streamError.streamErrorOccurrence().componentName()));
         } else {
             fail();
         }
@@ -130,9 +130,9 @@ public class StreamErrorRepositoryIT {
         final long streamErrorPosition = 234L;
         final long currentStreamPosition = 233L;
         final StreamError streamError = aStreamError(streamErrorPosition);
-        final UUID streamId = streamError.streamErrorDetails().streamId();
-        final String source = streamError.streamErrorDetails().source();
-        final String componentName = streamError.streamErrorDetails().componentName();
+        final UUID streamId = streamError.streamErrorOccurrence().streamId();
+        final String source = streamError.streamErrorOccurrence().source();
+        final String componentName = streamError.streamErrorOccurrence().componentName();
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
 
@@ -148,7 +148,7 @@ public class StreamErrorRepositoryIT {
 
         final StreamUpdateContext streamUpdateContext = newStreamStatusRepository.lockStreamAndGetStreamUpdateContext(streamId, source, componentName, streamErrorPosition);
 
-        assertThat(streamUpdateContext.streamErrorId(), is(of(streamError.streamErrorDetails().id())));
+        assertThat(streamUpdateContext.streamErrorId(), is(of(streamError.streamErrorOccurrence().id())));
 
     }
 
@@ -158,9 +158,9 @@ public class StreamErrorRepositoryIT {
         final long streamErrorPosition = 234L;
         final long currentStreamPosition = 233L;
         final StreamError streamError = aStreamError(streamErrorPosition);
-        final UUID streamId = streamError.streamErrorDetails().streamId();
-        final String source = streamError.streamErrorDetails().source();
-        final String componentName = streamError.streamErrorDetails().componentName();
+        final UUID streamId = streamError.streamErrorOccurrence().streamId();
+        final String source = streamError.streamErrorOccurrence().source();
+        final String componentName = streamError.streamErrorOccurrence().componentName();
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
 
@@ -169,18 +169,18 @@ public class StreamErrorRepositoryIT {
         streamErrorRepository.markStreamAsErrored(streamError, currentStreamPosition);
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
-            final Optional<StreamError> streamErrorOptional = streamErrorPersistence.findByErrorId(streamError.streamErrorDetails().id(), connection);
+            final Optional<StreamError> streamErrorOptional = streamErrorPersistence.findByErrorId(streamError.streamErrorOccurrence().id(), connection);
             assertThat(streamErrorOptional, is(of(streamError)));
         }
 
-        final Optional<StreamStatusErrorDetails> streamStatusErrorDetails = findErrorInStreamStatusTable(streamError.streamErrorDetails().id());
+        final Optional<StreamStatusErrorDetails> streamStatusErrorDetails = findErrorInStreamStatusTable(streamError.streamErrorOccurrence().id());
 
         if (streamStatusErrorDetails.isPresent()) {
-            assertThat(streamStatusErrorDetails.get().streamErrorId, is(streamError.streamErrorDetails().id()));
-            assertThat(streamStatusErrorDetails.get().streamId, is(streamError.streamErrorDetails().streamId()));
+            assertThat(streamStatusErrorDetails.get().streamErrorId, is(streamError.streamErrorOccurrence().id()));
+            assertThat(streamStatusErrorDetails.get().streamId, is(streamError.streamErrorOccurrence().streamId()));
             assertThat(streamStatusErrorDetails.get().streamErrorPosition, is(streamErrorPosition));
-            assertThat(streamStatusErrorDetails.get().source, is(streamError.streamErrorDetails().source()));
-            assertThat(streamStatusErrorDetails.get().component, is(streamError.streamErrorDetails().componentName()));
+            assertThat(streamStatusErrorDetails.get().source, is(streamError.streamErrorOccurrence().source()));
+            assertThat(streamStatusErrorDetails.get().component, is(streamError.streamErrorOccurrence().componentName()));
         } else {
             fail();
         }
@@ -192,9 +192,9 @@ public class StreamErrorRepositoryIT {
         final long streamErrorPosition = 234L;
         final long currentStreamPosition = 233L;
         final StreamError streamError = aStreamError(streamErrorPosition);
-        final UUID streamId = streamError.streamErrorDetails().streamId();
-        final String source = streamError.streamErrorDetails().source();
-        final String componentName = streamError.streamErrorDetails().componentName();
+        final UUID streamId = streamError.streamErrorOccurrence().streamId();
+        final String source = streamError.streamErrorOccurrence().source();
+        final String componentName = streamError.streamErrorOccurrence().componentName();
         final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis() - 1000); // 1 second ago
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
@@ -258,13 +258,13 @@ public class StreamErrorRepositoryIT {
         return new StreamError(aStreamErrorDetails(hash, streamErrorPosition), aStreamErrorHash(hash));
     }
 
-    private StreamErrorDetails aStreamErrorDetails(final String hash, final long streamErrorPosition) {
+    private StreamErrorOccurrence aStreamErrorDetails(final String hash, final long streamErrorPosition) {
 
         final UUID streamId = randomUUID();
         final String componentName = "some-component";
         final String source = "some-source";
 
-        return new StreamErrorDetails(
+        return new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
                 "some-exception-message",

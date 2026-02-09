@@ -25,14 +25,14 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class StreamErrorDetailsPersistenceIT {
+public class StreamErrorOccurrencePersistenceIT {
 
     private final TestJdbcDataSourceProvider testJdbcDataSourceProvider = new TestJdbcDataSourceProvider();
     private final DatabaseCleaner databaseCleaner = new DatabaseCleaner();
     @Spy
     private StreamErrorDetailsRowMapper streamErrorDetailsRowMapper;
     @InjectMocks
-    private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
+    private StreamErrorOccurrencePersistence streamErrorOccurrencePersistence;
     @Spy
     private StreamErrorHashRowMapper streamErrorHashRowMapper;
     @InjectMocks
@@ -46,7 +46,7 @@ public class StreamErrorDetailsPersistenceIT {
     @Test
     public void shouldInsertAndFindById() throws Exception {
         final String hash = "sdlksdljfsdlf87236662846";
-        final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
                 "some-exception-message",
@@ -74,16 +74,16 @@ public class StreamErrorDetailsPersistenceIT {
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
             streamErrorHashPersistence.upsert(streamErrorHash, connection);
-            streamErrorDetailsPersistence.insert(streamErrorDetails, connection);
+            streamErrorOccurrencePersistence.insert(streamErrorOccurrence, connection);
         }
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
-            final Optional<StreamErrorDetails> streamErrorDetailsOptional = streamErrorDetailsPersistence.findById(
-                    streamErrorDetails.id(),
+            final Optional<StreamErrorOccurrence> streamErrorDetailsOptional = streamErrorOccurrencePersistence.findById(
+                    streamErrorOccurrence.id(),
                     connection);
 
             if (streamErrorDetailsOptional.isPresent()) {
-                assertThat(streamErrorDetailsOptional.get(), is(streamErrorDetails));
+                assertThat(streamErrorDetailsOptional.get(), is(streamErrorOccurrence));
             } else {
                 fail();
             }
@@ -95,7 +95,7 @@ public class StreamErrorDetailsPersistenceIT {
         final UUID streamId = randomUUID();
         final String hash = "sdlksdljfsdlf87236662846";
 
-        final StreamErrorDetails streamErrorDetails_1 = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence_1 = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
                 "some-exception-message_1",
@@ -109,7 +109,7 @@ public class StreamErrorDetailsPersistenceIT {
                 "component-name_1",
                 "source_1"
         );
-        final StreamErrorDetails streamErrorDetails_2 = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence_2 = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
                 "some-exception-message_2",
@@ -123,7 +123,7 @@ public class StreamErrorDetailsPersistenceIT {
                 "component-name_2",
                 "source_2"
         );
-        final StreamErrorDetails streamErrorDetails_3 = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence_3 = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
                 "some-exception-message_3",
@@ -151,26 +151,26 @@ public class StreamErrorDetailsPersistenceIT {
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
             streamErrorHashPersistence.upsert(streamErrorHash, connection);
-            streamErrorDetailsPersistence.insert(streamErrorDetails_1, connection);
-            streamErrorDetailsPersistence.insert(streamErrorDetails_2, connection);
-            streamErrorDetailsPersistence.insert(streamErrorDetails_3, connection);
+            streamErrorOccurrencePersistence.insert(streamErrorOccurrence_1, connection);
+            streamErrorOccurrencePersistence.insert(streamErrorOccurrence_2, connection);
+            streamErrorOccurrencePersistence.insert(streamErrorOccurrence_3, connection);
         }
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
-            final List<StreamErrorDetails> streamErrorDetailsList = streamErrorDetailsPersistence.findByStreamId(
+            final List<StreamErrorOccurrence> streamErrorOccurrenceList = streamErrorOccurrencePersistence.findByStreamId(
                     streamId,
                     connection);
 
-            assertThat(streamErrorDetailsList.size(), is(2));
-            assertThat(streamErrorDetailsList.get(0), is(streamErrorDetails_1));
-            assertThat(streamErrorDetailsList.get(1), is(streamErrorDetails_3));
+            assertThat(streamErrorOccurrenceList.size(), is(2));
+            assertThat(streamErrorOccurrenceList.get(0), is(streamErrorOccurrence_1));
+            assertThat(streamErrorOccurrenceList.get(1), is(streamErrorOccurrence_3));
         }
     }
 
     @Test
     public void shouldDeleteStreamErrorByIdAndReturnItsHash() throws Exception {
         final String hash = "sdlksdljfsdlf87236662846";
-        final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
                 "some-exception-message",
@@ -198,25 +198,25 @@ public class StreamErrorDetailsPersistenceIT {
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
             streamErrorHashPersistence.upsert(streamErrorHash, connection);
-            streamErrorDetailsPersistence.insert(streamErrorDetails, connection);
+            streamErrorOccurrencePersistence.insert(streamErrorOccurrence, connection);
         }
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
-            final List<StreamErrorDetails> allStreamErrorDetails = streamErrorDetailsPersistence.findAll(connection);
+            final List<StreamErrorOccurrence> allStreamErrorDetails = streamErrorOccurrencePersistence.findAll(connection);
 
             assertThat(allStreamErrorDetails.size(), is(1));
         }
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
-            final String returnedHash = streamErrorDetailsPersistence.deleteErrorAndGetHash(
-                    streamErrorDetails.id(),
+            final String returnedHash = streamErrorOccurrencePersistence.deleteErrorAndGetHash(
+                    streamErrorOccurrence.id(),
                     connection);
 
             assertThat(returnedHash, is(hash));
         }
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
-            final List<StreamErrorDetails> allStreamErrorDetails = streamErrorDetailsPersistence.findAll(connection);
+            final List<StreamErrorOccurrence> allStreamErrorDetails = streamErrorOccurrencePersistence.findAll(connection);
             assertThat(allStreamErrorDetails.size(), is(0));
         }
     }
@@ -227,10 +227,10 @@ public class StreamErrorDetailsPersistenceIT {
 
         final DataSource viewStoreDataSource = testJdbcDataSourceProvider.getViewStoreDataSource("framework");
         try(final Connection connection = viewStoreDataSource.getConnection()) {
-            assertThat(streamErrorDetailsPersistence.noErrorsExistFor(hash, connection), is(true));
+            assertThat(streamErrorOccurrencePersistence.noErrorsExistFor(hash, connection), is(true));
         }
 
-        final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
                 "some-exception-message",
@@ -256,11 +256,11 @@ public class StreamErrorDetailsPersistenceIT {
 
         try (final Connection connection = viewStoreDataSource.getConnection()) {
             streamErrorHashPersistence.upsert(streamErrorHash, connection);
-            streamErrorDetailsPersistence.insert(streamErrorDetails, connection);
+            streamErrorOccurrencePersistence.insert(streamErrorOccurrence, connection);
         }
 
         try(final Connection connection = viewStoreDataSource.getConnection()) {
-            assertThat(streamErrorDetailsPersistence.noErrorsExistFor(hash, connection), is(false));
+            assertThat(streamErrorOccurrencePersistence.noErrorsExistFor(hash, connection), is(false));
         }
     }
 }

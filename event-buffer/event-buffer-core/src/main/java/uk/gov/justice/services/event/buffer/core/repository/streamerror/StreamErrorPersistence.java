@@ -19,13 +19,13 @@ public class StreamErrorPersistence {
     private StreamErrorHashPersistence streamErrorHashPersistence;
 
     @Inject
-    private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
+    private StreamErrorOccurrencePersistence streamErrorOccurrencePersistence;
 
     public boolean save(final StreamError streamError, final Connection connection) {
 
         try {
             streamErrorHashPersistence.upsert(streamError.streamErrorHash(), connection);
-            final int rowsUpdated = streamErrorDetailsPersistence.insert(streamError.streamErrorDetails(), connection);
+            final int rowsUpdated = streamErrorOccurrencePersistence.insert(streamError.streamErrorOccurrence(), connection);
             return rowsUpdated > 0;
         } catch (final SQLException e) {
             throw new StreamErrorHandlingException(format("Failed to save StreamError: %s", streamError), e);
@@ -34,13 +34,13 @@ public class StreamErrorPersistence {
 
     public Optional<StreamError> findByErrorId(final UUID streamErrorId, final Connection connection) {
         try {
-            final Optional<StreamErrorDetails> streamErrorDetailsOptional = streamErrorDetailsPersistence.findById(streamErrorId, connection);
+            final Optional<StreamErrorOccurrence> streamErrorDetailsOptional = streamErrorOccurrencePersistence.findById(streamErrorId, connection);
 
             if (streamErrorDetailsOptional.isPresent()) {
-                final StreamErrorDetails streamErrorDetails = streamErrorDetailsOptional.get();
-                final Optional<StreamErrorHash> streamErrorHashOptional = streamErrorHashPersistence.findByHash(streamErrorDetails.hash(), connection);
+                final StreamErrorOccurrence streamErrorOccurrence = streamErrorDetailsOptional.get();
+                final Optional<StreamErrorHash> streamErrorHashOptional = streamErrorHashPersistence.findByHash(streamErrorOccurrence.hash(), connection);
                 if (streamErrorHashOptional.isPresent()) {
-                    final StreamError streamError = new StreamError(streamErrorDetails, streamErrorHashOptional.get());
+                    final StreamError streamError = new StreamError(streamErrorOccurrence, streamErrorHashOptional.get());
                     return of(streamError);
                 }
             }
@@ -55,13 +55,13 @@ public class StreamErrorPersistence {
     public List<StreamError> findAllByStreamId(final UUID streamId, final Connection connection) {
         try {
             final List<StreamError> streamErrors = new ArrayList<>();
-            final List<StreamErrorDetails> streamErrorDetailsList = streamErrorDetailsPersistence.findByStreamId(streamId, connection);
-            for (final StreamErrorDetails streamErrorDetails : streamErrorDetailsList) {
-                final Optional<StreamErrorHash> streamErrorHashOptional = streamErrorHashPersistence.findByHash(streamErrorDetails.hash(), connection);
+            final List<StreamErrorOccurrence> streamErrorOccurrenceList = streamErrorOccurrencePersistence.findByStreamId(streamId, connection);
+            for (final StreamErrorOccurrence streamErrorOccurrence : streamErrorOccurrenceList) {
+                final Optional<StreamErrorHash> streamErrorHashOptional = streamErrorHashPersistence.findByHash(streamErrorOccurrence.hash(), connection);
                 if (streamErrorHashOptional.isPresent()) {
-                    streamErrors.add(new StreamError(streamErrorDetails, streamErrorHashOptional.get()));
+                    streamErrors.add(new StreamError(streamErrorOccurrence, streamErrorHashOptional.get()));
                 } else {
-                    throw new StreamErrorHandlingException("No stream_error found for hash '" + streamErrorDetails.hash() + "' yet hash exists in stream_error table");
+                    throw new StreamErrorHandlingException("No stream_error found for hash '" + streamErrorOccurrence.hash() + "' yet hash exists in stream_error table");
                 }
             }
 
@@ -75,8 +75,8 @@ public class StreamErrorPersistence {
     public void removeErrorForStream(final UUID streamErrorId, final UUID streamId, final String source, final String componentName, final Connection connection) {
 
         try {
-            final String hash = streamErrorDetailsPersistence.deleteErrorAndGetHash(streamErrorId, connection);
-            if (streamErrorDetailsPersistence.noErrorsExistFor(hash, connection)) {
+            final String hash = streamErrorOccurrencePersistence.deleteErrorAndGetHash(streamErrorId, connection);
+            if (streamErrorOccurrencePersistence.noErrorsExistFor(hash, connection)) {
                 streamErrorHashPersistence.deleteHash(hash, connection);
             }
         } catch (final SQLException e) {

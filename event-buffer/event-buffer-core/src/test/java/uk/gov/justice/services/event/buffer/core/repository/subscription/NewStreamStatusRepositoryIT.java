@@ -15,8 +15,8 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
@@ -317,7 +317,7 @@ public class NewStreamStatusRepositoryIT {
         @BeforeEach
         void setUp() {
             setField(streamStatusErrorPersistence, "clock", new UtcClock());
-            setField(streamErrorPersistence, "streamErrorDetailsPersistence", new StreamErrorDetailsPersistence());
+            setField(streamErrorPersistence, "streamErrorOccurrencePersistence", new StreamErrorOccurrencePersistence());
             setField(streamErrorPersistence, "streamErrorHashPersistence", new StreamErrorHashPersistence());
         }
 
@@ -471,7 +471,7 @@ public class NewStreamStatusRepositoryIT {
                     2334
             );
 
-            final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+            final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                     streamErrorId,
                     hash,
                     "some-exception-message",
@@ -487,7 +487,7 @@ public class NewStreamStatusRepositoryIT {
             );
 
             return new StreamError(
-                    streamErrorDetails,
+                    streamErrorOccurrence,
                     streamErrorHash
             );
         }

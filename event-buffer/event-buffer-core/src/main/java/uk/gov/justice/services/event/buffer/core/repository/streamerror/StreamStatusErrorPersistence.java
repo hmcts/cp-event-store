@@ -135,16 +135,16 @@ public class StreamStatusErrorPersistence {
 
 
     public int updateStreamStatusUpdatedAtForSameError(final StreamError newStreamError, final long lastStreamPosition, final Timestamp previousUpdateAtTimestamp, final Connection connection) {
-        final StreamErrorDetails streamErrorDetails = newStreamError.streamErrorDetails();
+        final StreamErrorOccurrence streamErrorOccurrence = newStreamError.streamErrorOccurrence();
         final ZonedDateTime updatedAt = clock.now();
 
         try (final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_STREAM_UPDATED_AT_IF_ERROR_IS_SAME)) {
             final Timestamp updatedAtTimestamp = toSqlTimestamp(updatedAt);
 
             preparedStatement.setObject(1, updatedAtTimestamp);
-            preparedStatement.setObject(2, streamErrorDetails.streamId());
-            preparedStatement.setString(3, streamErrorDetails.source());
-            preparedStatement.setString(4, streamErrorDetails.componentName());
+            preparedStatement.setObject(2, streamErrorOccurrence.streamId());
+            preparedStatement.setString(3, streamErrorOccurrence.source());
+            preparedStatement.setString(4, streamErrorOccurrence.componentName());
             preparedStatement.setObject(5, lastStreamPosition);
             preparedStatement.setObject(6, previousUpdateAtTimestamp);
 
@@ -152,9 +152,9 @@ public class StreamStatusErrorPersistence {
         } catch (final SQLException e) {
             throw new StreamErrorHandlingException(format(
                     "Failed to update Stream Status updated at. streamId: '%s', source: '%s, component: '%s'",
-                    streamErrorDetails.streamId(),
-                    streamErrorDetails.source(),
-                    streamErrorDetails.componentName()
+                    streamErrorOccurrence.streamId(),
+                    streamErrorOccurrence.source(),
+                    streamErrorOccurrence.componentName()
             ), e);
         }
     }

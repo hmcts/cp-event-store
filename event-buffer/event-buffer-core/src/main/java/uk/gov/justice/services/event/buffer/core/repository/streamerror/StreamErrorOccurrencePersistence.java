@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @SuppressWarnings("java:S1192")
-public class StreamErrorDetailsPersistence {
+public class StreamErrorOccurrencePersistence {
 
     private static final String INSERT_EXCEPTION_SQL = """
             INSERT INTO stream_error (
@@ -99,27 +99,27 @@ public class StreamErrorDetailsPersistence {
         """;
 
 
-    public int insert(final StreamErrorDetails streamErrorDetails, final Connection connection) throws SQLException {
+    public int insert(final StreamErrorOccurrence streamErrorOccurrence, final Connection connection) throws SQLException {
 
         try (final PreparedStatement preparedStatement = connection.prepareStatement(INSERT_EXCEPTION_SQL)) {
-            preparedStatement.setObject(1, streamErrorDetails.id());
-            preparedStatement.setString(2, streamErrorDetails.hash());
-            preparedStatement.setString(3, streamErrorDetails.exceptionMessage());
-            preparedStatement.setString(4, streamErrorDetails.causeMessage().orElse(null));
-            preparedStatement.setString(5, streamErrorDetails.eventName());
-            preparedStatement.setObject(6, streamErrorDetails.eventId());
-            preparedStatement.setObject(7, streamErrorDetails.streamId());
-            preparedStatement.setLong(8, streamErrorDetails.positionInStream());
-            preparedStatement.setTimestamp(9, toSqlTimestamp(streamErrorDetails.dateCreated()));
-            preparedStatement.setString(10, streamErrorDetails.fullStackTrace());
-            preparedStatement.setString(11, streamErrorDetails.componentName());
-            preparedStatement.setString(12, streamErrorDetails.source());
+            preparedStatement.setObject(1, streamErrorOccurrence.id());
+            preparedStatement.setString(2, streamErrorOccurrence.hash());
+            preparedStatement.setString(3, streamErrorOccurrence.exceptionMessage());
+            preparedStatement.setString(4, streamErrorOccurrence.causeMessage().orElse(null));
+            preparedStatement.setString(5, streamErrorOccurrence.eventName());
+            preparedStatement.setObject(6, streamErrorOccurrence.eventId());
+            preparedStatement.setObject(7, streamErrorOccurrence.streamId());
+            preparedStatement.setLong(8, streamErrorOccurrence.positionInStream());
+            preparedStatement.setTimestamp(9, toSqlTimestamp(streamErrorOccurrence.dateCreated()));
+            preparedStatement.setString(10, streamErrorOccurrence.fullStackTrace());
+            preparedStatement.setString(11, streamErrorOccurrence.componentName());
+            preparedStatement.setString(12, streamErrorOccurrence.source());
 
             return preparedStatement.executeUpdate();
         }
     }
 
-    public Optional<StreamErrorDetails> findById(final UUID id, final Connection connection) throws SQLException {
+    public Optional<StreamErrorOccurrence> findById(final UUID id, final Connection connection) throws SQLException {
 
         try (final PreparedStatement preparedStatement = connection.prepareStatement(FIND_BY_ID_SQL)) {
             preparedStatement.setObject(1, id);
@@ -137,7 +137,7 @@ public class StreamErrorDetailsPersistence {
                     final String componentName = resultSet.getString("component");
                     final String source = resultSet.getString("source");
 
-                    final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+                    final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                             id,
                             hash,
                             exceptionMessage,
@@ -152,7 +152,7 @@ public class StreamErrorDetailsPersistence {
                             source
                     );
 
-                    return of(streamErrorDetails);
+                    return of(streamErrorOccurrence);
                 }
 
                 return empty();
@@ -160,13 +160,13 @@ public class StreamErrorDetailsPersistence {
         }
     }
 
-    public List<StreamErrorDetails> findByStreamId(final UUID streamId, final Connection connection) throws SQLException {
+    public List<StreamErrorOccurrence> findByStreamId(final UUID streamId, final Connection connection) throws SQLException {
 
         try (final PreparedStatement preparedStatement = connection.prepareStatement(FIND_BY_STREAM_ID_SQL)) {
             preparedStatement.setObject(1, streamId);
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
 
-                final ArrayList<StreamErrorDetails> streamErrorDetailsList = new ArrayList<>();
+                final ArrayList<StreamErrorOccurrence> streamErrorOccurrenceList = new ArrayList<>();
                 while (resultSet.next()) {
                     final UUID id = resultSet.getObject("id", UUID.class);
                     final String hash = resultSet.getString("hash");
@@ -180,7 +180,7 @@ public class StreamErrorDetailsPersistence {
                     final String componentName = resultSet.getString("component");
                     final String source = resultSet.getString("source");
 
-                    final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+                    final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                             id,
                             hash,
                             exceptionMessage,
@@ -195,20 +195,20 @@ public class StreamErrorDetailsPersistence {
                             source
                     );
 
-                    streamErrorDetailsList.add(streamErrorDetails);
+                    streamErrorOccurrenceList.add(streamErrorOccurrence);
                 }
 
-                return streamErrorDetailsList;
+                return streamErrorOccurrenceList;
             }
         }
     }
 
-    public List<StreamErrorDetails> findAll(final Connection connection) throws SQLException {
+    public List<StreamErrorOccurrence> findAll(final Connection connection) throws SQLException {
 
         try (final PreparedStatement preparedStatement = connection.prepareStatement(FIND_ALL_SQL)) {
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
 
-                final ArrayList<StreamErrorDetails> streamErrorDetailsList = new ArrayList<>();
+                final ArrayList<StreamErrorOccurrence> streamErrorOccurrenceList = new ArrayList<>();
                 while (resultSet.next()) {
                     final UUID streamErrorId = (UUID) resultSet.getObject("id");
                     final String hash = resultSet.getString("hash");
@@ -223,7 +223,7 @@ public class StreamErrorDetailsPersistence {
                     final String componentName = resultSet.getString("component");
                     final String source = resultSet.getString("source");
 
-                    final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+                    final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                             streamErrorId,
                             hash,
                             exceptionMessage,
@@ -238,10 +238,10 @@ public class StreamErrorDetailsPersistence {
                             source
                     );
 
-                    streamErrorDetailsList.add(streamErrorDetails);
+                    streamErrorOccurrenceList.add(streamErrorOccurrence);
                 }
 
-                return streamErrorDetailsList;
+                return streamErrorOccurrenceList;
             }
         }
     }

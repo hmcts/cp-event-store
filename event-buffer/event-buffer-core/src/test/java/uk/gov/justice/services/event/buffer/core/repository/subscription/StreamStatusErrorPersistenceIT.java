@@ -10,8 +10,8 @@ import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
@@ -50,10 +50,10 @@ public class StreamStatusErrorPersistenceIT {
                 "stream_error");
 
         final StreamErrorHashPersistence streamErrorHashPersistence = new StreamErrorHashPersistence();
-        final StreamErrorDetailsPersistence streamErrorDetailsPersistence = new StreamErrorDetailsPersistence();
+        final StreamErrorOccurrencePersistence streamErrorOccurrencePersistence = new StreamErrorOccurrencePersistence();
 
         setField(streamStatusErrorPersistence, "clock", new UtcClock());
-        setField(streamErrorPersistence, "streamErrorDetailsPersistence", streamErrorDetailsPersistence);
+        setField(streamErrorPersistence, "streamErrorOccurrencePersistence", streamErrorOccurrencePersistence);
         setField(streamErrorPersistence, "streamErrorHashPersistence", streamErrorHashPersistence);
     }
 
@@ -202,7 +202,7 @@ public class StreamStatusErrorPersistenceIT {
                 2334
         );
 
-        final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 streamErrorId,
                 hash,
                 "some-exception-message",
@@ -218,7 +218,7 @@ public class StreamStatusErrorPersistenceIT {
         );
 
         return new StreamError(
-                streamErrorDetails,
+                streamErrorOccurrence,
                 streamErrorHash
         );
     }

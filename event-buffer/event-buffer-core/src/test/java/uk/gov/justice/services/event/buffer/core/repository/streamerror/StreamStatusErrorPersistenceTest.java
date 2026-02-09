@@ -158,7 +158,7 @@ public class StreamStatusErrorPersistenceTest {
         final long lastStreamPosition = 122L;
 
 
-        final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 streamErrorId,
                 "some-hash",
                 "exception-message",
@@ -173,7 +173,7 @@ public class StreamStatusErrorPersistenceTest {
                 source
         );
 
-        final StreamError streamError = new StreamError(streamErrorDetails, null);
+        final StreamError streamError = new StreamError(streamErrorOccurrence, null);
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
@@ -216,7 +216,7 @@ public class StreamStatusErrorPersistenceTest {
         final long lastStreamPosition = 122L;
 
 
-        final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 streamErrorId,
                 "some-hash",
                 "exception-message",
@@ -231,7 +231,7 @@ public class StreamStatusErrorPersistenceTest {
                 source
         );
 
-        final StreamError streamError = new StreamError(streamErrorDetails, null);
+        final StreamError streamError = new StreamError(streamErrorOccurrence, null);
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 

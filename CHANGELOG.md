@@ -7,6 +7,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### Changed
 - EventDiscoveryBootstrapper should only create entries for event listener and indexers
 - bump parent-pom to 17.105.0-M1
+### Added
+- New columns on stream_error table to allow for retry mechanism and backoff:
+  - `updated_at`
+  - `retry_count`
+  - `next_retry_time`
 
 # [17.105.0-M7] - 2026-02-06
 ### Changed

@@ -13,7 +13,7 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
@@ -141,7 +141,7 @@ public class NewStreamStatusRepository {
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
 
     @Inject
-    private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
+    private StreamErrorOccurrencePersistence streamErrorOccurrencePersistence;
 
     public int insertIfNotExists(
             final UUID streamId,
@@ -398,7 +398,7 @@ public class NewStreamStatusRepository {
         final Optional<UUID> streamErrorId = streamUpdateContext.streamErrorId();
         if (streamErrorId.isPresent()) {
             try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
-                return streamErrorDetailsPersistence.findById(streamErrorId.get(), connection)
+                return streamErrorOccurrencePersistence.findById(streamErrorId.get(), connection)
                         .map(streamErrorDetails -> new StreamUpdateContext(
                                 streamUpdateContext.incomingEventPosition(),
                                 streamUpdateContext.currentStreamPosition(),

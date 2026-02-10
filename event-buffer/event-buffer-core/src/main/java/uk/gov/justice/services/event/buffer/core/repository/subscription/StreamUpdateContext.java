@@ -1,6 +1,6 @@
 package uk.gov.justice.services.event.buffer.core.repository.subscription;
 
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
 
 import java.sql.Timestamp;
 import java.util.Optional;
@@ -12,5 +12,5 @@ public record StreamUpdateContext(
         long latestKnownStreamPosition,
         Timestamp lastUpdatedAt,
         Optional<UUID> streamErrorId,
-        Optional<StreamErrorDetails> existingStreamErrorDetails) {
+        Optional<StreamErrorOccurrence> existingStreamErrorDetails) {
 }

@@ -4,7 +4,7 @@ import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
-public record StreamErrorDetails(
+public record StreamErrorOccurrence(
         UUID id,
         String hash,
         String exceptionMessage,

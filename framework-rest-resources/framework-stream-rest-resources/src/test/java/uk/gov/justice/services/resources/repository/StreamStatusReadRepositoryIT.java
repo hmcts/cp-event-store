@@ -8,8 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsRowMapper;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
@@ -55,31 +55,31 @@ public class StreamStatusReadRepositoryIT {
     private static final ZonedDateTime UPDATED_AT_3 = UPDATED_AT.plusMinutes(3);
     private static final String ERROR_1_HASH = "hash-1";
     private static final String ERROR_2_HASH = "hash-2";
-    final StreamErrorDetails STREAM_1_LISTENER_ERROR_1 = new StreamErrorDetails(
+    final StreamErrorOccurrence STREAM_1_LISTENER_ERROR_1 = new StreamErrorOccurrence(
             randomUUID(), ERROR_1_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_1_ID, 1L,
             new UtcClock().now(), "stack-trace",
             EVENT_LISTENER_COMPONENT, LISTING_SOURCE
     );
-    final StreamErrorDetails STREAM_1_INDEXER_ERROR_1 = new StreamErrorDetails(
+    final StreamErrorOccurrence STREAM_1_INDEXER_ERROR_1 = new StreamErrorOccurrence(
             randomUUID(), ERROR_1_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_1_ID, 1L,
             new UtcClock().now(), "stack-trace",
             EVENT_INDEXER_COMPONENT, LISTING_SOURCE
     );
-    final StreamErrorDetails STREAM_2_LISTENER_ERROR_1 = new StreamErrorDetails(
+    final StreamErrorOccurrence STREAM_2_LISTENER_ERROR_1 = new StreamErrorOccurrence(
             randomUUID(), ERROR_1_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_2_ID, 1L,
             new UtcClock().now(), "stack-trace",
             EVENT_LISTENER_COMPONENT, LISTING_SOURCE
     );
-    final StreamErrorDetails STREAM_2_INDEXER_ERROR_2 = new StreamErrorDetails(
+    final StreamErrorOccurrence STREAM_2_INDEXER_ERROR_2 = new StreamErrorOccurrence(
             randomUUID(), ERROR_2_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_2_ID, 1L,
             new UtcClock().now(), "stack-trace",
             EVENT_INDEXER_COMPONENT, LISTING_SOURCE
     );
-    final StreamErrorDetails STREAM_3_ERROR_1 = new StreamErrorDetails(
+    final StreamErrorOccurrence STREAM_3_ERROR_1 = new StreamErrorOccurrence(
             randomUUID(), ERROR_1_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_3_ID, 1L,
             new UtcClock().now(), "stack-trace",
@@ -105,7 +105,7 @@ public class StreamStatusReadRepositoryIT {
     @Spy
     private StreamErrorDetailsRowMapper streamErrorDetailsRowMapper;
     @InjectMocks
-    private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
+    private StreamErrorOccurrencePersistence streamErrorOccurrencePersistence;
 
     @Spy
     private NewStreamStatusRowMapper streamStatusRowMapper;
@@ -138,11 +138,11 @@ public class StreamStatusReadRepositoryIT {
         insertEntriesToStreamErrorHash(ERROR_1_HASH, ERROR_2_HASH, viewStoreDataSource);
 
         //errors only for streams 1-3
-        streamErrorDetailsPersistence.insert(STREAM_1_LISTENER_ERROR_1, viewStoreDataSource.getConnection());
-        streamErrorDetailsPersistence.insert(STREAM_1_INDEXER_ERROR_1, viewStoreDataSource.getConnection());
-        streamErrorDetailsPersistence.insert(STREAM_2_LISTENER_ERROR_1, viewStoreDataSource.getConnection());
-        streamErrorDetailsPersistence.insert(STREAM_2_INDEXER_ERROR_2, viewStoreDataSource.getConnection());
-        streamErrorDetailsPersistence.insert(STREAM_3_ERROR_1, viewStoreDataSource.getConnection());
+        streamErrorOccurrencePersistence.insert(STREAM_1_LISTENER_ERROR_1, viewStoreDataSource.getConnection());
+        streamErrorOccurrencePersistence.insert(STREAM_1_INDEXER_ERROR_1, viewStoreDataSource.getConnection());
+        streamErrorOccurrencePersistence.insert(STREAM_2_LISTENER_ERROR_1, viewStoreDataSource.getConnection());
+        streamErrorOccurrencePersistence.insert(STREAM_2_INDEXER_ERROR_2, viewStoreDataSource.getConnection());
+        streamErrorOccurrencePersistence.insert(STREAM_3_ERROR_1, viewStoreDataSource.getConnection());
 
         //stream_status updatedAt is changed by below calls, so results will be returned in the reverse order of below calls
         streamStatusErrorPersistence.markStreamAsErrored(STREAM_1_ID, STREAM_1_LISTENER_ERROR_1.id(), 1L, STREAM_1_LISTENER_ERROR_1.componentName(),
@@ -304,12 +304,12 @@ public class StreamStatusReadRepositoryIT {
     private void insertEntryToStreamError(final UUID stream1Id, final String error1Hash,
                                           final Long position, final DataSource dataSource,
                                           final String source, final String component) throws Exception {
-        final StreamErrorDetails streamErrorDetails = new StreamErrorDetails(
+        final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 randomUUID(), error1Hash, "some-exception-message", empty(),
                 "event-name", randomUUID(), stream1Id, position,
                 new UtcClock().now(), "stack-trace",
                 component, source
         );
-        streamErrorDetailsPersistence.insert(streamErrorDetails, dataSource.getConnection());
+        streamErrorOccurrencePersistence.insert(streamErrorOccurrence, dataSource.getConnection());
     }
 }

@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public class StreamErrorDetailsRowMapper {
 
-    public StreamErrorDetails mapRow(ResultSet resultSet) throws SQLException {
+    public StreamErrorOccurrence mapRow(ResultSet resultSet) throws SQLException {
         final UUID id = (UUID) resultSet.getObject("id");
         final String hash = resultSet.getString("hash");
         final String exceptionMessage = resultSet.getString("exception_message");
@@ -24,7 +24,7 @@ public class StreamErrorDetailsRowMapper {
         final String componentName = resultSet.getString("component");
         final String source = resultSet.getString("source");
 
-        return new StreamErrorDetails(
+        return new StreamErrorOccurrence(
                 id,
                 hash,
                 exceptionMessage,

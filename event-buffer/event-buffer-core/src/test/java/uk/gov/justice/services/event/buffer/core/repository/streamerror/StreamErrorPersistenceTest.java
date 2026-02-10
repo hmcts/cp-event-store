@@ -34,7 +34,7 @@ public class StreamErrorPersistenceTest {
     private StreamErrorHashPersistence streamErrorHashPersistence;
 
     @Mock
-    private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
+    private StreamErrorOccurrencePersistence streamErrorOccurrencePersistence;
 
     @InjectMocks
     private StreamErrorPersistence streamErrorPersistence;
@@ -42,19 +42,19 @@ public class StreamErrorPersistenceTest {
     @Test
     public void shouldInsertStreamErrorAndUpsertStreamErrorHash() throws Exception {
 
-        final StreamErrorDetails streamErrorDetails = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
         final StreamErrorHash streamErrorHash = mock(StreamErrorHash.class);
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetailsPersistence.insert(streamErrorDetails, connection)).thenReturn(1);
+        when(streamErrorOccurrencePersistence.insert(streamErrorOccurrence, connection)).thenReturn(1);
 
-        final boolean atLeastOneEventProcessed = streamErrorPersistence.save(new StreamError(streamErrorDetails, streamErrorHash), connection);
+        final boolean atLeastOneEventProcessed = streamErrorPersistence.save(new StreamError(streamErrorOccurrence, streamErrorHash), connection);
         assertThat(atLeastOneEventProcessed, is(true));
 
-        final InOrder inOrder = inOrder(streamErrorHashPersistence, streamErrorDetailsPersistence, connection);
+        final InOrder inOrder = inOrder(streamErrorHashPersistence, streamErrorOccurrencePersistence, connection);
 
         inOrder.verify(streamErrorHashPersistence).upsert(streamErrorHash, connection);
-        inOrder.verify(streamErrorDetailsPersistence).insert(streamErrorDetails, connection);
+        inOrder.verify(streamErrorOccurrencePersistence).insert(streamErrorOccurrence, connection);
 
         verify(connection, never()).close();
     }
@@ -62,19 +62,19 @@ public class StreamErrorPersistenceTest {
     @Test
     public void shouldReturnFalseIfInsertIntoStreamErrorDoesNotUpdateAnyRows() throws Exception {
 
-        final StreamErrorDetails streamErrorDetails = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
         final StreamErrorHash streamErrorHash = mock(StreamErrorHash.class);
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetailsPersistence.insert(streamErrorDetails, connection)).thenReturn(0);
+        when(streamErrorOccurrencePersistence.insert(streamErrorOccurrence, connection)).thenReturn(0);
 
-        final boolean atLeastOneEventProcessed = streamErrorPersistence.save(new StreamError(streamErrorDetails, streamErrorHash), connection);
+        final boolean atLeastOneEventProcessed = streamErrorPersistence.save(new StreamError(streamErrorOccurrence, streamErrorHash), connection);
         assertThat(atLeastOneEventProcessed, is(false));
 
-        final InOrder inOrder = inOrder(streamErrorHashPersistence, streamErrorDetailsPersistence, connection);
+        final InOrder inOrder = inOrder(streamErrorHashPersistence, streamErrorOccurrencePersistence, connection);
 
         inOrder.verify(streamErrorHashPersistence).upsert(streamErrorHash, connection);
-        inOrder.verify(streamErrorDetailsPersistence).insert(streamErrorDetails, connection);
+        inOrder.verify(streamErrorOccurrencePersistence).insert(streamErrorOccurrence, connection);
 
         verify(connection, never()).close();
     }
@@ -84,21 +84,21 @@ public class StreamErrorPersistenceTest {
 
         final SQLException sqlException = new SQLException("Shiver me timbers");
 
-        final StreamErrorDetails streamErrorDetails = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
         final StreamErrorHash streamErrorHash = mock(StreamErrorHash.class);
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetails.toString()).thenReturn(StreamErrorDetails.class.getSimpleName());
+        when(streamErrorOccurrence.toString()).thenReturn(StreamErrorOccurrence.class.getSimpleName());
         when(streamErrorHash.toString()).thenReturn(StreamErrorHash.class.getSimpleName());
 
-        doThrow(sqlException).when(streamErrorDetailsPersistence).insert(streamErrorDetails, connection);
+        doThrow(sqlException).when(streamErrorOccurrencePersistence).insert(streamErrorOccurrence, connection);
 
         final StreamErrorHandlingException streamErrorHandlingException = assertThrows(
                 StreamErrorHandlingException.class,
-                () -> streamErrorPersistence.save(new StreamError(streamErrorDetails, streamErrorHash) , connection));
+                () -> streamErrorPersistence.save(new StreamError(streamErrorOccurrence, streamErrorHash) , connection));
 
         assertThat(streamErrorHandlingException.getCause(), is(sqlException));
-        assertThat(streamErrorHandlingException.getMessage(), is("Failed to save StreamError: StreamError[streamErrorDetails=StreamErrorDetails, streamErrorHash=StreamErrorHash]"));
+        assertThat(streamErrorHandlingException.getMessage(), is("Failed to save StreamError: StreamError[streamErrorOccurrence=StreamErrorOccurrence, streamErrorHash=StreamErrorHash]"));
 
         verify(connection, never()).close();
     }
@@ -110,17 +110,17 @@ public class StreamErrorPersistenceTest {
         final String hash = "some-hash";
 
         final Connection connection = mock(Connection.class);
-        final StreamErrorDetails streamErrorDetails = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
         final StreamErrorHash streamErrorHash = mock(StreamErrorHash.class);
 
-        when(streamErrorDetailsPersistence.findById(streamErrorId, connection)).thenReturn(of(streamErrorDetails));
-        when(streamErrorDetails.hash()).thenReturn(hash);
-        when(streamErrorHashPersistence.findByHash(streamErrorDetails.hash(), connection)).thenReturn(of(streamErrorHash));
+        when(streamErrorOccurrencePersistence.findById(streamErrorId, connection)).thenReturn(of(streamErrorOccurrence));
+        when(streamErrorOccurrence.hash()).thenReturn(hash);
+        when(streamErrorHashPersistence.findByHash(streamErrorOccurrence.hash(), connection)).thenReturn(of(streamErrorHash));
 
         final Optional<StreamError> streamErrorOptional = streamErrorPersistence.findByErrorId(streamErrorId, connection);
 
         assertThat(streamErrorOptional.isPresent(), is(true));
-        assertThat(streamErrorOptional.get().streamErrorDetails(), is(streamErrorDetails));
+        assertThat(streamErrorOptional.get().streamErrorOccurrence(), is(streamErrorOccurrence));
         assertThat(streamErrorOptional.get().streamErrorHash(), is(streamErrorHash));
 
         verify(connection, never()).close();
@@ -133,11 +133,11 @@ public class StreamErrorPersistenceTest {
         final String hash = "some-hash";
 
         final Connection connection = mock(Connection.class);
-        final StreamErrorDetails streamErrorDetails = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
 
-        when(streamErrorDetailsPersistence.findById(streamErrorId, connection)).thenReturn(of(streamErrorDetails));
-        when(streamErrorDetails.hash()).thenReturn(hash);
-        when(streamErrorHashPersistence.findByHash(streamErrorDetails.hash(), connection)).thenReturn(empty());
+        when(streamErrorOccurrencePersistence.findById(streamErrorId, connection)).thenReturn(of(streamErrorOccurrence));
+        when(streamErrorOccurrence.hash()).thenReturn(hash);
+        when(streamErrorHashPersistence.findByHash(streamErrorOccurrence.hash(), connection)).thenReturn(empty());
 
         assertThat(streamErrorPersistence.findByErrorId(streamErrorId, connection), is(empty()));
 
@@ -150,7 +150,7 @@ public class StreamErrorPersistenceTest {
         final UUID streamErrorId = randomUUID();
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetailsPersistence.findById(streamErrorId, connection)).thenReturn(empty());
+        when(streamErrorOccurrencePersistence.findById(streamErrorId, connection)).thenReturn(empty());
 
         assertThat(streamErrorPersistence.findByErrorId(streamErrorId, connection), is(empty()));
 
@@ -165,11 +165,11 @@ public class StreamErrorPersistenceTest {
         final String hash = "some-hash";
 
         final Connection connection = mock(Connection.class);
-        final StreamErrorDetails streamErrorDetails = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
 
-        when(streamErrorDetailsPersistence.findById(streamErrorId, connection)).thenReturn(of(streamErrorDetails));
-        when(streamErrorDetails.hash()).thenReturn(hash);
-        when(streamErrorHashPersistence.findByHash(streamErrorDetails.hash(), connection)).thenThrow(sqlException);
+        when(streamErrorOccurrencePersistence.findById(streamErrorId, connection)).thenReturn(of(streamErrorOccurrence));
+        when(streamErrorOccurrence.hash()).thenReturn(hash);
+        when(streamErrorHashPersistence.findByHash(streamErrorOccurrence.hash(), connection)).thenThrow(sqlException);
 
         final StreamErrorHandlingException streamErrorHandlingException = assertThrows(
                 StreamErrorHandlingException.class,
@@ -192,8 +192,8 @@ public class StreamErrorPersistenceTest {
 
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetailsPersistence.deleteErrorAndGetHash(streamErrorId, connection)).thenReturn(hash);
-        when(streamErrorDetailsPersistence.noErrorsExistFor(hash, connection)).thenReturn(false);
+        when(streamErrorOccurrencePersistence.deleteErrorAndGetHash(streamErrorId, connection)).thenReturn(hash);
+        when(streamErrorOccurrencePersistence.noErrorsExistFor(hash, connection)).thenReturn(false);
 
         streamErrorPersistence.removeErrorForStream(streamErrorId, streamId, source, componentName, connection);
 
@@ -212,8 +212,8 @@ public class StreamErrorPersistenceTest {
 
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetailsPersistence.deleteErrorAndGetHash(streamErrorId, connection)).thenReturn(hash);
-        when(streamErrorDetailsPersistence.noErrorsExistFor(hash, connection)).thenReturn(true);
+        when(streamErrorOccurrencePersistence.deleteErrorAndGetHash(streamErrorId, connection)).thenReturn(hash);
+        when(streamErrorOccurrencePersistence.noErrorsExistFor(hash, connection)).thenReturn(true);
 
         streamErrorPersistence.removeErrorForStream(streamErrorId, streamId, source, componentName, connection);
 
@@ -234,8 +234,8 @@ public class StreamErrorPersistenceTest {
 
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetailsPersistence.deleteErrorAndGetHash(streamErrorId, connection)).thenReturn(hash);
-        doThrow(sqlException).when(streamErrorDetailsPersistence).noErrorsExistFor(hash, connection);
+        when(streamErrorOccurrencePersistence.deleteErrorAndGetHash(streamErrorId, connection)).thenReturn(hash);
+        doThrow(sqlException).when(streamErrorOccurrencePersistence).noErrorsExistFor(hash, connection);
 
         final StreamErrorHandlingException streamErrorHandlingException = assertThrows(
                 StreamErrorHandlingException.class,
@@ -253,23 +253,23 @@ public class StreamErrorPersistenceTest {
         final UUID streamId = randomUUID();
         final String hash = "some-hash";
 
-        final StreamErrorDetails streamErrorDetails_1 = mock(StreamErrorDetails.class);
-        final StreamErrorDetails streamErrorDetails_2 = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence_1 = mock(StreamErrorOccurrence.class);
+        final StreamErrorOccurrence streamErrorOccurrence_2 = mock(StreamErrorOccurrence.class);
         final StreamErrorHash streamErrorHash = mock(StreamErrorHash.class);
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetailsPersistence.findByStreamId(streamId, connection)).thenReturn(List.of(streamErrorDetails_1, streamErrorDetails_2));
+        when(streamErrorOccurrencePersistence.findByStreamId(streamId, connection)).thenReturn(List.of(streamErrorOccurrence_1, streamErrorOccurrence_2));
 
-        when(streamErrorDetails_1.hash()).thenReturn(hash);
-        when(streamErrorDetails_2.hash()).thenReturn(hash);
+        when(streamErrorOccurrence_1.hash()).thenReturn(hash);
+        when(streamErrorOccurrence_2.hash()).thenReturn(hash);
         when(streamErrorHashPersistence.findByHash(hash, connection)).thenReturn(of(streamErrorHash));
 
         final List<StreamError> streamErrors = streamErrorPersistence.findAllByStreamId(streamId, connection);
 
         assertThat(streamErrors.size(), is(2));
-        assertThat(streamErrors.get(0).streamErrorDetails(), is(streamErrorDetails_1));
+        assertThat(streamErrors.get(0).streamErrorOccurrence(), is(streamErrorOccurrence_1));
         assertThat(streamErrors.get(0).streamErrorHash(), is(streamErrorHash));
-        assertThat(streamErrors.get(1).streamErrorDetails(), is(streamErrorDetails_2));
+        assertThat(streamErrors.get(1).streamErrorOccurrence(), is(streamErrorOccurrence_2));
         assertThat(streamErrors.get(1).streamErrorHash(), is(streamErrorHash));
         verify(connection, never()).close();
     }
@@ -282,7 +282,7 @@ public class StreamErrorPersistenceTest {
 
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetailsPersistence.findByStreamId(streamId, connection)).thenThrow(sqlException);
+        when(streamErrorOccurrencePersistence.findByStreamId(streamId, connection)).thenThrow(sqlException);
 
         final StreamErrorHandlingException streamErrorHandlingException = assertThrows(
                 StreamErrorHandlingException.class,
@@ -300,12 +300,12 @@ public class StreamErrorPersistenceTest {
         final UUID streamId = randomUUID();
         final String hash = "some-hash";
 
-        final StreamErrorDetails streamErrorDetails_1 = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence_1 = mock(StreamErrorOccurrence.class);
         final Connection connection = mock(Connection.class);
 
-        when(streamErrorDetailsPersistence.findByStreamId(streamId, connection)).thenReturn(List.of(streamErrorDetails_1));
+        when(streamErrorOccurrencePersistence.findByStreamId(streamId, connection)).thenReturn(List.of(streamErrorOccurrence_1));
 
-        when(streamErrorDetails_1.hash()).thenReturn(hash);
+        when(streamErrorOccurrence_1.hash()).thenReturn(hash);
         when(streamErrorHashPersistence.findByHash(hash, connection)).thenReturn(empty());
 
         final StreamErrorHandlingException streamErrorHandlingException = assertThrows(

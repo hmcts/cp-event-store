@@ -4,8 +4,7 @@ import static javax.transaction.Transactional.TxType.MANDATORY;
 import static javax.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamStatusErrorPersistence;
@@ -37,21 +36,18 @@ public class StreamErrorRepository {
     private StreamStatusErrorPersistence streamStatusErrorPersistence;
 
     @Inject
-    private StreamErrorDetailsPersistence streamErrorDetailsPersistence;
-
-    @Inject
     private Logger logger;
 
     @Transactional(MANDATORY)
     public void markStreamAsErrored(final StreamError streamError, final Long expectedPositionInStream) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
-            final StreamErrorDetails streamErrorDetails = streamError.streamErrorDetails();
-            final UUID streamId = streamErrorDetails.streamId();
-            final UUID streamErrorId = streamErrorDetails.id();
-            final Long errorPositionInStream = streamErrorDetails.positionInStream();
-            final String componentName = streamErrorDetails.componentName();
-            final String source = streamErrorDetails.source();
+            final StreamErrorOccurrence streamErrorOccurrence = streamError.streamErrorOccurrence();
+            final UUID streamId = streamErrorOccurrence.streamId();
+            final UUID streamErrorId = streamErrorOccurrence.id();
+            final Long errorPositionInStream = streamErrorOccurrence.positionInStream();
+            final String componentName = streamErrorOccurrence.componentName();
+            final String source = streamErrorOccurrence.source();
 
             final Long currentPositionInStream = streamStatusErrorPersistence.lockStreamForUpdate(streamId, source, componentName, connection);
 
@@ -67,7 +63,7 @@ public class StreamErrorRepository {
                 }
             } else
                 logger.warn("Stream Status Position is changed after last Error, cannot update stream status." +
-                            " streamId: {} component: {} source: {} expected positio.n: {} actual position: {}",
+                            " streamId: {} component: {} source: {} expected position: {} actual position: {}",
                         streamId, componentName, source, expectedPositionInStream, currentPositionInStream);
 
         } catch (final SQLException e) {
@@ -75,7 +71,7 @@ public class StreamErrorRepository {
         }
     }
 
-    private static boolean checkStreamStatusPositionNotChanged(final Long expectedPositionInStream, final Long currentPositionInStream) {
+    private boolean checkStreamStatusPositionNotChanged(final Long expectedPositionInStream, final Long currentPositionInStream) {
         return Objects.equals(expectedPositionInStream, currentPositionInStream);
     }
 
@@ -116,10 +112,10 @@ public class StreamErrorRepository {
             final int numberOfChange = streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection);
             if (numberOfChange == 0) {
                 logger.warn("Existing stream status entry is changed by another transaction errorId: {} streamId: {} source {} component {}",
-                        newStreamError.streamErrorDetails().id(),
-                        newStreamError.streamErrorDetails().streamId(),
-                        newStreamError.streamErrorDetails().source(),
-                        newStreamError.streamErrorDetails().componentName());
+                        newStreamError.streamErrorOccurrence().id(),
+                        newStreamError.streamErrorOccurrence().streamId(),
+                        newStreamError.streamErrorOccurrence().source(),
+                        newStreamError.streamErrorOccurrence().componentName());
             }
         } catch (final SQLException e) {
             throw new StreamErrorHandlingException("Failed to get connection to view-store", e);

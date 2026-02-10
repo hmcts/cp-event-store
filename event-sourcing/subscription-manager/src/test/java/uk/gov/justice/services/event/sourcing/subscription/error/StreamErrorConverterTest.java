@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingStreamIdException;
 import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalculator;
@@ -95,19 +95,19 @@ public class StreamErrorConverterTest {
         when(earliestStackTraceElement.getLineNumber()).thenReturn(lineNumber);
 
         final StreamError streamError = streamErrorConverter.asStreamError(exceptionDetails, event, componentName);
-        final StreamErrorDetails streamErrorDetails = streamError.streamErrorDetails();
+        final StreamErrorOccurrence streamErrorOccurrence = streamError.streamErrorOccurrence();
 
-        assertThat(streamErrorDetails.id(), is(instanceOf(UUID.class)));
-        assertThat(streamErrorDetails.eventName(), is(eventName));
-        assertThat(streamErrorDetails.eventId(), is(eventId));
-        assertThat(streamErrorDetails.streamId(), is(streamId));
-        assertThat(streamErrorDetails.positionInStream(), is(positionInStream));
-        assertThat(streamErrorDetails.dateCreated(), is(dateCreated));
-        assertThat(streamErrorDetails.exceptionMessage(), is("Something went wrogn"));
-        assertThat(streamErrorDetails.causeMessage(), is(of("Ooops")));
-        assertThat(streamErrorDetails.fullStackTrace(), is(fullStackTrace));
-        assertThat(streamErrorDetails.componentName(), is(componentName));
-        assertThat(streamErrorDetails.source(), is(source));
+        assertThat(streamErrorOccurrence.id(), is(instanceOf(UUID.class)));
+        assertThat(streamErrorOccurrence.eventName(), is(eventName));
+        assertThat(streamErrorOccurrence.eventId(), is(eventId));
+        assertThat(streamErrorOccurrence.streamId(), is(streamId));
+        assertThat(streamErrorOccurrence.positionInStream(), is(positionInStream));
+        assertThat(streamErrorOccurrence.dateCreated(), is(dateCreated));
+        assertThat(streamErrorOccurrence.exceptionMessage(), is("Something went wrogn"));
+        assertThat(streamErrorOccurrence.causeMessage(), is(of("Ooops")));
+        assertThat(streamErrorOccurrence.fullStackTrace(), is(fullStackTrace));
+        assertThat(streamErrorOccurrence.componentName(), is(componentName));
+        assertThat(streamErrorOccurrence.source(), is(source));
 
         final StreamErrorHash streamErrorHash = streamError.streamErrorHash();
 

@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamUpdateContext;
 import uk.gov.justice.services.event.sourcing.subscription.manager.TransactionHandler;
@@ -101,12 +101,12 @@ public class StreamErrorStatusHandlerTest {
         final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
         final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
         final StreamError streamError = mock(StreamError.class);
-        final StreamErrorDetails streamErrorDetails = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
 
         when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
         when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(streamError);
-        when(streamError.streamErrorDetails()).thenReturn(streamErrorDetails);
-        when(streamErrorDetails.streamId()).thenReturn(streamId);
+        when(streamError.streamErrorOccurrence()).thenReturn(streamErrorOccurrence);
+        when(streamErrorOccurrence.streamId()).thenReturn(streamId);
         when(streamUpdateContext.currentStreamPosition()).thenReturn(currentStreamPosition);
         doThrow(streamErrorHandlingException).when(streamErrorRepository).markStreamAsErrored(streamError, currentStreamPosition);
 
@@ -130,8 +130,8 @@ public class StreamErrorStatusHandlerTest {
         final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
         final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
         final StreamError newStreamError = mock(StreamError.class);
-        final StreamErrorDetails newStreamErrorDetails = mock(StreamErrorDetails.class);
-        final StreamErrorDetails existingStreamErrorDetails = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence newStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
+        final StreamErrorOccurrence existingStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
         final String source = "SOME_SOURCE";
         final String component = "SOME_COMPONENT";
         final String errorHash = "same-error-hash";
@@ -139,10 +139,10 @@ public class StreamErrorStatusHandlerTest {
 
         when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
         when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(newStreamError);
-        when(newStreamError.streamErrorDetails()).thenReturn(newStreamErrorDetails);
-        when(newStreamErrorDetails.hash()).thenReturn(errorHash);
-        when(streamUpdateContext.existingStreamErrorDetails()).thenReturn(Optional.of(existingStreamErrorDetails));
-        when(existingStreamErrorDetails.hash()).thenReturn(errorHash);
+        when(newStreamError.streamErrorOccurrence()).thenReturn(newStreamErrorOccurrence);
+        when(newStreamErrorOccurrence.hash()).thenReturn(errorHash);
+        when(streamUpdateContext.existingStreamErrorDetails()).thenReturn(Optional.of(existingStreamErrorOccurrence));
+        when(existingStreamErrorOccurrence.hash()).thenReturn(errorHash);
         when(streamUpdateContext.lastUpdatedAt()).thenReturn(lastUpdatedAt);
 
         streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, source, component, streamUpdateContext);
@@ -195,12 +195,12 @@ public class StreamErrorStatusHandlerTest {
         final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
         final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
         final StreamError streamError = mock(StreamError.class);
-        final StreamErrorDetails streamErrorDetails = mock(StreamErrorDetails.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
 
         when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
         when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(streamError);
-        when(streamError.streamErrorDetails()).thenReturn(streamErrorDetails);
-        when(streamErrorDetails.streamId()).thenReturn(streamId);
+        when(streamError.streamErrorOccurrence()).thenReturn(streamErrorOccurrence);
+        when(streamErrorOccurrence.streamId()).thenReturn(streamId);
         doThrow(streamErrorHandlingException).when(streamErrorRepository).markStreamAsErrored(streamError, currentPosition);
 
         streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition);

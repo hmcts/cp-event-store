@@ -58,6 +58,12 @@ public class StreamEventProcessor {
     @Inject
     private MicrometerMetricsCounters micrometerMetricsCounters;
 
+    @Inject
+    private StreamEventLoggerMetadataAdder streamEventLoggerMetadataAdder;
+
+    @Inject
+    private StreamEventValidator streamEventValidator;
+
     @Transactional(value = NOT_SUPPORTED)
     public EventProcessingStatus processSingleEvent(final String source, final String component) {
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
@@ -75,7 +81,10 @@ public class StreamEventProcessor {
             final Metadata metadata = eventJsonEnvelope.metadata();
 
             try {
+                streamEventLoggerMetadataAdder.addRequestDataToMdc(eventJsonEnvelope, component);
                 final long eventPositionInStream = metadata.position().orElseThrow(() -> new MissingPositionInStreamException(format("No position found in event: name '%s', eventId '%s'", metadata.name(), metadata.id())));
+
+                streamEventValidator.validate(eventJsonEnvelope, source, component);
 
                 final InterceptorChainProcessor interceptorChainProcessor = interceptorChainProcessorProducer.produceLocalProcessor(component);
                 final InterceptorContext interceptorContext = interceptorContextProvider.getInterceptorContext(eventJsonEnvelope);
@@ -98,6 +107,8 @@ public class StreamEventProcessor {
                 micrometerMetricsCounters.incrementEventsFailedCount(source, component);
                 streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, component, streamCurrentPosition);
                 return EVENT_FOUND;
+            } finally {
+                streamEventLoggerMetadataAdder.clearMdc();
             }
         } else {
             commitWithFallBackToRollback();

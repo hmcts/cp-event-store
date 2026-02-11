@@ -8,11 +8,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 - EventDiscoveryBootstrapper should only create entries for event listener and indexers
 - bump parent-pom to 17.105.0-M1
 ### Added
-- New columns on stream_error table to allow for retry mechanism and backoff:
-  - `updated_at`
-  - `retry_count`
-  - `next_retry_time`
-
+- New stream_error_retry table in viewstore to allow for tracking how many times an event is retried before we give up
+  
 # [17.105.0-M7] - 2026-02-06
 ### Changed
 - Introduce concurrency to stream processing through JNDI value 'stream.processing.max.workers'

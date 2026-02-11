@@ -1,10 +1,31 @@
 package uk.gov.justice.services.event.buffer.core.repository.subscription;
 
+import static java.util.Optional.empty;
+import static java.util.UUID.randomUUID;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.when;
+import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.setField;
+
+import uk.gov.justice.services.common.util.UtcClock;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamStatusErrorPersistence;
+import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
+import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
+import uk.gov.justice.services.test.utils.persistence.TestJdbcDataSourceProvider;
+
 import java.sql.Connection;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.UUID;
+
 import javax.sql.DataSource;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,24 +34,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamStatusErrorPersistence;
-import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
-import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
-import uk.gov.justice.services.test.utils.persistence.TestJdbcDataSourceProvider;
-
-import static java.util.Optional.empty;
-import static java.util.UUID.randomUUID;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.when;
-import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.setField;
 
 @ExtendWith(MockitoExtension.class)
 public class NewStreamStatusRepositoryIT {

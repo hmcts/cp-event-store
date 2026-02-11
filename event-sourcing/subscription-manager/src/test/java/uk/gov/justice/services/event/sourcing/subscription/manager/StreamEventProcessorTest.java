@@ -76,6 +76,12 @@ public class StreamEventProcessorTest {
     @Mock
     private MicrometerMetricsCounters micrometerMetricsCounters;
 
+    @Mock
+    private StreamEventLoggerMetadataAdder streamEventLoggerMetadataAdder;
+
+    @Mock
+    private StreamEventValidator streamEventValidator;
+
     @InjectMocks
     private StreamEventProcessor streamEventProcessor;
 
@@ -115,6 +121,8 @@ public class StreamEventProcessorTest {
                 linkedEventSourceProvider,
                 linkedEventSource,
                 eventConverter,
+                streamEventLoggerMetadataAdder,
+                streamEventValidator,
                 interceptorChainProcessorProducer,
                 interceptorContextProvider,
                 interceptorChainProcessor,
@@ -128,6 +136,8 @@ public class StreamEventProcessorTest {
         inOrder.verify(linkedEventSourceProvider).getLinkedEventSource(source);
         inOrder.verify(linkedEventSource).findNextEventInTheStreamAfterPosition(streamId, currentPosition);
         inOrder.verify(eventConverter).envelopeOf(linkedEvent);
+        inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
+        inOrder.verify(streamEventValidator).validate(eventJsonEnvelope, source, component);
         inOrder.verify(interceptorChainProcessorProducer).produceLocalProcessor(component);
         inOrder.verify(interceptorContextProvider).getInterceptorContext(eventJsonEnvelope);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
@@ -135,6 +145,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
 
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
@@ -177,6 +188,8 @@ public class StreamEventProcessorTest {
                 linkedEventSourceProvider,
                 linkedEventSource,
                 eventConverter,
+                streamEventLoggerMetadataAdder,
+                streamEventValidator,
                 interceptorChainProcessorProducer,
                 interceptorContextProvider,
                 interceptorChainProcessor,
@@ -190,12 +203,15 @@ public class StreamEventProcessorTest {
         inOrder.verify(linkedEventSourceProvider).getLinkedEventSource(source);
         inOrder.verify(linkedEventSource).findNextEventInTheStreamAfterPosition(streamId, currentPosition);
         inOrder.verify(eventConverter).envelopeOf(linkedEvent);
+        inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
+        inOrder.verify(streamEventValidator).validate(eventJsonEnvelope, source, component);
         inOrder.verify(interceptorChainProcessorProducer).produceLocalProcessor(component);
         inOrder.verify(interceptorContextProvider).getInterceptorContext(eventJsonEnvelope);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
 
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
         verify(transactionHandler, never()).rollback(userTransaction);
@@ -377,6 +393,8 @@ public class StreamEventProcessorTest {
                 linkedEventSourceProvider,
                 linkedEventSource,
                 eventConverter,
+                streamEventLoggerMetadataAdder,
+                streamEventValidator,
                 interceptorChainProcessorProducer,
                 interceptorContextProvider,
                 interceptorChainProcessor,
@@ -390,12 +408,15 @@ public class StreamEventProcessorTest {
         inOrder.verify(linkedEventSourceProvider).getLinkedEventSource(source);
         inOrder.verify(linkedEventSource).findNextEventInTheStreamAfterPosition(streamId, currentPosition);
         inOrder.verify(eventConverter).envelopeOf(linkedEvent);
+        inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
+        inOrder.verify(streamEventValidator).validate(eventJsonEnvelope, source, component);
         inOrder.verify(interceptorChainProcessorProducer).produceLocalProcessor(component);
         inOrder.verify(interceptorContextProvider).getInterceptorContext(eventJsonEnvelope);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
         inOrder.verify(transactionHandler).rollback(userTransaction);
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
         inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, component, currentPosition);
+        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
 
         verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
@@ -434,6 +455,7 @@ public class StreamEventProcessorTest {
                 linkedEventSourceProvider,
                 linkedEventSource,
                 eventConverter,
+                streamEventLoggerMetadataAdder,
                 transactionHandler,
                 micrometerMetricsCounters,
                 streamErrorStatusHandler);
@@ -444,13 +466,16 @@ public class StreamEventProcessorTest {
         inOrder.verify(linkedEventSourceProvider).getLinkedEventSource(source);
         inOrder.verify(linkedEventSource).findNextEventInTheStreamAfterPosition(streamId, currentPosition);
         inOrder.verify(eventConverter).envelopeOf(linkedEvent);
+        inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
         inOrder.verify(transactionHandler).rollback(userTransaction);
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
         inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(currentPosition));
+        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
 
         verify(interceptorChainProcessorProducer, never()).produceLocalProcessor(any());
         verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
+        verifyNoInteractions(streamEventValidator);
     }
 
     @Test

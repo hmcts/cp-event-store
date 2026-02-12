@@ -10,6 +10,8 @@ import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import javax.ejb.ConcurrencyManagement;
+import javax.ejb.ConcurrencyManagementType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.ejb.Timeout;
@@ -22,6 +24,7 @@ import javax.inject.Inject;
 @Singleton
 @Startup
 @TransactionAttribute(NEVER)
+@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 public class EventDiscoveryTimerBean {
 
     @Resource

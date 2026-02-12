@@ -6,6 +6,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import javax.ejb.ConcurrencyManagement;
+import javax.ejb.ConcurrencyManagementType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.ejb.Timeout;
@@ -23,6 +25,7 @@ import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 @Singleton
 @Startup
+@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 public class StreamProcessingTimerBean {
 
     private final ConcurrentHashMap<WorkerTimerInfo, Lock> workerLocks = new ConcurrentHashMap<>();

@@ -9,6 +9,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 - bump parent-pom to 17.105.0-M1
 ### Added
 - New stream_error_retry table in viewstore to allow for tracking how many times an event is retried before we give up
+- New JNDI values to control number of retry attempts and backoff when processing events of a stream:
+  - `event.publishing.stream.processing.max.event.retries`
+  - `event.publishing.stream.processing.retry.delay.milliseconds`
+  - `event.publishing.stream.processing.retry.delay.multiplier`
+
   
 # [17.105.0-M7] - 2026-02-06
 ### Changed

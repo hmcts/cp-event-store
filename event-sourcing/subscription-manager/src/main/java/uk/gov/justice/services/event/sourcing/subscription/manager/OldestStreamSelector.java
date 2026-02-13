@@ -12,8 +12,11 @@ public class OldestStreamSelector implements StreamSelector {
     @Inject
     NewStreamStatusRepository streamStatusRepository;
 
+    @Inject
+    StreamRetryConfiguration streamRetryConfiguration;
+
     @Override
     public Optional<LockedStreamStatus> findStreamToProcess(final String source, final String component) {
-        return streamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, component);
+        return streamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, component, streamRetryConfiguration.getMaxRetries());
     }
 }

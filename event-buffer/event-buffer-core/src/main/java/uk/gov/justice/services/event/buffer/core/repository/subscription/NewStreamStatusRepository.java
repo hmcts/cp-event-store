@@ -12,9 +12,8 @@ import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
-
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
 import static java.lang.String.format;
@@ -59,17 +58,27 @@ public class NewStreamStatusRepository {
             """;
     private static final String SELECT_OLDEST_HEALTHY_STREAM_SQL = """
                 SELECT
-                    stream_id,
-                    position,
-                    latest_known_position
-                FROM stream_status
-                WHERE source = ?
-                  AND component = ?
-                  AND stream_error_id IS NULL
-                  AND position < latest_known_position
-                ORDER BY updated_at ASC
+                    ss.stream_id,
+                    ss.position,
+                    ss.latest_known_position
+                FROM stream_status ss
+                LEFT JOIN stream_error_retry ser
+                    ON ser.stream_id = ss.stream_id
+                    AND ser.source = ss.source
+                    AND ser.component = ss.component
+                WHERE ss.source = ?
+                  AND ss.component = ?
+                  AND ss.position < ss.latest_known_position
+                  AND (
+                    ss.stream_error_id IS NULL
+                    OR (
+                      ser.retry_count < ?
+                      AND ser.next_retry_time <= now()
+                    )
+                  )
+                ORDER BY ss.updated_at ASC
                 LIMIT 1
-                FOR NO KEY UPDATE SKIP LOCKED
+                FOR NO KEY UPDATE OF ss SKIP LOCKED
             """;
     private static final String FIND_ALL_SQL = """
                 SELECT
@@ -196,13 +205,14 @@ public class NewStreamStatusRepository {
         }
     }
 
-    public Optional<LockedStreamStatus> findOldestStreamToProcessByAcquiringLock(final String source, final String component) {
+    public Optional<LockedStreamStatus> findOldestStreamToProcessByAcquiringLock(final String source, final String component, final Integer maxRetries) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_OLDEST_HEALTHY_STREAM_SQL)) {
 
             preparedStatement.setString(1, source);
             preparedStatement.setString(2, component);
+            preparedStatement.setInt(3, maxRetries);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
 

@@ -7,6 +7,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### Changed
 - EventDiscoveryBootstrapper should only create entries for event listener and indexers
 - bump parent-pom to 17.105.0-M1
+- Find next stream to process after considering remaining retry count
 ### Added
 - New stream_error_retry table in viewstore to allow for tracking how many times an event is retried before we give up
 - New JNDI values to control number of retry attempts and backoff when processing events of a stream:
@@ -26,7 +27,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### Added
 - Add concurrency to stream processing
 ### Changed
-- Rename streamprocessing timer config class
+- Rename 
+- streamprocessing timer config class
 ### Fixed
 - Fix for NewSubscriptionManager enable/disable pull mechanism
 

@@ -20,7 +20,7 @@ import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
-import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
+import static javax.transaction.Transactional.TxType.MANDATORY;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 @SuppressWarnings("java:S1192")
@@ -328,7 +328,7 @@ public class NewStreamStatusRepository {
         }
     }
 
-    @Transactional(REQUIRES_NEW)
+    @Transactional(MANDATORY)
     public void upsertLatestKnownPosition(final UUID streamId, final String source, final String componentName, final long latestKnownPosition,
                                           final ZonedDateTime discoveredAt) {
 

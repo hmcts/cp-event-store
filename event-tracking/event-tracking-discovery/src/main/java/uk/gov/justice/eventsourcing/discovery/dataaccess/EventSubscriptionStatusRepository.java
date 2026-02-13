@@ -4,6 +4,7 @@ import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
+import static javax.transaction.Transactional.TxType.MANDATORY;
 import static javax.transaction.Transactional.TxType.REQUIRED;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
@@ -59,7 +60,7 @@ public class EventSubscriptionStatusRepository {
     @Inject
     private UtcClock clock;
 
-    @Transactional(REQUIRED)
+    @Transactional(MANDATORY)
     public void save(final EventSubscriptionStatus eventSubscriptionStatus) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
@@ -77,7 +78,7 @@ public class EventSubscriptionStatusRepository {
         }
     }
 
-    @Transactional(REQUIRED)
+    @Transactional(MANDATORY)
     public Optional<EventSubscriptionStatus> findBy(final String source, final String component) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();

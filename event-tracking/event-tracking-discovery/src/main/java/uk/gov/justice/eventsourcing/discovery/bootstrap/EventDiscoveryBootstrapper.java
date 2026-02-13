@@ -1,6 +1,7 @@
 package uk.gov.justice.eventsourcing.discovery.bootstrap;
 
 import static java.lang.String.format;
+import static javax.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
@@ -10,6 +11,7 @@ import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 import java.util.Optional;
 
 import javax.inject.Inject;
+import javax.transaction.Transactional;
 
 import org.slf4j.Logger;
 
@@ -24,6 +26,7 @@ public class EventDiscoveryBootstrapper {
     @Inject
     private Logger logger;
 
+    @Transactional(REQUIRED)
     public void bootstrapEventDiscovery() {
 
         subscriptionSourceComponentFinder
@@ -37,7 +40,7 @@ public class EventDiscoveryBootstrapper {
         final String component = sourceComponentPair.component();
         final Optional<EventSubscriptionStatus> eventSubscriptionStatus = eventSubscriptionStatusRepository.findBy(source, component);
 
-        if(eventSubscriptionStatus.isEmpty()) {
+        if (eventSubscriptionStatus.isEmpty()) {
             eventSubscriptionStatusRepository.insertEmptyRowFor(
                     source,
                     component);

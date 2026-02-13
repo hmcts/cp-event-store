@@ -4,6 +4,7 @@ import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static javax.transaction.Transactional.TxType.REQUIRED;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.fromSqlTimestamp;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
@@ -21,6 +22,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 import javax.sql.DataSource;
+import javax.transaction.Transactional;
 
 public class StreamErrorRetryRepository {
 
@@ -51,6 +53,20 @@ public class StreamErrorRetryRepository {
             AND component = ?
             """;
 
+    static final String GET_RETRY_COUNT_SQL = """
+            SELECT retry_count FROM stream_error_retry
+            WHERE stream_id = ?
+            AND source = ?
+            AND component = ?
+            """;
+
+    static final String DELETE_STREAM_ERROR_RETRY_SQL = """
+            DELETE FROM stream_error_retry
+            WHERE stream_id = ?
+            AND source = ?
+            AND component = ?
+            """;
+
     static final String FIND_ALL_SQL = """
             SELECT
                 stream_id,
@@ -62,9 +78,12 @@ public class StreamErrorRetryRepository {
             FROM stream_error_retry
             """;
 
+    private static final long ZERO_RETRIES = 0L;
+
     @Inject
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
 
+    @Transactional(REQUIRED)
     public void upsert(final StreamErrorRetry streamErrorRetry) {
         final DataSource viewStoreDataSource = viewStoreJdbcDataSourceProvider.getDataSource();
 
@@ -85,6 +104,7 @@ public class StreamErrorRetryRepository {
         }
     }
 
+    @Transactional(REQUIRED)
     public Optional<StreamErrorRetry> findBy(
             final UUID streamId,
             final String source,
@@ -126,6 +146,60 @@ public class StreamErrorRetryRepository {
         return empty();
     }
 
+    @Transactional(REQUIRED)
+    public Long getRetryCount(final UUID streamId, final String source, final String component) {
+
+        final DataSource viewStoreDataSource = viewStoreJdbcDataSourceProvider.getDataSource();
+
+        try (final Connection connection = viewStoreDataSource.getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(GET_RETRY_COUNT_SQL)) {
+
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setString(2, source);
+            preparedStatement.setString(3, component);
+
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getObject("retry_count", Long.class);
+                }
+
+                return ZERO_RETRIES;
+            }
+
+        } catch (final SQLException e) {
+            throw new StreamErrorPersistenceException(
+                    format("Failed to lookup retryCount for streamId: '%s', source: '%s', component: '%s'",
+                            streamId,
+                            source,
+                            component),
+                    e);
+        }
+    }
+
+    @Transactional(REQUIRED)
+    public void remove(final UUID streamId, final String source, final String component) {
+        final DataSource viewStoreDataSource = viewStoreJdbcDataSourceProvider.getDataSource();
+
+        try(final Connection connection = viewStoreDataSource.getConnection();
+            final PreparedStatement preparedStatement = connection.prepareStatement(DELETE_STREAM_ERROR_RETRY_SQL)) {
+
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setString(2, source);
+            preparedStatement.setString(3, component);
+
+            preparedStatement.executeUpdate();
+
+        } catch (final SQLException e) {
+            throw new StreamErrorPersistenceException(
+                    format("Failed to delete stream_error_retry. streamId: '%s', source: '%s', component: '%s'",
+                            streamId,
+                            source,
+                            component),
+                    e);
+        }
+    }
+
+    @Transactional(REQUIRED)
     public List<StreamErrorRetry> findAll() {
 
         final DataSource viewStoreDataSource = viewStoreJdbcDataSourceProvider.getDataSource();

@@ -4,8 +4,8 @@ import static javax.transaction.Transactional.TxType.MANDATORY;
 import static javax.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamStatusErrorPersistence;
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;

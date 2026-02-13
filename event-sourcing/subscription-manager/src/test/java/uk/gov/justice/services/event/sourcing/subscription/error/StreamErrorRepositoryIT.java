@@ -12,12 +12,12 @@ import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetailsRowMapper;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashRowMapper;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamStatusErrorPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;

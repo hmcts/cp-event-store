@@ -1,16 +1,20 @@
 package uk.gov.justice.services.event.sourcing.subscription.error;
 
-import java.util.Objects;
-import java.util.Optional;
-import javax.inject.Inject;
-import javax.transaction.UserTransaction;
-import org.slf4j.Logger;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamUpdateContext;
 import uk.gov.justice.services.event.sourcing.subscription.manager.TransactionHandler;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
+
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.inject.Inject;
+import javax.transaction.UserTransaction;
+
+import org.slf4j.Logger;
 
 public class StreamErrorStatusHandler {
 
@@ -24,13 +28,16 @@ public class StreamErrorStatusHandler {
     private StreamErrorRepository streamErrorRepository;
 
     @Inject
+    private StreamRetryStatusManager streamRetryStatusManager;
+
+    @Inject
+    private MicrometerMetricsCounters micrometerMetricsCounters;
+
+    @Inject
     private UserTransaction userTransaction;
 
     @Inject
     private TransactionHandler transactionHandler;
-
-    @Inject
-    private MicrometerMetricsCounters micrometerMetricsCounters;
 
     @Inject
     private Logger logger;
@@ -41,6 +48,7 @@ public class StreamErrorStatusHandler {
 
         final ExceptionDetails exceptionDetails = exceptionDetailsRetriever.getExceptionDetailsFrom(exception);
         final StreamError newStreamError = streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component);
+        final UUID streamId = newStreamError.streamErrorOccurrence().streamId();
         try {
             transactionHandler.begin(userTransaction);
 
@@ -50,25 +58,30 @@ public class StreamErrorStatusHandler {
                 streamErrorRepository.markStreamAsErrored(newStreamError, streamUpdateContext.currentStreamPosition());
             }
 
+            streamRetryStatusManager.updateStreamRetryCountAndNextRetryTime(streamId, source, component);
+
             transactionHandler.commit(userTransaction);
         } catch (final Exception e) {
             transactionHandler.rollback(userTransaction);
-            logger.error("Failed to mark stream as errored: streamId '%s'".formatted(newStreamError.streamErrorOccurrence().streamId()), e);
+            logger.error("Failed to mark stream as errored: streamId '%s'".formatted(streamId), e);
         }
     }
 
     public void onStreamProcessingFailure(final JsonEnvelope jsonEnvelope, final Throwable exception, final String component, final long currentPosition) {
         final ExceptionDetails exceptionDetails = exceptionDetailsRetriever.getExceptionDetailsFrom(exception);
         final StreamError newStreamError = streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component);
+        final UUID streamId = newStreamError.streamErrorOccurrence().streamId();
+        final String source = newStreamError.streamErrorOccurrence().source();
         try {
             transactionHandler.begin(userTransaction);
 
             streamErrorRepository.markStreamAsErrored(newStreamError, currentPosition);
+            streamRetryStatusManager.updateStreamRetryCountAndNextRetryTime(streamId, source, component);
 
             transactionHandler.commit(userTransaction);
         } catch (final Exception e) {
             transactionHandler.rollback(userTransaction);
-            logger.error("Failed to mark stream as errored: streamId '%s'".formatted(newStreamError.streamErrorOccurrence().streamId()), e);
+            logger.error("Failed to mark stream as errored: streamId '%s'".formatted(streamId), e);
         }
     }
 

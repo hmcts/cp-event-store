@@ -16,6 +16,7 @@ import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStre
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
+import uk.gov.justice.services.event.sourcing.subscription.error.StreamRetryStatusManager;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -82,6 +83,9 @@ public class StreamEventProcessorTest {
     @Mock
     private StreamEventValidator streamEventValidator;
 
+    @Mock
+    private StreamRetryStatusManager streamRetryStatusManager;
+
     @InjectMocks
     private StreamEventProcessor streamEventProcessor;
 
@@ -128,7 +132,8 @@ public class StreamEventProcessorTest {
                 interceptorChainProcessor,
                 newStreamStatusRepository,
                 micrometerMetricsCounters,
-                transactionHandler);
+                transactionHandler,
+                streamRetryStatusManager);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
         inOrder.verify(transactionHandler).begin(userTransaction);
@@ -144,6 +149,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
+        inOrder.verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
         inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
 

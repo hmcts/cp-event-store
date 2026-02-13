@@ -1,31 +1,10 @@
 package uk.gov.justice.services.event.buffer.core.repository.subscription;
 
-import static java.util.Optional.empty;
-import static java.util.UUID.randomUUID;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.when;
-import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.setField;
-
-import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
-import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamStatusErrorPersistence;
-import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
-import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
-import uk.gov.justice.services.test.utils.persistence.TestJdbcDataSourceProvider;
-
 import java.sql.Connection;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.UUID;
-
 import javax.sql.DataSource;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,11 +13,32 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.services.common.util.UtcClock;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHash;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHashPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrencePersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetry;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamStatusErrorPersistence;
+import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
+import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
+import uk.gov.justice.services.test.utils.persistence.TestJdbcDataSourceProvider;
+
+import static java.util.Optional.empty;
+import static java.util.UUID.randomUUID;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.when;
+import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.setField;
 
 @ExtendWith(MockitoExtension.class)
 public class NewStreamStatusRepositoryIT {
 
     private static final String FRAMEWORK = "framework";
+    private static final Integer MAX_RETRIES = 10;
 
     @Mock
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
@@ -52,6 +52,7 @@ public class NewStreamStatusRepositoryIT {
     @BeforeEach
     public void cleanDatabase() {
         final DatabaseCleaner databaseCleaner = new DatabaseCleaner();
+        databaseCleaner.cleanViewStoreTables(FRAMEWORK, "stream_error_retry");
         databaseCleaner.cleanViewStoreErrorTables(FRAMEWORK);
         databaseCleaner.cleanStreamStatusTable(FRAMEWORK);
     }
@@ -384,7 +385,7 @@ public class NewStreamStatusRepositoryIT {
             newStreamStatusRepository.upsertLatestKnownPosition(streamId1, otherSource, componentName, latestKnownPosition3, updatedAt1);
             newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, otherComponentName, latestKnownPosition4, updatedAt2);
 
-            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName);
+            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
 
             assertThat(result.isPresent(), is(true));
             assertThat(result.get().streamId(), is(streamId1));
@@ -401,13 +402,13 @@ public class NewStreamStatusRepositoryIT {
             final String source = "listing";
             final String componentName = "event-listener";
 
-            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName);
+            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
 
             assertThat(result, is(empty()));
         }
 
         @Test
-        public void shouldExcludeStreamsWithErrors() throws Exception {
+        public void shouldExcludeErroredStreamWhenNoRetryRecordExists() throws Exception {
 
             final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
             when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
@@ -449,8 +450,180 @@ public class NewStreamStatusRepositoryIT {
                 streamStatusErrorPersistence.markStreamAsErrored(streamId1, streamErrorId, positionInStream, componentName, source, connection);
             }
 
+            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
 
-            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName);
+            assertThat(result.isPresent(), is(true));
+            assertThat(result.get().streamId(), is(streamId2));
+        }
+
+        @Test
+        public void shouldIncludeErroredStreamWhenRetryCountBelowMaxAndNextRetryTimeInPast() throws Exception {
+
+            final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
+            when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+            final StreamErrorRetryRepository streamErrorRetryRepository = new StreamErrorRetryRepository();
+            setField(streamErrorRetryRepository, "viewStoreJdbcDataSourceProvider", viewStoreJdbcDataSourceProvider);
+
+            final UUID streamId1 = randomUUID();
+            final UUID streamErrorId = randomUUID();
+            final String source = "listing";
+            final String componentName = "event-listener";
+            final boolean upToDate = false;
+            final ZonedDateTime updatedAt = new UtcClock().now();
+            final long position = 5L;
+            final long latestKnownPosition = 10L;
+
+            assertThat(newStreamStatusRepository.insertIfNotExists(
+                    streamId1,
+                    source,
+                    componentName,
+                    updatedAt.minusDays(2),
+                    upToDate), is(1));
+
+            newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, updatedAt);
+
+            final UUID eventId = randomUUID();
+            final Long positionInStream = 23L;
+            final StreamError streamErrorOnStream1 = aStreamError(streamErrorId, eventId, streamId1, positionInStream, componentName, source);
+            try (final Connection connection = viewStoreDataSource.getConnection()) {
+                streamErrorPersistence.save(streamErrorOnStream1, connection);
+                streamStatusErrorPersistence.markStreamAsErrored(streamId1, streamErrorId, positionInStream, componentName, source, connection);
+            }
+
+            streamErrorRetryRepository.upsert(new StreamErrorRetry(
+                    streamId1,
+                    source,
+                    componentName,
+                    new UtcClock().now(),
+                    1L,
+                    new UtcClock().now().minusHours(2)
+            ));
+
+            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
+
+            assertThat(result.isPresent(), is(true));
+            assertThat(result.get().streamId(), is(streamId1));
+        }
+
+        @Test
+        public void shouldExcludeErroredStreamWhenRetryCountExceedsMax() throws Exception {
+
+            final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
+            when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+            final StreamErrorRetryRepository streamErrorRetryRepository = new StreamErrorRetryRepository();
+            setField(streamErrorRetryRepository, "viewStoreJdbcDataSourceProvider", viewStoreJdbcDataSourceProvider);
+
+            final UUID streamId1 = randomUUID();
+            final UUID streamId2 = randomUUID();
+            final UUID streamErrorId = randomUUID();
+            final String source = "listing";
+            final String componentName = "event-listener";
+            final boolean upToDate = false;
+            final ZonedDateTime updatedAt = new UtcClock().now();
+            final long position = 5L;
+            final long latestKnownPosition = 10L;
+
+            assertThat(newStreamStatusRepository.insertIfNotExists(
+                    streamId1,
+                    source,
+                    componentName,
+                    updatedAt.minusDays(2),
+                    upToDate), is(1));
+
+            assertThat(newStreamStatusRepository.insertIfNotExists(
+                    streamId2,
+                    source,
+                    componentName,
+                    updatedAt.minusDays(1),
+                    upToDate), is(1));
+
+            newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position);
+            newStreamStatusRepository.updateCurrentPosition(streamId2, source, componentName, position);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, updatedAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition, updatedAt);
+
+            final UUID eventId = randomUUID();
+            final Long positionInStream = 23L;
+            final StreamError streamErrorOnStream1 = aStreamError(streamErrorId, eventId, streamId1, positionInStream, componentName, source);
+            try (final Connection connection = viewStoreDataSource.getConnection()) {
+                streamErrorPersistence.save(streamErrorOnStream1, connection);
+                streamStatusErrorPersistence.markStreamAsErrored(streamId1, streamErrorId, positionInStream, componentName, source, connection);
+            }
+
+            streamErrorRetryRepository.upsert(new StreamErrorRetry(
+                    streamId1,
+                    source,
+                    componentName,
+                    new UtcClock().now(),
+                    10L,
+                    new UtcClock().now().minusHours(2)
+            ));
+
+            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
+
+            assertThat(result.isPresent(), is(true));
+            assertThat(result.get().streamId(), is(streamId2));
+        }
+
+        @Test
+        public void shouldExcludeErroredStreamWhenNextRetryTimeInFuture() throws Exception {
+
+            final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
+            when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+            final StreamErrorRetryRepository streamErrorRetryRepository = new StreamErrorRetryRepository();
+            setField(streamErrorRetryRepository, "viewStoreJdbcDataSourceProvider", viewStoreJdbcDataSourceProvider);
+
+            final UUID streamId1 = randomUUID();
+            final UUID streamId2 = randomUUID();
+            final UUID streamErrorId = randomUUID();
+            final String source = "listing";
+            final String componentName = "event-listener";
+            final boolean upToDate = false;
+            final ZonedDateTime updatedAt = new UtcClock().now();
+            final long position = 5L;
+            final long latestKnownPosition = 10L;
+
+            assertThat(newStreamStatusRepository.insertIfNotExists(
+                    streamId1,
+                    source,
+                    componentName,
+                    updatedAt.minusDays(2),
+                    upToDate), is(1));
+
+            assertThat(newStreamStatusRepository.insertIfNotExists(
+                    streamId2,
+                    source,
+                    componentName,
+                    updatedAt.minusDays(1),
+                    upToDate), is(1));
+
+            newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position);
+            newStreamStatusRepository.updateCurrentPosition(streamId2, source, componentName, position);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, updatedAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition, updatedAt);
+
+            final UUID eventId = randomUUID();
+            final Long positionInStream = 23L;
+            final StreamError streamErrorOnStream1 = aStreamError(streamErrorId, eventId, streamId1, positionInStream, componentName, source);
+            try (final Connection connection = viewStoreDataSource.getConnection()) {
+                streamErrorPersistence.save(streamErrorOnStream1, connection);
+                streamStatusErrorPersistence.markStreamAsErrored(streamId1, streamErrorId, positionInStream, componentName, source, connection);
+            }
+
+            streamErrorRetryRepository.upsert(new StreamErrorRetry(
+                    streamId1,
+                    source,
+                    componentName,
+                    new UtcClock().now(),
+                    1L,
+                    new UtcClock().now().plusHours(2)
+            ));
+
+            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
 
             assertThat(result.isPresent(), is(true));
             assertThat(result.get().streamId(), is(streamId2));
@@ -531,7 +704,7 @@ public class NewStreamStatusRepositoryIT {
             newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition1, updatedAt);
             newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition2, updatedAt);
 
-            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName);
+            final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
 
             assertThat(result.isPresent(), is(true));
             assertThat(result.get().streamId(), is(streamId2));

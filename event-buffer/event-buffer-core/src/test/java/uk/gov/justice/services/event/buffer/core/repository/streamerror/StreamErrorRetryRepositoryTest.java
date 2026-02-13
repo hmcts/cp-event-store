@@ -9,13 +9,16 @@ import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
+import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.DELETE_STREAM_ERROR_RETRY_SQL;
 import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.FIND_ALL_SQL;
 import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.FIND_BY_SQL;
+import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.GET_RETRY_COUNT_SQL;
 import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.UPSERT_SQL;
 
 import uk.gov.justice.services.common.util.UtcClock;
@@ -298,9 +301,171 @@ public class StreamErrorRetryRepositoryTest {
 
         assertThat(streamErrorPersistenceException.getCause(), is(sqlException));
         assertThat(streamErrorPersistenceException.getMessage(), is("Failed to find all StreamErrorRetries"));
-        
+
         verify(resultSet).close();
         verify(preparedStatement).close();
         verify(connection).close();
+    }
+
+    @Test
+    public void shouldGetRetryCount() throws Exception {
+
+        final long retryCount = 23L;
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(GET_RETRY_COUNT_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(true);
+        when(resultSet.getObject("retry_count", Long.class)).thenReturn(retryCount);
+
+        assertThat(streamErrorRetryRepository.getRetryCount(streamId, source, component), is(retryCount));
+
+        final InOrder inOrder = inOrder(preparedStatement, resultSet, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, streamId);
+        inOrder.verify(preparedStatement).setString(2, source);
+        inOrder.verify(preparedStatement).setString(3, component);
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(resultSet).close();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldReturnRetryCountOfZeroIfNoStreamRetryFound() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(GET_RETRY_COUNT_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(false);
+
+        assertThat(streamErrorRetryRepository.getRetryCount(streamId, source, component), is(0L));
+
+        final InOrder inOrder = inOrder(preparedStatement, resultSet, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, streamId);
+        inOrder.verify(preparedStatement).setString(2, source);
+        inOrder.verify(preparedStatement).setString(3, component);
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(resultSet).close();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldThrowStreamErrorPersistenceExceptionIfGettingRetryCountFails() throws Exception {
+
+        final SQLException sqlException = new SQLException("Oh no");
+
+        final UUID streamId = fromString("6330759f-4c72-4804-bbf5-20ee024de079");
+        final String source = "some-source";
+        final String component = "some-component";
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(GET_RETRY_COUNT_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenThrow(sqlException);
+
+        final StreamErrorPersistenceException streamErrorPersistenceException = assertThrows(
+                StreamErrorPersistenceException.class,
+                () -> streamErrorRetryRepository.getRetryCount(streamId, source, component));
+
+        assertThat(streamErrorPersistenceException.getCause(), is(sqlException));
+        assertThat(streamErrorPersistenceException.getMessage(), is("Failed to lookup retryCount for streamId: '6330759f-4c72-4804-bbf5-20ee024de079', source: 'some-source', component: 'some-component'"));
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, streamId);
+        inOrder.verify(preparedStatement).setString(2, source);
+        inOrder.verify(preparedStatement).setString(3, component);
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldRemoveStreamErrorRetry() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(DELETE_STREAM_ERROR_RETRY_SQL)).thenReturn(preparedStatement);
+
+        streamErrorRetryRepository.remove(streamId, source, component);
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, streamId);
+        inOrder.verify(preparedStatement).setString(2, source);
+        inOrder.verify(preparedStatement).setString(3, component);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldThrowStreamErrorPersistenceExceptionIfRemovingStreamErrorRetryFails() throws Exception {
+
+        final SQLException sqlException = new SQLException("Oh no");
+
+        final UUID streamId = fromString("d3604229-07b1-4362-9f77-e447053e1b3b");
+        final String source = "some-source";
+        final String component = "some-component";
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(DELETE_STREAM_ERROR_RETRY_SQL)).thenReturn(preparedStatement);
+        doThrow(sqlException).when(preparedStatement).executeUpdate();
+
+        final StreamErrorPersistenceException streamErrorPersistenceException = assertThrows(
+                StreamErrorPersistenceException.class,
+                () -> streamErrorRetryRepository.remove(streamId, source, component));
+
+        assertThat(streamErrorPersistenceException.getCause(), is(sqlException));
+        assertThat(streamErrorPersistenceException.getMessage(), is("Failed to delete stream_error_retry. streamId: 'd3604229-07b1-4362-9f77-e447053e1b3b', source: 'some-source', component: 'some-component'"));
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setObject(1, streamId);
+        inOrder.verify(preparedStatement).setString(2, source);
+        inOrder.verify(preparedStatement).setString(3, component);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
     }
 }

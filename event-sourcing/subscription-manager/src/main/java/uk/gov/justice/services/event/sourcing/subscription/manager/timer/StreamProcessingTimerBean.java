@@ -1,9 +1,17 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
+import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
+import uk.gov.justice.services.event.sourcing.subscription.manager.StreamProcessingSubscriptionManager;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
+import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculatorFactory;
+import uk.gov.justice.subscription.SourceComponentPair;
+import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
+
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.ejb.ConcurrencyManagement;
@@ -15,13 +23,8 @@ import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 import javax.ejb.TimerService;
 import javax.inject.Inject;
+
 import org.slf4j.Logger;
-import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
-import uk.gov.justice.services.event.sourcing.subscription.manager.StreamProcessingSubscriptionManager;
-import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
-import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculatorFactory;
-import uk.gov.justice.subscription.SourceComponentPair;
-import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 @Singleton
 @Startup

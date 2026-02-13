@@ -2,6 +2,7 @@ package uk.gov.justice.services.event.buffer.core.repository.streamerror;
 
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
@@ -14,6 +15,7 @@ import uk.gov.justice.services.test.utils.persistence.TestJdbcDataSourceProvider
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.sql.DataSource;
 
@@ -135,5 +137,94 @@ public class StreamErrorRetryRepositoryIT {
 
         assertThat(streamErrorRetry.isPresent(), is(true));
         assertThat(streamErrorRetry.get(), is(streamErrorRetry_2));
+    }
+
+    @Test
+    public void shouldGetStreamRetryCount() throws Exception {
+
+        final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(CONTEXT_NAME);
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+        assertThat(streamErrorRetryRepository.findAll(), is(emptyList()));
+
+        final long retryCount = 1L;
+
+        final StreamErrorRetry streamErrorRetry = new StreamErrorRetry(
+                randomUUID(),
+                "some-source",
+                "some-component",
+                new UtcClock().now(),
+                retryCount,
+                new UtcClock().now().plusMinutes(20)
+        );
+
+        streamErrorRetryRepository.upsert(streamErrorRetry);
+
+        assertThat(streamErrorRetryRepository.getRetryCount(
+                streamErrorRetry.streamId(),
+                streamErrorRetry.source(),
+                streamErrorRetry.component()), is(retryCount));
+    }
+
+    @Test
+    public void shouldReturnRetryCountOfZeroIfStreamNotFoundInStreamErrorRetryTable() throws Exception {
+
+        final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(CONTEXT_NAME);
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+        assertThat(streamErrorRetryRepository.findAll(), is(emptyList()));
+
+        final UUID unknownStreamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+
+        assertThat(streamErrorRetryRepository.getRetryCount(unknownStreamId, source, component), is(0L));
+    }
+
+    @Test
+    public void shouldRemoveStreamErrorRetry() throws Exception {
+        final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(CONTEXT_NAME);
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+        assertThat(streamErrorRetryRepository.findAll(), is(emptyList()));
+
+        final StreamErrorRetry streamErrorRetry_1 = new StreamErrorRetry(
+                randomUUID(),
+                "some-source_1",
+                "some-component_1",
+                new UtcClock().now(),
+                1L,
+                new UtcClock().now().plusMinutes(20)
+        );
+
+        final StreamErrorRetry streamErrorRetry_2 = new StreamErrorRetry(
+                randomUUID(),
+                "some-source_2",
+                "some-component_2",
+                new UtcClock().now(),
+                2L,
+                new UtcClock().now().plusMinutes(20)
+        );
+        final StreamErrorRetry streamErrorRetry_3 = new StreamErrorRetry(
+                randomUUID(),
+                "some-source_3",
+                "some-component_3",
+                new UtcClock().now(),
+                3L,
+                new UtcClock().now().plusMinutes(20)
+        );
+
+        streamErrorRetryRepository.upsert(streamErrorRetry_1);
+        streamErrorRetryRepository.upsert(streamErrorRetry_2);
+        streamErrorRetryRepository.upsert(streamErrorRetry_3);
+
+        assertThat(streamErrorRetryRepository.findAll().size(), is(3));
+
+        streamErrorRetryRepository.remove(streamErrorRetry_2.streamId(), streamErrorRetry_2.source(), streamErrorRetry_2.component());
+
+        final List<StreamErrorRetry> streamErrorRetries = streamErrorRetryRepository.findAll();
+
+        assertThat(streamErrorRetries.size(), is(2));
+        assertThat(streamErrorRetries, hasItems(streamErrorRetry_1, streamErrorRetry_3));
     }
 }

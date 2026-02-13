@@ -1,10 +1,10 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
-import java.util.Optional;
-import java.util.UUID;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
-import javax.transaction.UserTransaction;
+import static java.lang.String.format;
+import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
+import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_FOUND;
+import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_NOT_FOUND;
+
 import uk.gov.justice.services.core.interceptor.InterceptorChainProcessor;
 import uk.gov.justice.services.core.interceptor.InterceptorChainProcessorProducer;
 import uk.gov.justice.services.core.interceptor.InterceptorContext;
@@ -13,6 +13,7 @@ import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStre
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
+import uk.gov.justice.services.event.sourcing.subscription.error.StreamRetryStatusManager;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
@@ -21,10 +22,12 @@ import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
-import static java.lang.String.format;
-import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
-import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_FOUND;
-import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_NOT_FOUND;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+import javax.transaction.UserTransaction;
 
 public class StreamEventProcessor {
 
@@ -64,6 +67,9 @@ public class StreamEventProcessor {
     @Inject
     private StreamEventValidator streamEventValidator;
 
+    @Inject
+    private StreamRetryStatusManager streamRetryStatusManager;
+
     @Transactional(value = NOT_SUPPORTED)
     public EventProcessingStatus processSingleEvent(final String source, final String component) {
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
@@ -97,6 +103,7 @@ public class StreamEventProcessor {
                 }
 
                 micrometerMetricsCounters.incrementEventsSucceededCount(source, component);
+                streamRetryStatusManager.removeStreamRetryStatus(streamId, source, component);
 
                 transactionHandler.commit(userTransaction);
 

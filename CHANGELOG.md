@@ -7,6 +7,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### Changed
 - EventDiscoveryBootstrapper should only create entries for event listener and indexers
 - bump parent-pom to 17.105.0-M1
+- 'stream_error_retry' table is incremented on every failed event.
+- Delete retry from 'stream_error_retry' table if event is successful 
 - Find next stream to process after considering remaining retry count
 ### Added
 - New stream_error_retry table in viewstore to allow for tracking how many times an event is retried before we give up

@@ -1,12 +1,12 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
-import javax.inject.Inject;
-import javax.transaction.Transactional;
-
 import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
 import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_FOUND;
 
 import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
+
+import javax.inject.Inject;
+import javax.transaction.Transactional;
 
 public class StreamProcessingSubscriptionManager {
 

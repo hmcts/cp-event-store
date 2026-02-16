@@ -14,6 +14,7 @@ import uk.gov.justice.services.core.interceptor.InterceptorContext;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
+import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamRetryStatusManager;
@@ -86,6 +87,9 @@ public class StreamEventProcessorTest {
     @Mock
     private StreamRetryStatusManager streamRetryStatusManager;
 
+    @Mock
+    private StreamErrorRepository streamErrorRepository;
+
     @InjectMocks
     private StreamEventProcessor streamEventProcessor;
 
@@ -99,7 +103,7 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 6L;
         final long eventPositionInStream = 6L;
 
-        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition);
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
         final LinkedEvent linkedEvent = mock(LinkedEvent.class);
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
@@ -156,6 +160,7 @@ public class StreamEventProcessorTest {
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
         verifyNoInteractions(streamErrorStatusHandler);
+        verifyNoInteractions(streamErrorRepository);
     }
 
     @Test
@@ -168,7 +173,7 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 10L;
         final long eventPositionInStream = 6L;
 
-        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition);
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
         final LinkedEvent linkedEvent = mock(LinkedEvent.class);
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
@@ -223,6 +228,7 @@ public class StreamEventProcessorTest {
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
         verifyNoInteractions(streamErrorStatusHandler);
+        verifyNoInteractions(streamErrorRepository);
     }
 
     @Test
@@ -324,7 +330,7 @@ public class StreamEventProcessorTest {
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
 
-        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition);
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
 
         when(streamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
@@ -372,7 +378,7 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 10L;
         final long eventPositionInStream = 6L;
 
-        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition);
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
         final LinkedEvent linkedEvent = mock(LinkedEvent.class);
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
@@ -439,7 +445,7 @@ public class StreamEventProcessorTest {
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
 
-        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition);
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
         final LinkedEvent linkedEvent = mock(LinkedEvent.class);
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
@@ -494,7 +500,7 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 10L;
         final RuntimeException eventFindingException = new RuntimeException("Event finding failed");
 
-        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition);
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
 
         when(streamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
@@ -541,7 +547,7 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 10L;
         final RuntimeException converterException = new RuntimeException("Converter failed");
 
-        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition);
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
         final LinkedEvent linkedEvent = mock(LinkedEvent.class);
 
@@ -579,6 +585,78 @@ public class StreamEventProcessorTest {
         verify(interceptorChainProcessorProducer, never()).produceLocalProcessor(any());
         verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
+        verifyNoInteractions(streamErrorStatusHandler);
+    }
+
+    @Test
+    public void shouldMarkStreamAsFixedWhenStreamErrorIdPresentAndProcessingSucceeds() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final UUID streamErrorId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final long currentPosition = 5L;
+        final long latestKnownPosition = 6L;
+        final long eventPositionInStream = 6L;
+
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, of(streamErrorId));
+        final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
+        final LinkedEvent linkedEvent = mock(LinkedEvent.class);
+        final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
+        final Metadata metadata = mock(Metadata.class);
+        final InterceptorContext interceptorContext = mock(InterceptorContext.class);
+        final InterceptorChainProcessor interceptorChainProcessor = mock(InterceptorChainProcessor.class);
+
+        when(streamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(linkedEventSourceProvider.getLinkedEventSource(source)).thenReturn(linkedEventSource);
+        when(linkedEventSource.findNextEventInTheStreamAfterPosition(streamId, currentPosition)).thenReturn(of(linkedEvent));
+        when(eventConverter.envelopeOf(linkedEvent)).thenReturn(eventJsonEnvelope);
+        when(eventJsonEnvelope.metadata()).thenReturn(metadata);
+        when(metadata.position()).thenReturn(of(eventPositionInStream));
+        when(interceptorChainProcessorProducer.produceLocalProcessor(component)).thenReturn(interceptorChainProcessor);
+        when(interceptorContextProvider.getInterceptorContext(eventJsonEnvelope)).thenReturn(interceptorContext);
+
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
+
+        final InOrder inOrder = inOrder(
+                micrometerMetricsCounters,
+                transactionHandler,
+                streamSelector,
+                linkedEventSourceProvider,
+                linkedEventSource,
+                eventConverter,
+                streamEventLoggerMetadataAdder,
+                streamEventValidator,
+                interceptorChainProcessorProducer,
+                interceptorContextProvider,
+                interceptorChainProcessor,
+                newStreamStatusRepository,
+                micrometerMetricsCounters,
+                transactionHandler,
+                streamRetryStatusManager,
+                streamErrorRepository);
+
+        inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
+        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(streamSelector).findStreamToProcess(source, component);
+        inOrder.verify(linkedEventSourceProvider).getLinkedEventSource(source);
+        inOrder.verify(linkedEventSource).findNextEventInTheStreamAfterPosition(streamId, currentPosition);
+        inOrder.verify(eventConverter).envelopeOf(linkedEvent);
+        inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
+        inOrder.verify(streamEventValidator).validate(eventJsonEnvelope, source, component);
+        inOrder.verify(interceptorChainProcessorProducer).produceLocalProcessor(component);
+        inOrder.verify(interceptorContextProvider).getInterceptorContext(eventJsonEnvelope);
+        inOrder.verify(interceptorChainProcessor).process(interceptorContext);
+        inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
+        inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
+        inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
+        inOrder.verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
+        inOrder.verify(streamErrorRepository).markStreamAsFixed(streamErrorId, streamId, source, component);
+        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
+
+        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
         verifyNoInteractions(streamErrorStatusHandler);
     }
 }

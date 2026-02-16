@@ -187,30 +187,31 @@ public class StreamErrorRepositoryIT {
     }
 
     @Test
-    public void shouldUpdateStreamStatusWhenMarkingSameErrorHappened() throws Exception {
+    public void shouldUpdateStreamErrorOccurredAtWhenMarkingSameErrorHappened() throws Exception {
 
         final long streamErrorPosition = 234L;
         final long currentStreamPosition = 233L;
         final StreamError streamError = aStreamError(streamErrorPosition);
         final UUID streamId = streamError.streamErrorOccurrence().streamId();
+        final UUID streamErrorId = streamError.streamErrorOccurrence().id();
         final String source = streamError.streamErrorOccurrence().source();
         final String componentName = streamError.streamErrorOccurrence().componentName();
-        final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis() - 1000); // 1 second ago
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
 
         insertStreamStatus(streamId, currentStreamPosition, source, componentName, viewStoreDataSource.getConnection());
         streamErrorRepository.markStreamAsErrored(streamError, currentStreamPosition);
 
-        updateStreamStatusTimestamp(streamId, source, componentName, lastUpdatedAt);
+        final Optional<Timestamp> occurredAtBefore = getStreamErrorOccurredAt(streamErrorId);
+        assertThat(occurredAtBefore.isPresent(), is(true));
 
         // run
-        streamErrorRepository.markSameErrorHappened(streamError, currentStreamPosition, lastUpdatedAt);
+        streamErrorRepository.markSameErrorHappened(streamErrorId, streamId, source, componentName);
 
         // Verify
-        final Optional<Timestamp> updatedTimestamp = getStreamStatusUpdatedAt(streamId, source, componentName);
-        assertThat(updatedTimestamp.isPresent(), is(true));
-        assertThat(updatedTimestamp.get().after(lastUpdatedAt), is(true));
+        final Optional<Timestamp> occurredAtAfter = getStreamErrorOccurredAt(streamErrorId);
+        assertThat(occurredAtAfter.isPresent(), is(true));
+        assertThat(occurredAtAfter.get().after(occurredAtBefore.get()) || occurredAtAfter.get().equals(occurredAtBefore.get()), is(true));
     }
 
     private Optional<StreamStatusErrorDetails> findErrorInStreamStatusTable(final UUID streamErrorId) throws SQLException {
@@ -264,6 +265,7 @@ public class StreamErrorRepositoryIT {
         final String componentName = "some-component";
         final String source = "some-source";
 
+        final UtcClock utcClock = new UtcClock();
         return new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
@@ -273,10 +275,11 @@ public class StreamErrorRepositoryIT {
                 randomUUID(),
                 streamId,
                 streamErrorPosition,
-                new UtcClock().now(),
+                utcClock.now(),
                 "stack-trace",
                 componentName,
-                source
+                source,
+                utcClock.now()
         );
     }
 
@@ -313,7 +316,7 @@ public class StreamErrorRepositoryIT {
                                 position,
                                 source,
                                 component, 
-                                updated_at
+                                discovered_at
                             ) VALUES (?, ?, ?, ?, ?)
                 """)) {
 
@@ -327,51 +330,22 @@ public class StreamErrorRepositoryIT {
         }
     }
 
-    private void updateStreamStatusTimestamp(
-            final UUID streamId,
-            final String source,
-            final String componentName,
-            final Timestamp timestamp) throws SQLException {
+    private Optional<Timestamp> getStreamErrorOccurredAt(final UUID streamErrorId) throws SQLException {
 
         final String sql = """
-                UPDATE stream_status 
-                SET updated_at = ? 
-                WHERE stream_id = ? AND source = ? AND component = ?
+                SELECT occurred_at
+                FROM stream_error
+                WHERE id = ?
                 """;
 
         try (final Connection connection = viewStoreDataSource.getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-            preparedStatement.setTimestamp(1, timestamp);
-            preparedStatement.setObject(2, streamId);
-            preparedStatement.setString(3, source);
-            preparedStatement.setString(4, componentName);
-
-            preparedStatement.executeUpdate();
-        }
-    }
-
-    private Optional<Timestamp> getStreamStatusUpdatedAt(
-            final UUID streamId,
-            final String source,
-            final String componentName) throws SQLException {
-
-        final String sql = """
-                SELECT updated_at 
-                FROM stream_status 
-                WHERE stream_id = ? AND source = ? AND component = ?
-                """;
-
-        try (final Connection connection = viewStoreDataSource.getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-
-            preparedStatement.setObject(1, streamId);
-            preparedStatement.setString(2, source);
-            preparedStatement.setString(3, componentName);
+            preparedStatement.setObject(1, streamErrorId);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    return of(resultSet.getTimestamp("updated_at"));
+                    return of(resultSet.getTimestamp("occurred_at"));
                 }
             }
         }

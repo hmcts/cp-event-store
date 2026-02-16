@@ -80,7 +80,8 @@ public class StreamErrorConverter {
                 dateCreated,
                 fullStackTrace,
                 componentName,
-                source
+                source,
+                dateCreated
         );
 
         return new StreamError(streamErrorOccurrence, streamErrorHash);

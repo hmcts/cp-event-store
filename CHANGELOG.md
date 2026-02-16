@@ -8,8 +8,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 - EventDiscoveryBootstrapper should only create entries for event listener and indexers
 - bump parent-pom to 17.105.0-M1
 - 'stream_error_retry' table is incremented on every failed event.
-- Delete retry from 'stream_error_retry' table if event is successful 
+- Delete retry from 'stream_error_retry' table if event is successful
 - Find next stream to process after considering remaining retry count
+- Rename stream_status column 'updated_at' to 'discovered_at'
+- Move 'occurred_at' column from stream_error_retry to stream_error table
+- markSameErrorHappened now updates stream_error.occurred_at instead of stream_status.updated_at
 ### Added
 - New stream_error_retry table in viewstore to allow for tracking how many times an event is retried before we give up
 - New JNDI values to control number of retry attempts and backoff when processing events of a stream:

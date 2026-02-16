@@ -68,7 +68,7 @@ public class NewStreamStatusRepositoryIT {
         final String source = "some-source";
         final String componentName = "some-component-name";
         final boolean upToDate = false;
-        final ZonedDateTime updatedAt = new UtcClock().now().minusDays(2);
+        final ZonedDateTime discoveredAt = new UtcClock().now().minusDays(2);
 
         assertThat(newStreamStatusRepository.findAll().isEmpty(), is(true));
 
@@ -76,7 +76,7 @@ public class NewStreamStatusRepositoryIT {
                 streamId,
                 source,
                 componentName,
-                updatedAt,
+                discoveredAt,
                 upToDate), is(1));
 
         assertThat(newStreamStatusRepository.findAll().size(), is(1));
@@ -89,18 +89,18 @@ public class NewStreamStatusRepositoryIT {
         assertThat(streamStatus.get().source(), is(source));
         assertThat(streamStatus.get().component(), is(componentName));
         assertThat(streamStatus.get().streamErrorId(), is(empty()));
-        assertThat(streamStatus.get().updatedAt(), is(updatedAt));
+        assertThat(streamStatus.get().discoveredAt(), is(discoveredAt));
         assertThat(streamStatus.get().latestKnownPosition(), is(0L));
         assertThat(streamStatus.get().isUpToDate(), is(upToDate));
 
-        final ZonedDateTime newUpdatedAt = new UtcClock().now();
+        final ZonedDateTime newDiscoveredAt = new UtcClock().now();
         final boolean newIsUpToDate = true;
 
         final int rowsUpdated = newStreamStatusRepository.insertIfNotExists(
                 streamId,
                 source,
                 componentName,
-                newUpdatedAt,
+                newDiscoveredAt,
                 newIsUpToDate
         );
 
@@ -116,7 +116,7 @@ public class NewStreamStatusRepositoryIT {
         assertThat(idempotentStreamStatus.get().source(), is(source));
         assertThat(idempotentStreamStatus.get().component(), is(componentName));
         assertThat(idempotentStreamStatus.get().streamErrorId(), is(empty()));
-        assertThat(idempotentStreamStatus.get().updatedAt(), is(updatedAt));
+        assertThat(idempotentStreamStatus.get().discoveredAt(), is(discoveredAt));
         assertThat(idempotentStreamStatus.get().latestKnownPosition(), is(0L));
         assertThat(idempotentStreamStatus.get().isUpToDate(), is(upToDate));
     }
@@ -133,13 +133,13 @@ public class NewStreamStatusRepositoryIT {
         final String componentName = "some-component-name";
         final boolean upToDate = false;
         final long incomingEventPosition = 23L;
-        final ZonedDateTime updatedAt = new UtcClock().now().minusDays(2);
+        final ZonedDateTime discoveredAt = new UtcClock().now().minusDays(2);
 
         final int rowsUpdated = newStreamStatusRepository.insertIfNotExists(
                 streamId,
                 source,
                 componentName,
-                updatedAt,
+                discoveredAt,
                 upToDate
         );
 
@@ -168,7 +168,7 @@ public class NewStreamStatusRepositoryIT {
         final String source = "some-source";
         final String componentName = "some-component-name";
         final boolean upToDate = false;
-        final ZonedDateTime updatedAt = new UtcClock().now();
+        final ZonedDateTime discoveredAt = new UtcClock().now();
         final long newPosition = 23L;
 
         assertThat(newStreamStatusRepository.findAll().isEmpty(), is(true));
@@ -177,7 +177,7 @@ public class NewStreamStatusRepositoryIT {
                 streamId,
                 source,
                 componentName,
-                updatedAt,
+                discoveredAt,
                 upToDate), is(1));
 
         final Optional<StreamStatus> streamStatus = newStreamStatusRepository.find(streamId, source, componentName);
@@ -207,7 +207,7 @@ public class NewStreamStatusRepositoryIT {
         final String source = "some-source";
         final String componentName = "some-component-name";
         final boolean upToDate = true;
-        final ZonedDateTime updatedAt = new UtcClock().now();
+        final ZonedDateTime discoveredAt = new UtcClock().now();
         final long latestKnownPosition = 23L;
 
         assertThat(newStreamStatusRepository.findAll().isEmpty(), is(true));
@@ -216,7 +216,7 @@ public class NewStreamStatusRepositoryIT {
                 streamId,
                 source,
                 componentName,
-                updatedAt,
+                discoveredAt,
                 upToDate), is(1));
 
         final Optional<StreamStatus> streamStatus = newStreamStatusRepository.find(streamId, source, componentName);
@@ -229,7 +229,7 @@ public class NewStreamStatusRepositoryIT {
                 source,
                 componentName,
                 latestKnownPosition,
-                updatedAt
+                discoveredAt
         );
 
         final Optional<StreamStatus> updatedStreamStatus = newStreamStatusRepository.find(streamId, source, componentName);
@@ -249,7 +249,7 @@ public class NewStreamStatusRepositoryIT {
         final String source = "some-source";
         final String componentName = "some-component-name";
         final boolean upToDate = false;
-        final ZonedDateTime updatedAt = new UtcClock().now();
+        final ZonedDateTime discoveredAt = new UtcClock().now();
         final long latestKnownPosition = 23L;
 
         assertThat(newStreamStatusRepository.findAll().isEmpty(), is(true));
@@ -258,7 +258,7 @@ public class NewStreamStatusRepositoryIT {
                 streamId,
                 source,
                 componentName,
-                updatedAt,
+                discoveredAt,
                 upToDate), is(1));
         newStreamStatusRepository.setUpToDate(true, streamId, source, componentName);
 
@@ -291,7 +291,7 @@ public class NewStreamStatusRepositoryIT {
         final String source = "some-source";
         final String componentName = "some-component-name";
         final boolean upToDate = false;
-        final ZonedDateTime updatedAt = new UtcClock().now();
+        final ZonedDateTime discoveredAt = new UtcClock().now();
 
         assertThat(newStreamStatusRepository.findAll().isEmpty(), is(true));
 
@@ -299,7 +299,7 @@ public class NewStreamStatusRepositoryIT {
                 streamId,
                 source,
                 componentName,
-                updatedAt,
+                discoveredAt,
                 upToDate), is(1));
 
         final Optional<StreamStatus> streamStatus = newStreamStatusRepository.find(streamId, source, componentName);
@@ -338,8 +338,8 @@ public class NewStreamStatusRepositoryIT {
             final String componentName = "event-listener";
             final String otherComponentName = "event-indexer";
             final boolean upToDate = false;
-            final ZonedDateTime updatedAt1 = new UtcClock().now().minusDays(2);
-            final ZonedDateTime updatedAt2 = new UtcClock().now().minusDays(1);
+            final ZonedDateTime discoveredAt1 = new UtcClock().now().minusDays(2);
+            final ZonedDateTime discoveredAt2 = new UtcClock().now().minusDays(1);
             final long position1 = 5L;
             final long position2 = 10L;
             final long latestKnownPosition1 = 20L;
@@ -351,28 +351,28 @@ public class NewStreamStatusRepositoryIT {
                     streamId1,
                     source,
                     componentName,
-                    updatedAt1,
+                    discoveredAt1,
                     upToDate), is(1));
 
             assertThat(newStreamStatusRepository.insertIfNotExists(
                     streamId2,
                     source,
                     componentName,
-                    updatedAt2,
+                    discoveredAt2,
                     upToDate), is(1));
 
             assertThat(newStreamStatusRepository.insertIfNotExists(
                     streamId1,
                     source,
                     otherComponentName,
-                    updatedAt1,
+                    discoveredAt1,
                     upToDate), is(1));
 
             assertThat(newStreamStatusRepository.insertIfNotExists(
                     streamId1,
                     otherSource,
                     componentName,
-                    updatedAt1,
+                    discoveredAt1,
                     upToDate), is(1));
 
             newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position1);
@@ -380,10 +380,10 @@ public class NewStreamStatusRepositoryIT {
             newStreamStatusRepository.updateCurrentPosition(streamId1, otherSource, componentName, position1);
             newStreamStatusRepository.updateCurrentPosition(streamId1, source, otherComponentName, position1);
 
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition1, updatedAt1);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition2, updatedAt2);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, otherSource, componentName, latestKnownPosition3, updatedAt1);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, otherComponentName, latestKnownPosition4, updatedAt2);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition1, discoveredAt1);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition2, discoveredAt2);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, otherSource, componentName, latestKnownPosition3, discoveredAt1);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, otherComponentName, latestKnownPosition4, discoveredAt2);
 
             final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
 
@@ -391,6 +391,7 @@ public class NewStreamStatusRepositoryIT {
             assertThat(result.get().streamId(), is(streamId1));
             assertThat(result.get().position(), is(position1));
             assertThat(result.get().latestKnownPosition(), is(latestKnownPosition1));
+            assertThat(result.get().streamErrorId(), is(empty()));
         }
 
         @Test
@@ -419,7 +420,7 @@ public class NewStreamStatusRepositoryIT {
             final String source = "listing";
             final String componentName = "event-listener";
             final boolean upToDate = false;
-            final ZonedDateTime updatedAt = new UtcClock().now();
+            final ZonedDateTime discoveredAt = new UtcClock().now();
             final long position = 5L;
             final long latestKnownPosition = 10L;
 
@@ -427,20 +428,20 @@ public class NewStreamStatusRepositoryIT {
                     streamId1,
                     source,
                     componentName,
-                    updatedAt.minusDays(2),
+                    discoveredAt.minusDays(2),
                     upToDate), is(1));
 
             assertThat(newStreamStatusRepository.insertIfNotExists(
                     streamId2,
                     source,
                     componentName,
-                    updatedAt.minusDays(1),
+                    discoveredAt.minusDays(1),
                     upToDate), is(1));
 
             newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position);
             newStreamStatusRepository.updateCurrentPosition(streamId2, source, componentName, position);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, updatedAt);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition, updatedAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, discoveredAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition, discoveredAt);
 
             final UUID eventId = randomUUID();
             final Long positionInStream = 23L;
@@ -470,7 +471,7 @@ public class NewStreamStatusRepositoryIT {
             final String source = "listing";
             final String componentName = "event-listener";
             final boolean upToDate = false;
-            final ZonedDateTime updatedAt = new UtcClock().now();
+            final ZonedDateTime discoveredAt = new UtcClock().now();
             final long position = 5L;
             final long latestKnownPosition = 10L;
 
@@ -478,11 +479,11 @@ public class NewStreamStatusRepositoryIT {
                     streamId1,
                     source,
                     componentName,
-                    updatedAt.minusDays(2),
+                    discoveredAt.minusDays(2),
                     upToDate), is(1));
 
             newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, updatedAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, discoveredAt);
 
             final UUID eventId = randomUUID();
             final Long positionInStream = 23L;
@@ -496,7 +497,6 @@ public class NewStreamStatusRepositoryIT {
                     streamId1,
                     source,
                     componentName,
-                    new UtcClock().now(),
                     1L,
                     new UtcClock().now().minusHours(2)
             ));
@@ -505,6 +505,8 @@ public class NewStreamStatusRepositoryIT {
 
             assertThat(result.isPresent(), is(true));
             assertThat(result.get().streamId(), is(streamId1));
+            assertThat(result.get().streamErrorId().isPresent(), is(true));
+            assertThat(result.get().streamErrorId().get(), is(streamErrorId));
         }
 
         @Test
@@ -522,7 +524,7 @@ public class NewStreamStatusRepositoryIT {
             final String source = "listing";
             final String componentName = "event-listener";
             final boolean upToDate = false;
-            final ZonedDateTime updatedAt = new UtcClock().now();
+            final ZonedDateTime discoveredAt = new UtcClock().now();
             final long position = 5L;
             final long latestKnownPosition = 10L;
 
@@ -530,20 +532,20 @@ public class NewStreamStatusRepositoryIT {
                     streamId1,
                     source,
                     componentName,
-                    updatedAt.minusDays(2),
+                    discoveredAt.minusDays(2),
                     upToDate), is(1));
 
             assertThat(newStreamStatusRepository.insertIfNotExists(
                     streamId2,
                     source,
                     componentName,
-                    updatedAt.minusDays(1),
+                    discoveredAt.minusDays(1),
                     upToDate), is(1));
 
             newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position);
             newStreamStatusRepository.updateCurrentPosition(streamId2, source, componentName, position);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, updatedAt);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition, updatedAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, discoveredAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition, discoveredAt);
 
             final UUID eventId = randomUUID();
             final Long positionInStream = 23L;
@@ -557,7 +559,6 @@ public class NewStreamStatusRepositoryIT {
                     streamId1,
                     source,
                     componentName,
-                    new UtcClock().now(),
                     10L,
                     new UtcClock().now().minusHours(2)
             ));
@@ -583,7 +584,7 @@ public class NewStreamStatusRepositoryIT {
             final String source = "listing";
             final String componentName = "event-listener";
             final boolean upToDate = false;
-            final ZonedDateTime updatedAt = new UtcClock().now();
+            final ZonedDateTime discoveredAt = new UtcClock().now();
             final long position = 5L;
             final long latestKnownPosition = 10L;
 
@@ -591,20 +592,20 @@ public class NewStreamStatusRepositoryIT {
                     streamId1,
                     source,
                     componentName,
-                    updatedAt.minusDays(2),
+                    discoveredAt.minusDays(2),
                     upToDate), is(1));
 
             assertThat(newStreamStatusRepository.insertIfNotExists(
                     streamId2,
                     source,
                     componentName,
-                    updatedAt.minusDays(1),
+                    discoveredAt.minusDays(1),
                     upToDate), is(1));
 
             newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position);
             newStreamStatusRepository.updateCurrentPosition(streamId2, source, componentName, position);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, updatedAt);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition, updatedAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition, discoveredAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition, discoveredAt);
 
             final UUID eventId = randomUUID();
             final Long positionInStream = 23L;
@@ -618,7 +619,6 @@ public class NewStreamStatusRepositoryIT {
                     streamId1,
                     source,
                     componentName,
-                    new UtcClock().now(),
                     1L,
                     new UtcClock().now().plusHours(2)
             ));
@@ -647,6 +647,7 @@ public class NewStreamStatusRepositoryIT {
                     2334
             );
 
+            final UtcClock utcClock = new UtcClock();
             final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                     streamErrorId,
                     hash,
@@ -656,10 +657,11 @@ public class NewStreamStatusRepositoryIT {
                     eventId,
                     streamId,
                     positionInStream,
-                    new UtcClock().now(),
+                    utcClock.now(),
                     "stack-trace",
                     componentName,
-                    source
+                    source,
+                    utcClock.now()
             );
 
             return new StreamError(
@@ -679,7 +681,7 @@ public class NewStreamStatusRepositoryIT {
             final String source = "listing";
             final String componentName = "event-listener";
             final boolean upToDate = false;
-            final ZonedDateTime updatedAt = new UtcClock().now().minusDays(1);
+            final ZonedDateTime discoveredAt = new UtcClock().now().minusDays(1);
             final long position1 = 10L;
             final long latestKnownPosition1 = 10L;
             final long position2 = 5L;
@@ -689,20 +691,20 @@ public class NewStreamStatusRepositoryIT {
                     streamId1,
                     source,
                     componentName,
-                    updatedAt,
+                    discoveredAt,
                     upToDate), is(1));
 
             assertThat(newStreamStatusRepository.insertIfNotExists(
                     streamId2,
                     source,
                     componentName,
-                    updatedAt,
+                    discoveredAt,
                     upToDate), is(1));
 
             newStreamStatusRepository.updateCurrentPosition(streamId1, source, componentName, position1);
             newStreamStatusRepository.updateCurrentPosition(streamId2, source, componentName, position2);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition1, updatedAt);
-            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition2, updatedAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId1, source, componentName, latestKnownPosition1, discoveredAt);
+            newStreamStatusRepository.upsertLatestKnownPosition(streamId2, source, componentName, latestKnownPosition2, discoveredAt);
 
             final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
 

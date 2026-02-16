@@ -7,7 +7,6 @@ public record StreamErrorRetry(
         UUID streamId,
         String source,
         String component,
-        ZonedDateTime occurredAt,
         Long retryCount,
         ZonedDateTime nextRetryTime
         ) {
@@ -16,7 +15,6 @@ public record StreamErrorRetry(
                 private UUID streamId;
                 private String source;
                 private String component;
-                private ZonedDateTime occurredAt;
                 private Long retryCount;
                 private ZonedDateTime nextRetryTime;
 
@@ -33,7 +31,6 @@ public record StreamErrorRetry(
                         streamErrorRetryBuilder.streamId = other.streamId();
                         streamErrorRetryBuilder.source = other.source();
                         streamErrorRetryBuilder.component = other.component();
-                        streamErrorRetryBuilder.occurredAt = other.occurredAt();
                         streamErrorRetryBuilder.retryCount = other.retryCount();
                         streamErrorRetryBuilder.nextRetryTime = other.nextRetryTime();
 
@@ -45,18 +42,13 @@ public record StreamErrorRetry(
                         return this;
                 }
 
-                public StreamErrorRetryBuilder withOccurredAt(final ZonedDateTime occurredAt) {
-                        this.occurredAt = occurredAt;
-                        return this;
-                }
-                
                 public StreamErrorRetryBuilder withNextRetryTime(final ZonedDateTime nextRetryTime) {
                         this.nextRetryTime = nextRetryTime;
                         return this;
                 }
 
                 public StreamErrorRetry build() {
-                        return new StreamErrorRetry(streamId, source, component, occurredAt, retryCount, nextRetryTime);
+                        return new StreamErrorRetry(streamId, source, component, retryCount, nextRetryTime);
                 }
         }
 }

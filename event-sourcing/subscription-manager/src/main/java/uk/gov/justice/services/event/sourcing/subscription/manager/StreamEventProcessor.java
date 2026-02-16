@@ -11,6 +11,7 @@ import uk.gov.justice.services.core.interceptor.InterceptorContext;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
+import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamRetryStatusManager;
@@ -70,6 +71,9 @@ public class StreamEventProcessor {
     @Inject
     private StreamRetryStatusManager streamRetryStatusManager;
 
+    @Inject
+    private StreamErrorRepository streamErrorRepository;
+
     @Transactional(value = NOT_SUPPORTED)
     public EventProcessingStatus processSingleEvent(final String source, final String component) {
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
@@ -104,6 +108,10 @@ public class StreamEventProcessor {
 
                 micrometerMetricsCounters.incrementEventsSucceededCount(source, component);
                 streamRetryStatusManager.removeStreamRetryStatus(streamId, source, component);
+
+                lockedStreamStatus.streamErrorId().ifPresent(
+                        streamErrorId ->
+                                streamErrorRepository.markStreamAsFixed(streamErrorId, streamId, source, component));
 
                 transactionHandler.commit(userTransaction);
 

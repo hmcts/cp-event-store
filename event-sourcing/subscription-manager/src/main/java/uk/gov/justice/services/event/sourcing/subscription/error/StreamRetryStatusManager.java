@@ -35,7 +35,6 @@ public class StreamRetryStatusManager {
                 streamId,
                 source,
                 component,
-                now,
                 incrementedRetryCount,
                 nextRetryTime
         );

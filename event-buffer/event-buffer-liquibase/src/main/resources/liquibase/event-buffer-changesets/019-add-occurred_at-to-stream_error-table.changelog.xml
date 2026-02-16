@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.3.xsd">
+
+    <changeSet id="stream_buffer-019" author="TechPod"
+               logicalFilePath="liquibase/event-buffer-changesets/019-add-occurred_at-to-stream_error-table.changelog.xml">
+
+        <addColumn tableName="stream_error">
+            <column name="occurred_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </addColumn>
+
+    </changeSet>
+
+</databaseChangeLog>

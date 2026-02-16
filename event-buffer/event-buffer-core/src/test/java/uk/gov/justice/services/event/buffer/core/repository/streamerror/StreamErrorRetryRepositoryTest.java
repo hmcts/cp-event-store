@@ -58,7 +58,6 @@ public class StreamErrorRetryRepositoryTest {
                 randomUUID(),
                 "some-source",
                 "some-component",
-                new UtcClock().now(),
                 677L,
                 new UtcClock().now().plusMinutes(2)
         );
@@ -78,9 +77,8 @@ public class StreamErrorRetryRepositoryTest {
         inOrder.verify(preparedStatement).setObject(1, streamErrorRetry.streamId());
         inOrder.verify(preparedStatement).setString(2, streamErrorRetry.source());
         inOrder.verify(preparedStatement).setString(3, streamErrorRetry.component());
-        inOrder.verify(preparedStatement).setTimestamp(4, toSqlTimestamp(streamErrorRetry.occurredAt()));
-        inOrder.verify(preparedStatement).setLong(5, streamErrorRetry.retryCount());
-        inOrder.verify(preparedStatement).setTimestamp(6, toSqlTimestamp(streamErrorRetry.nextRetryTime()));
+        inOrder.verify(preparedStatement).setLong(4, streamErrorRetry.retryCount());
+        inOrder.verify(preparedStatement).setTimestamp(5, toSqlTimestamp(streamErrorRetry.nextRetryTime()));
 
         inOrder.verify(preparedStatement).executeUpdate();
         inOrder.verify(preparedStatement).close();
@@ -95,7 +93,6 @@ public class StreamErrorRetryRepositoryTest {
                 fromString("361ed594-25b6-4d34-aac4-acf3463e9323"),
                 "some-source",
                 "some-component",
-                of(2026, 2, 11, 12, 24, 32, 0, UTC),
                 677L,
                 of(2026, 2, 11, 12, 26, 32, 0, UTC)
         );
@@ -127,7 +124,6 @@ public class StreamErrorRetryRepositoryTest {
         final UUID streamId = randomUUID();
         final String source = "some-source";
         final String component = "some-component";
-        final ZonedDateTime occurredAt = new UtcClock().now();
         final Long retryCount = 6L;
         final ZonedDateTime nextRetryTime = new UtcClock().now().plusMinutes(2);
 
@@ -141,7 +137,6 @@ public class StreamErrorRetryRepositoryTest {
         when(connection.prepareStatement(FIND_BY_SQL)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
-        when(resultSet.getTimestamp("updated_at")).thenReturn(toSqlTimestamp(occurredAt));
         when(resultSet.getLong("retry_count")).thenReturn(retryCount);
         when(resultSet.getTimestamp("next_retry_time")).thenReturn(toSqlTimestamp(nextRetryTime));
 
@@ -151,7 +146,6 @@ public class StreamErrorRetryRepositoryTest {
         assertThat(streamErrorRetry.get().streamId(), is(streamId));
         assertThat(streamErrorRetry.get().source(), is(source));
         assertThat(streamErrorRetry.get().component(), is(component));
-        assertThat(streamErrorRetry.get().occurredAt(), is(occurredAt));
         assertThat(streamErrorRetry.get().retryCount(), is(retryCount));
         assertThat(streamErrorRetry.get().nextRetryTime(), is(nextRetryTime));
 
@@ -226,14 +220,12 @@ public class StreamErrorRetryRepositoryTest {
         final UUID streamId_1 = randomUUID();
         final String source_1 = "some-source_1";
         final String component_1 = "some-component_1";
-        final ZonedDateTime occurredAt_1 = new UtcClock().now();
         final Long retryCount_1 = 1L;
         final ZonedDateTime nextRetryTime_1 = new UtcClock().now().plusMinutes(1);
 
         final UUID streamId_2 = randomUUID();
         final String source_2 = "some-source_2";
         final String component_2 = "some-component_2";
-        final ZonedDateTime occurredAt_2 = new UtcClock().now().minusMinutes(2);
         final Long retryCount_2 = 2L;
         final ZonedDateTime nextRetryTime_2 = new UtcClock().now().plusMinutes(2);
 
@@ -252,7 +244,6 @@ public class StreamErrorRetryRepositoryTest {
         when(resultSet.getObject("stream_id", UUID.class)).thenReturn(streamId_1, streamId_2);
         when(resultSet.getString("source")).thenReturn(source_1, source_2);
         when(resultSet.getString("component")).thenReturn(component_1, component_2);
-        when(resultSet.getTimestamp("updated_at")).thenReturn(toSqlTimestamp(occurredAt_1), toSqlTimestamp(occurredAt_2));
         when(resultSet.getLong("retry_count")).thenReturn(retryCount_1, retryCount_2);
         when(resultSet.getTimestamp("next_retry_time")).thenReturn(toSqlTimestamp(nextRetryTime_1), toSqlTimestamp(nextRetryTime_2));
 
@@ -263,14 +254,12 @@ public class StreamErrorRetryRepositoryTest {
         assertThat(streamErrorRetries.get(0).streamId(), is(streamId_1));
         assertThat(streamErrorRetries.get(0).source(), is(source_1));
         assertThat(streamErrorRetries.get(0).component(), is(component_1));
-        assertThat(streamErrorRetries.get(0).occurredAt(), is(occurredAt_1));
         assertThat(streamErrorRetries.get(0).retryCount(), is(retryCount_1));
         assertThat(streamErrorRetries.get(0).nextRetryTime(), is(nextRetryTime_1));
 
         assertThat(streamErrorRetries.get(1).streamId(), is(streamId_2));
         assertThat(streamErrorRetries.get(1).source(), is(source_2));
         assertThat(streamErrorRetries.get(1).component(), is(component_2));
-        assertThat(streamErrorRetries.get(1).occurredAt(), is(occurredAt_2));
         assertThat(streamErrorRetries.get(1).retryCount(), is(retryCount_2));
         assertThat(streamErrorRetries.get(1).nextRetryTime(), is(nextRetryTime_2));
 

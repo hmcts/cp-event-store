@@ -34,7 +34,7 @@ public class NewStreamStatusRepository {
                 position,
                 source,
                 component,
-                updated_at,
+                discovered_at,
                 latest_known_position,
                 is_up_to_date
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -48,7 +48,7 @@ public class NewStreamStatusRepository {
                     position,
                     stream_error_id,
                     stream_error_position,
-                    updated_at,
+                    discovered_at,
                     latest_known_position,
                     is_up_to_date
                 FROM stream_status
@@ -60,7 +60,8 @@ public class NewStreamStatusRepository {
                 SELECT
                     ss.stream_id,
                     ss.position,
-                    ss.latest_known_position
+                    ss.latest_known_position,
+                    ss.stream_error_id
                 FROM stream_status ss
                 LEFT JOIN stream_error_retry ser
                     ON ser.stream_id = ss.stream_id
@@ -76,7 +77,7 @@ public class NewStreamStatusRepository {
                       AND ser.next_retry_time <= now()
                     )
                   )
-                ORDER BY ss.updated_at ASC
+                ORDER BY ss.discovered_at ASC
                 LIMIT 1
                 FOR NO KEY UPDATE OF ss SKIP LOCKED
             """;
@@ -88,7 +89,7 @@ public class NewStreamStatusRepository {
                     position,
                     stream_error_id,
                     stream_error_position,
-                    updated_at,
+                    discovered_at,
                     latest_known_position,
                     is_up_to_date
                 FROM stream_status
@@ -98,7 +99,7 @@ public class NewStreamStatusRepository {
                     position,
                     latest_known_position,
                     stream_error_id,
-                    updated_at
+                    discovered_at
             FROM stream_status
             WHERE stream_id = ?
             AND source = ?
@@ -127,7 +128,7 @@ public class NewStreamStatusRepository {
                 position,
                 source,
                 component,
-                updated_at,
+                discovered_at,
                 latest_known_position,
                 is_up_to_date
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -156,10 +157,10 @@ public class NewStreamStatusRepository {
             final UUID streamId,
             final String source,
             final String componentName,
-            final ZonedDateTime updatedAt,
+            final ZonedDateTime discoveredAt,
             final boolean isUpToDate) {
 
-        final Timestamp updatedAtTimestamp = toSqlTimestamp(updatedAt);
+        final Timestamp discoveredAtTimestamp = toSqlTimestamp(discoveredAt);
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(INSERT_OR_DO_NOTHING_SQL)) {
@@ -168,7 +169,7 @@ public class NewStreamStatusRepository {
             preparedStatement.setLong(2, INITIAL_POSITION_IN_STREAM);
             preparedStatement.setString(3, source);
             preparedStatement.setString(4, componentName);
-            preparedStatement.setTimestamp(5, updatedAtTimestamp);
+            preparedStatement.setTimestamp(5, discoveredAtTimestamp);
             preparedStatement.setLong(6, INITIAL_POSITION_IN_STREAM);
             preparedStatement.setBoolean(7, isUpToDate);
 
@@ -220,7 +221,8 @@ public class NewStreamStatusRepository {
                     final UUID streamId = (UUID) resultSet.getObject("stream_id");
                     final Long position = resultSet.getLong("position");
                     final Long latestKnownPosition = resultSet.getLong("latest_known_position");
-                    return of(new LockedStreamStatus(streamId, position, latestKnownPosition));
+                    final UUID streamErrorId = resultSet.getObject("stream_error_id", UUID.class);
+                    return of(new LockedStreamStatus(streamId, position, latestKnownPosition, ofNullable(streamErrorId)));
                 }
             }
 
@@ -249,13 +251,13 @@ public class NewStreamStatusRepository {
                     final Long currentStreamPosition = resultSet.getObject("position", Long.class);
                     final long latestKnownPosition = resultSet.getObject("latest_known_position", Long.class);
                     final UUID streamErrorId = resultSet.getObject("stream_error_id", UUID.class);
-                    final Timestamp lastUpdatedAt = resultSet.getObject("updated_at", Timestamp.class);
+                    final Timestamp lastDiscoveredAt = resultSet.getObject("discovered_at", Timestamp.class);
 
                     return new StreamUpdateContext(
                             incomingEventPosition,
                             currentStreamPosition,
                             latestKnownPosition,
-                            lastUpdatedAt,
+                            lastDiscoveredAt,
                             ofNullable(streamErrorId),
                             empty()
                     );
@@ -332,7 +334,7 @@ public class NewStreamStatusRepository {
     public void upsertLatestKnownPosition(final UUID streamId, final String source, final String componentName, final long latestKnownPosition,
                                           final ZonedDateTime discoveredAt) {
 
-        final Timestamp updatedAtTimestamp = toSqlTimestamp(discoveredAt);
+        final Timestamp discoveredAtTimestamp = toSqlTimestamp(discoveredAt);
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(UPSERT_LATEST_KNOWN_POSITION)) {
@@ -342,7 +344,7 @@ public class NewStreamStatusRepository {
             preparedStatement.setLong(2, INITIAL_POSITION_IN_STREAM);
             preparedStatement.setString(3, source);
             preparedStatement.setString(4, componentName);
-            preparedStatement.setTimestamp(5, updatedAtTimestamp);
+            preparedStatement.setTimestamp(5, discoveredAtTimestamp);
             preparedStatement.setLong(6, latestKnownPosition);
             preparedStatement.setBoolean(7, false);
 
@@ -413,7 +415,7 @@ public class NewStreamStatusRepository {
                                 streamUpdateContext.incomingEventPosition(),
                                 streamUpdateContext.currentStreamPosition(),
                                 streamUpdateContext.latestKnownStreamPosition(),
-                                streamUpdateContext.lastUpdatedAt(),
+                                streamUpdateContext.lastDiscoveredAt(),
                                 streamErrorId,
                                 of(streamErrorDetails)
                         )).orElse(streamUpdateContext);

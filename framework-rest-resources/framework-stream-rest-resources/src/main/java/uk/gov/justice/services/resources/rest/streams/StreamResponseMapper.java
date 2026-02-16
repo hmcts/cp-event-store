@@ -15,7 +15,7 @@ public class StreamResponseMapper {
     private StreamResponse map(final StreamStatus streamStatus) {
         return new StreamResponse(streamStatus.streamId(), streamStatus.position(),
                 streamStatus.latestKnownPosition(), streamStatus.source(),
-                streamStatus.component(), streamStatus.updatedAt().toString(),
+                streamStatus.component(), streamStatus.discoveredAt().toString(),
                 streamStatus.isUpToDate(), streamStatus.streamErrorId().orElse(null),
                 streamStatus.streamErrorPosition().orElse(null));
     }

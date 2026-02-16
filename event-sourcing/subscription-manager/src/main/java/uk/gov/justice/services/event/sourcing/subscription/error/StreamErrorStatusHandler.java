@@ -53,7 +53,7 @@ public class StreamErrorStatusHandler {
             transactionHandler.begin(userTransaction);
 
             if (isErrorSameAsBefore(newStreamError, streamUpdateContext))
-                streamErrorRepository.markSameErrorHappened(newStreamError, streamUpdateContext.currentStreamPosition(), streamUpdateContext.lastUpdatedAt());
+                streamErrorRepository.markSameErrorHappened(streamUpdateContext.streamErrorId().get(), streamId, source, component);
             else {
                 streamErrorRepository.markStreamAsErrored(newStreamError, streamUpdateContext.currentStreamPosition());
             }

@@ -11,7 +11,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.ZonedDateTime;
 import java.util.UUID;
 
 import javax.inject.Inject;
@@ -27,21 +26,16 @@ public class StreamStatusErrorPersistence {
                     AND component = ?
                 """;
 
-    private static final String UPDATE_STREAM_UPDATED_AT_IF_ERROR_IS_SAME = """
-                UPDATE stream_status
-                SET updated_at = ?
-                WHERE stream_id = ?
-                AND source = ?
-                AND component = ?
-                AND position = ?
-                AND updated_at  = ?
+    private static final String UPDATE_STREAM_ERROR_OCCURRED_AT_SQL = """
+                UPDATE stream_error
+                SET occurred_at = ?
+                WHERE id = ?
             """;
 
     private static final String UPDATE_STREAM_STATUS_ERROR_DETAILS = """
                 UPDATE stream_status
                 SET stream_error_id = ?,
-                    stream_error_position=?,
-                    updated_at = ?
+                    stream_error_position=?
                 WHERE stream_id = ?
                 AND source = ?
                 AND component = ?
@@ -73,14 +67,11 @@ public class StreamStatusErrorPersistence {
 
         try (final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_STREAM_STATUS_ERROR_DETAILS)) {
 
-            final Timestamp updatedAtTimestamp = toSqlTimestamp(clock.now());
-
             preparedStatement.setObject(1, streamErrorId);
             preparedStatement.setLong(2, errorPosition);
-            preparedStatement.setTimestamp(3, updatedAtTimestamp);
-            preparedStatement.setObject(4, streamId);
-            preparedStatement.setString(5, source);
-            preparedStatement.setString(6, componentName);
+            preparedStatement.setObject(3, streamId);
+            preparedStatement.setString(4, source);
+            preparedStatement.setString(5, componentName);
             preparedStatement.executeUpdate();
         } catch (final SQLException e) {
             throw new JdbcRepositoryException(
@@ -134,27 +125,20 @@ public class StreamStatusErrorPersistence {
     }
 
 
-    public int updateStreamStatusUpdatedAtForSameError(final StreamError newStreamError, final long lastStreamPosition, final Timestamp previousUpdateAtTimestamp, final Connection connection) {
-        final StreamErrorOccurrence streamErrorOccurrence = newStreamError.streamErrorOccurrence();
-        final ZonedDateTime updatedAt = clock.now();
+    public void updateStreamErrorOccurredAt(final UUID streamErrorId, final UUID streamId, final String source, final String component, final Connection connection) {
+        final Timestamp occurredAtTimestamp = toSqlTimestamp(clock.now());
 
-        try (final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_STREAM_UPDATED_AT_IF_ERROR_IS_SAME)) {
-            final Timestamp updatedAtTimestamp = toSqlTimestamp(updatedAt);
-
-            preparedStatement.setObject(1, updatedAtTimestamp);
-            preparedStatement.setObject(2, streamErrorOccurrence.streamId());
-            preparedStatement.setString(3, streamErrorOccurrence.source());
-            preparedStatement.setString(4, streamErrorOccurrence.componentName());
-            preparedStatement.setObject(5, lastStreamPosition);
-            preparedStatement.setObject(6, previousUpdateAtTimestamp);
-
-            return preparedStatement.executeUpdate();
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_STREAM_ERROR_OCCURRED_AT_SQL)) {
+            preparedStatement.setTimestamp(1, occurredAtTimestamp);
+            preparedStatement.setObject(2, streamErrorId);
+            preparedStatement.executeUpdate();
         } catch (final SQLException e) {
             throw new StreamErrorHandlingException(format(
-                    "Failed to update Stream Status updated at. streamId: '%s', source: '%s, component: '%s'",
-                    streamErrorOccurrence.streamId(),
-                    streamErrorOccurrence.source(),
-                    streamErrorOccurrence.componentName()
+                    "Failed to update stream_error occurred_at. streamErrorId: '%s', streamId: '%s', source: '%s', component: '%s'",
+                    streamErrorId,
+                    streamId,
+                    source,
+                    component
             ), e);
         }
     }

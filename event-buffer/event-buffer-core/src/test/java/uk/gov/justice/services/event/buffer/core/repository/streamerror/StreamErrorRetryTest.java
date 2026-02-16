@@ -19,7 +19,6 @@ public class StreamErrorRetryTest {
                 randomUUID(),
                 "some-source",
                 "some-component",
-                new UtcClock().now().minusMinutes(10),
                 23L,
                 new UtcClock().now()
         );
@@ -31,7 +30,6 @@ public class StreamErrorRetryTest {
         assertThat(newStreamErrorRetry.streamId(), is(streamErrorRetry.streamId()));
         assertThat(newStreamErrorRetry.source(), is(streamErrorRetry.source()));
         assertThat(newStreamErrorRetry.component(), is(streamErrorRetry.component()));
-        assertThat(newStreamErrorRetry.occurredAt(), is(streamErrorRetry.occurredAt()));
         assertThat(newStreamErrorRetry.nextRetryTime(), is(streamErrorRetry.nextRetryTime()));
 
         assertThat(newStreamErrorRetry.retryCount(), is(streamErrorRetry.retryCount() + 1));

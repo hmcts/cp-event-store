@@ -15,7 +15,7 @@ public class NewStreamStatusRowMapper {
         final Long position = resultSet.getObject("position", Long.class);
         final Optional<UUID> streamErrorId = ofNullable((UUID) resultSet.getObject("stream_error_id"));
         final Optional<Long> streamErrorPosition = ofNullable(resultSet.getObject("stream_error_position", Long.class));
-        final ZonedDateTime updatedAt = fromSqlTimestamp(resultSet.getTimestamp("updated_at"));
+        final ZonedDateTime discoveredAt = fromSqlTimestamp(resultSet.getTimestamp("discovered_at"));
         final Long latestKnownPosition = resultSet.getObject("latest_known_position", Long.class);
         final Boolean isUpToDate = resultSet.getBoolean("is_up_to_date");
         final String source = resultSet.getString("source");
@@ -29,7 +29,7 @@ public class NewStreamStatusRowMapper {
                 componentName,
                 streamErrorId,
                 streamErrorPosition,
-                updatedAt,
+                discoveredAt,
                 latestKnownPosition,
                 isUpToDate
         );

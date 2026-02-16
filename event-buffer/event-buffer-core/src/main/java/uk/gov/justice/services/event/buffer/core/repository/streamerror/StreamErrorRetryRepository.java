@@ -31,20 +31,17 @@ public class StreamErrorRetryRepository {
                 stream_id,
                 source,
                 component,
-                updated_at,
                 retry_count,
                 next_retry_time
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?)
             ON CONFLICT (stream_id, source, component) DO UPDATE
             SET
                 retry_count = Excluded.retry_count,
-                updated_at = Excluded.updated_at,
                 next_retry_time = Excluded.next_retry_time
             """;
 
     static final String FIND_BY_SQL = """
             SELECT
-                updated_at,
                 retry_count,
                 next_retry_time
             FROM stream_error_retry
@@ -72,7 +69,6 @@ public class StreamErrorRetryRepository {
                 stream_id,
                 source,
                 component,
-                updated_at,
                 retry_count,
                 next_retry_time
             FROM stream_error_retry
@@ -93,9 +89,8 @@ public class StreamErrorRetryRepository {
             preparedStatement.setObject(1, streamErrorRetry.streamId());
             preparedStatement.setString(2, streamErrorRetry.source());
             preparedStatement.setString(3, streamErrorRetry.component());
-            preparedStatement.setTimestamp(4, toSqlTimestamp(streamErrorRetry.occurredAt()));
-            preparedStatement.setLong(5, streamErrorRetry.retryCount());
-            preparedStatement.setTimestamp(6, toSqlTimestamp(streamErrorRetry.nextRetryTime()));
+            preparedStatement.setLong(4, streamErrorRetry.retryCount());
+            preparedStatement.setTimestamp(5, toSqlTimestamp(streamErrorRetry.nextRetryTime()));
 
             preparedStatement.executeUpdate();
 
@@ -121,7 +116,6 @@ public class StreamErrorRetryRepository {
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    final ZonedDateTime updatedAt = fromSqlTimestamp(resultSet.getTimestamp("updated_at"));
                     final long retryCount = resultSet.getLong("retry_count");
                     final ZonedDateTime nextRetryTime = fromSqlTimestamp(resultSet.getTimestamp("next_retry_time"));
 
@@ -129,7 +123,6 @@ public class StreamErrorRetryRepository {
                             streamId,
                             source,
                             component,
-                            updatedAt,
                             retryCount,
                             nextRetryTime));
                 }
@@ -214,7 +207,6 @@ public class StreamErrorRetryRepository {
                 final UUID streamId = resultSet.getObject("stream_id", UUID.class);
                 final String source = resultSet.getString("source");
                 final String component = resultSet.getString("component");
-                final ZonedDateTime updatedAt = fromSqlTimestamp(resultSet.getTimestamp("updated_at"));
                 final long retryCount = resultSet.getLong("retry_count");
                 final ZonedDateTime nextRetryTime = fromSqlTimestamp(resultSet.getTimestamp("next_retry_time"));
 
@@ -222,7 +214,6 @@ public class StreamErrorRetryRepository {
                         streamId,
                         source,
                         component,
-                        updatedAt,
                         retryCount,
                         nextRetryTime);
 

@@ -46,6 +46,7 @@ public class StreamErrorOccurrencePersistenceIT {
     @Test
     public void shouldInsertAndFindById() throws Exception {
         final String hash = "sdlksdljfsdlf87236662846";
+        final UtcClock utcClock = new UtcClock();
         final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
@@ -55,10 +56,11 @@ public class StreamErrorOccurrencePersistenceIT {
                 randomUUID(),
                 randomUUID(),
                 23423L,
-                new UtcClock().now(),
+                utcClock.now(),
                 "stack-trace",
                 "component-name",
-                "source"
+                "source",
+                utcClock.now()
         );
 
         final StreamErrorHash streamErrorHash = new StreamErrorHash(
@@ -95,6 +97,7 @@ public class StreamErrorOccurrencePersistenceIT {
         final UUID streamId = randomUUID();
         final String hash = "sdlksdljfsdlf87236662846";
 
+        final UtcClock utcClock = new UtcClock();
         final StreamErrorOccurrence streamErrorOccurrence_1 = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
@@ -104,10 +107,11 @@ public class StreamErrorOccurrencePersistenceIT {
                 randomUUID(),
                 streamId,
                 987342987L,
-                new UtcClock().now(),
+                utcClock.now(),
                 "stack-trace_1",
                 "component-name_1",
-                "source_1"
+                "source_1",
+                utcClock.now()
         );
         final StreamErrorOccurrence streamErrorOccurrence_2 = new StreamErrorOccurrence(
                 randomUUID(),
@@ -118,10 +122,11 @@ public class StreamErrorOccurrencePersistenceIT {
                 randomUUID(),
                 randomUUID(),
                 97878L,
-                new UtcClock().now(),
+                utcClock.now(),
                 "stack-trace_2",
                 "component-name_2",
-                "source_2"
+                "source_2",
+                utcClock.now()
         );
         final StreamErrorOccurrence streamErrorOccurrence_3 = new StreamErrorOccurrence(
                 randomUUID(),
@@ -132,10 +137,11 @@ public class StreamErrorOccurrencePersistenceIT {
                 randomUUID(),
                 streamId,
                 8793877L,
-                new UtcClock().now(),
+                utcClock.now(),
                 "stack-trace_3",
                 "component-name_3",
-                "source_3"
+                "source_3",
+                utcClock.now()
         );
 
         final StreamErrorHash streamErrorHash = new StreamErrorHash(
@@ -170,6 +176,7 @@ public class StreamErrorOccurrencePersistenceIT {
     @Test
     public void shouldDeleteStreamErrorByIdAndReturnItsHash() throws Exception {
         final String hash = "sdlksdljfsdlf87236662846";
+        final UtcClock utcClock2 = new UtcClock();
         final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
@@ -179,10 +186,11 @@ public class StreamErrorOccurrencePersistenceIT {
                 randomUUID(),
                 randomUUID(),
                 23423L,
-                new UtcClock().now(),
+                utcClock2.now(),
                 "stack-trace",
                 "component-name",
-                "source"
+                "source",
+                utcClock2.now()
         );
 
         final StreamErrorHash streamErrorHash = new StreamErrorHash(
@@ -230,6 +238,7 @@ public class StreamErrorOccurrencePersistenceIT {
             assertThat(streamErrorOccurrencePersistence.noErrorsExistFor(hash, connection), is(true));
         }
 
+        final UtcClock utcClock3 = new UtcClock();
         final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 randomUUID(),
                 hash,
@@ -239,10 +248,11 @@ public class StreamErrorOccurrencePersistenceIT {
                 randomUUID(),
                 randomUUID(),
                 23423L,
-                new UtcClock().now(),
+                utcClock3.now(),
                 "stack-trace",
                 "component-name",
-                "source"
+                "source",
+                utcClock3.now()
         );
 
         final StreamErrorHash streamErrorHash = new StreamErrorHash(

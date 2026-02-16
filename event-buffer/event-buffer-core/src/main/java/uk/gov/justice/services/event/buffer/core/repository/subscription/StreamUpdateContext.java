@@ -10,7 +10,7 @@ public record StreamUpdateContext(
         long incomingEventPosition,
         long currentStreamPosition,
         long latestKnownStreamPosition,
-        Timestamp lastUpdatedAt,
+        Timestamp lastDiscoveredAt,
         Optional<UUID> streamErrorId,
         Optional<StreamErrorOccurrence> existingStreamErrorDetails) {
 }

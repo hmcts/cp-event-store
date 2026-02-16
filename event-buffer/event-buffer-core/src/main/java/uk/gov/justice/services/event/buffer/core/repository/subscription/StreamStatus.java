@@ -11,7 +11,7 @@ public record StreamStatus(
         String component,
         Optional<UUID> streamErrorId,
         Optional<Long> streamErrorPosition,
-        ZonedDateTime updatedAt,
+        ZonedDateTime discoveredAt,
         Long latestKnownPosition,
         Boolean isUpToDate) {
 }

@@ -18,7 +18,6 @@ import uk.gov.justice.services.event.sourcing.subscription.manager.TransactionHa
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
-import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -152,7 +151,7 @@ public class StreamErrorStatusHandlerTest {
         final StreamError newStreamError = mock(StreamError.class);
         final StreamErrorOccurrence newStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
         final StreamErrorOccurrence existingStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
-        final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis());
+        final UUID existingStreamErrorId = randomUUID();
 
         when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
         when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(newStreamError);
@@ -161,7 +160,7 @@ public class StreamErrorStatusHandlerTest {
         when(newStreamErrorOccurrence.streamId()).thenReturn(streamId);
         when(streamUpdateContext.existingStreamErrorDetails()).thenReturn(Optional.of(existingStreamErrorOccurrence));
         when(existingStreamErrorOccurrence.hash()).thenReturn(errorHash);
-        when(streamUpdateContext.lastUpdatedAt()).thenReturn(lastUpdatedAt);
+        when(streamUpdateContext.streamErrorId()).thenReturn(Optional.of(existingStreamErrorId));
 
         streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, source, component, streamUpdateContext);
 
@@ -173,7 +172,7 @@ public class StreamErrorStatusHandlerTest {
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
         inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamErrorRepository).markSameErrorHappened(newStreamError, streamUpdateContext.currentStreamPosition(), lastUpdatedAt);
+        inOrder.verify(streamErrorRepository).markSameErrorHappened(existingStreamErrorId, streamId, source, component);
         inOrder.verify(streamRetryStatusManager).updateStreamRetryCountAndNextRetryTime(streamId, source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
 

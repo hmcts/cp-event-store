@@ -40,7 +40,7 @@ public class OldestStreamSelectorTest {
         final long latestKnownPosition = 10L;
         final int maxRetries = 10;
 
-        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, position, latestKnownPosition);
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, position, latestKnownPosition, empty());
 
         when(streamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, component, maxRetries))
                 .thenReturn(of(lockedStreamStatus));

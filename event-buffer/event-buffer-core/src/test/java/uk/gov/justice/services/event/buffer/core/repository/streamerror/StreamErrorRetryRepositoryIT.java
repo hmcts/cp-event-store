@@ -54,7 +54,6 @@ public class StreamErrorRetryRepositoryIT {
                 randomUUID(),
                 "some-source",
                 "some-component",
-                new UtcClock().now(),
                 23L,
                 new UtcClock().now().plusMinutes(20)
         );
@@ -67,14 +66,12 @@ public class StreamErrorRetryRepositoryIT {
         assertThat(streamErrorRetries.get(0).streamId(), is(streamErrorRetry.streamId()));
         assertThat(streamErrorRetries.get(0).source(), is(streamErrorRetry.source()));
         assertThat(streamErrorRetries.get(0).component(), is(streamErrorRetry.component()));
-        assertThat(streamErrorRetries.get(0).occurredAt(), is(streamErrorRetry.occurredAt()));
         assertThat(streamErrorRetries.get(0).retryCount(), is(streamErrorRetry.retryCount()));
         assertThat(streamErrorRetries.get(0).nextRetryTime(), is(streamErrorRetry.nextRetryTime()));
 
         final StreamErrorRetry updatedStreamErrorRetry = from(streamErrorRetry)
                 .incrementRetryCount()
                 .withNextRetryTime(new UtcClock().now().plusMinutes(2))
-                .withOccurredAt(new UtcClock().now().minusMinutes(1))
                 .build();
 
         assertThat(updatedStreamErrorRetry.retryCount(), is(streamErrorRetry.retryCount() + 1));
@@ -87,7 +84,6 @@ public class StreamErrorRetryRepositoryIT {
         assertThat(updatedStreamErrorRetries.get(0).streamId(), is(updatedStreamErrorRetry.streamId()));
         assertThat(updatedStreamErrorRetries.get(0).source(), is(updatedStreamErrorRetry.source()));
         assertThat(updatedStreamErrorRetries.get(0).component(), is(updatedStreamErrorRetry.component()));
-        assertThat(updatedStreamErrorRetries.get(0).occurredAt(), is(updatedStreamErrorRetry.occurredAt()));
         assertThat(updatedStreamErrorRetries.get(0).retryCount(), is(updatedStreamErrorRetry.retryCount()));
         assertThat(updatedStreamErrorRetries.get(0).nextRetryTime(), is(updatedStreamErrorRetry.nextRetryTime()));
     }
@@ -104,7 +100,6 @@ public class StreamErrorRetryRepositoryIT {
                 randomUUID(),
                 "some-source_1",
                 "some-component_1",
-                new UtcClock().now(),
                 1L,
                 new UtcClock().now().plusMinutes(20)
         );
@@ -113,7 +108,6 @@ public class StreamErrorRetryRepositoryIT {
                 randomUUID(),
                 "some-source_2",
                 "some-component_2",
-                new UtcClock().now(),
                 2L,
                 new UtcClock().now().plusMinutes(20)
         );
@@ -121,7 +115,6 @@ public class StreamErrorRetryRepositoryIT {
                 randomUUID(),
                 "some-source_3",
                 "some-component_3",
-                new UtcClock().now(),
                 3L,
                 new UtcClock().now().plusMinutes(20)
         );
@@ -153,7 +146,6 @@ public class StreamErrorRetryRepositoryIT {
                 randomUUID(),
                 "some-source",
                 "some-component",
-                new UtcClock().now(),
                 retryCount,
                 new UtcClock().now().plusMinutes(20)
         );
@@ -192,7 +184,6 @@ public class StreamErrorRetryRepositoryIT {
                 randomUUID(),
                 "some-source_1",
                 "some-component_1",
-                new UtcClock().now(),
                 1L,
                 new UtcClock().now().plusMinutes(20)
         );
@@ -201,7 +192,6 @@ public class StreamErrorRetryRepositoryIT {
                 randomUUID(),
                 "some-source_2",
                 "some-component_2",
-                new UtcClock().now(),
                 2L,
                 new UtcClock().now().plusMinutes(20)
         );
@@ -209,7 +199,6 @@ public class StreamErrorRetryRepositoryIT {
                 randomUUID(),
                 "some-source_3",
                 "some-component_3",
-                new UtcClock().now(),
                 3L,
                 new UtcClock().now().plusMinutes(20)
         );

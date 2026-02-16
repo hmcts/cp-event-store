@@ -27,7 +27,7 @@ class StreamResponseMapperTest {
         final List<StreamResponse> streams = streamResponseMapper.map(List.of(streamStatus1, streamStatus2));
         assertThat(streams.size(), is(2));
         assertThat(streams.get(0).streamId(), is(streamStatus1.streamId()));
-        assertThat(streams.get(0).updatedAt(), is(streamStatus1.updatedAt().toString()));
+        assertThat(streams.get(0).discoveredAt(), is(streamStatus1.discoveredAt().toString()));
         assertThat(streams.get(0).component(), is("EVENT_LISTENER"));
         assertThat(streams.get(0).source(), is("listing"));
         assertThat(streams.get(0).position(), is(1L));
@@ -37,7 +37,7 @@ class StreamResponseMapperTest {
         assertNull(streams.get(0).errorPosition());
 
         assertThat(streams.get(1).streamId(), is(streamStatus2.streamId()));
-        assertThat(streams.get(1).updatedAt(), is(streamStatus2.updatedAt().toString()));
+        assertThat(streams.get(1).discoveredAt(), is(streamStatus2.discoveredAt().toString()));
         assertThat(streams.get(1).component(), is("EVENT_INDEXER"));
         assertThat(streams.get(1).source(), is("progression"));
         assertThat(streams.get(1).position(), is(2L));

@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -22,7 +21,6 @@ import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -323,66 +321,31 @@ public class StreamErrorRepositoryTest {
     @Test
     public void shouldMarkSameErrorHappened() throws Exception {
 
-        final StreamError newStreamError = mock(StreamError.class);
-        final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis());
-        final long lastStreamPosition = 122L;
-
-
-        final DataSource viewStoreDataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-
-        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
-        when(viewStoreDataSource.getConnection()).thenReturn(connection);
-        when(streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection)).thenReturn(1);
-
-        streamErrorRepository.markSameErrorHappened(newStreamError, lastStreamPosition, lastUpdatedAt);
-
-        verify(streamStatusErrorPersistence).updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection);
-        verify(connection).close();
-        verifyNoInteractions(logger);
-    }
-
-    @Test
-    public void shouldLogWarningWhenNoRowsUpdatedInMarkSameErrorHappened() throws Exception {
-
-        final StreamError newStreamError = mock(StreamError.class);
-        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
-        final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis());
-        final UUID streamErrorId = randomUUID();
+        final UUID existingStreamErrorId = randomUUID();
         final UUID streamId = randomUUID();
-        final String componentName = "SOME_COMPONENT";
         final String source = "some-source";
-        final long lastStreamPosition = 122L;
-
+        final String componentName = "SOME_COMPONENT";
 
         final DataSource viewStoreDataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
 
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
         when(viewStoreDataSource.getConnection()).thenReturn(connection);
-        when(newStreamError.streamErrorOccurrence()).thenReturn(streamErrorOccurrence);
-        when(streamErrorOccurrence.id()).thenReturn(streamErrorId);
-        when(streamErrorOccurrence.streamId()).thenReturn(streamId);
-        when(streamErrorOccurrence.componentName()).thenReturn(componentName);
-        when(streamErrorOccurrence.source()).thenReturn(source);
-        when(streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection)).thenReturn(0);
 
-        streamErrorRepository.markSameErrorHappened(newStreamError, lastStreamPosition, lastUpdatedAt);
+        streamErrorRepository.markSameErrorHappened(existingStreamErrorId, streamId, source, componentName);
 
-        verify(streamStatusErrorPersistence).updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection);
-        verify(logger).warn("Existing stream status entry is changed by another transaction errorId: {} streamId: {} source {} component {}",
-                streamErrorId, streamId, source, componentName);
+        verify(streamStatusErrorPersistence).updateStreamErrorOccurredAt(existingStreamErrorId, streamId, source, componentName, connection);
         verify(connection).close();
     }
 
     @Test
     public void shouldThrowStreamErrorHandlingExceptionIfGettingConnectionFailsInMarkSameErrorHappened() throws Exception {
 
-        final StreamError newStreamError = mock(StreamError.class);
-        final Timestamp lastUpdatedAt = new Timestamp(System.currentTimeMillis());
+        final UUID existingStreamErrorId = randomUUID();
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String componentName = "SOME_COMPONENT";
         final SQLException sqlException = new SQLException("Ooops");
-        final long lastStreamPosition = 122L;
-
 
         final DataSource viewStoreDataSource = mock(DataSource.class);
 
@@ -391,7 +354,7 @@ public class StreamErrorRepositoryTest {
 
         final StreamErrorHandlingException streamErrorHandlingException = assertThrows(
                 StreamErrorHandlingException.class,
-                () -> streamErrorRepository.markSameErrorHappened(newStreamError, lastStreamPosition, lastUpdatedAt));
+                () -> streamErrorRepository.markSameErrorHappened(existingStreamErrorId, streamId, source, componentName));
 
         assertThat(streamErrorHandlingException.getCause(), is(sqlException));
         assertThat(streamErrorHandlingException.getMessage(), is("Failed to get connection to view-store"));

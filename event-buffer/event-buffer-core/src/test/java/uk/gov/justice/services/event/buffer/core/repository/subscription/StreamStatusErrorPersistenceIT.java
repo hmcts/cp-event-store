@@ -202,6 +202,7 @@ public class StreamStatusErrorPersistenceIT {
                 2334
         );
 
+        final UtcClock utcClock = new UtcClock();
         final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                 streamErrorId,
                 hash,
@@ -211,10 +212,11 @@ public class StreamStatusErrorPersistenceIT {
                 eventId,
                 streamId,
                 positionInStream,
-                new UtcClock().now(),
+                utcClock.now(),
                 "stack-trace",
                 componentName,
-                source
+                source,
+                utcClock.now()
         );
 
         return new StreamError(

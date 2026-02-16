@@ -23,6 +23,7 @@ public class StreamErrorDetailsRowMapper {
         final String fullStackTrace = resultSet.getString("full_stack_trace");
         final String componentName = resultSet.getString("component");
         final String source = resultSet.getString("source");
+        final ZonedDateTime occurredAt = fromSqlTimestamp(resultSet.getTimestamp("occurred_at"));
 
         return new StreamErrorOccurrence(
                 id,
@@ -36,7 +37,8 @@ public class StreamErrorDetailsRowMapper {
                 dateCreated,
                 fullStackTrace,
                 componentName,
-                source
+                source,
+                occurredAt
         );
     }
 }

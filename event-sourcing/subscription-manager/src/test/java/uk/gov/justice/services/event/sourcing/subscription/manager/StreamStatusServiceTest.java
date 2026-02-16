@@ -86,7 +86,7 @@ public class StreamStatusServiceTest {
         final UUID streamId = randomUUID();
         final String source = "some-source";
         final long incomingPositionInStream = 87687;
-        final ZonedDateTime updatedAt = new UtcClock().now();
+        final ZonedDateTime discoveredAt = new UtcClock().now();
 
         final JsonEnvelope incomingJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
@@ -98,7 +98,7 @@ public class StreamStatusServiceTest {
         when(metadata.streamId()).thenReturn(of(streamId));
         when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
-        when(clock.now()).thenReturn(updatedAt);
+        when(clock.now()).thenReturn(discoveredAt);
         when(newStreamStatusRepository.lockStreamAndGetStreamUpdateContext(
                 streamId,
                 source,
@@ -115,7 +115,7 @@ public class StreamStatusServiceTest {
                 streamId,
                 source,
                 componentName,
-                updatedAt,
+                discoveredAt,
                 false);
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContext(
                 streamId,
@@ -142,7 +142,7 @@ public class StreamStatusServiceTest {
         final UUID streamId = randomUUID();
         final String source = "some-source";
         final long incomingPositionInStream = 87687;
-        final ZonedDateTime updatedAt = new UtcClock().now();
+        final ZonedDateTime discoveredAt = new UtcClock().now();
 
         final JsonEnvelope incomingJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
@@ -154,7 +154,7 @@ public class StreamStatusServiceTest {
         when(metadata.streamId()).thenReturn(of(streamId));
         when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
-        when(clock.now()).thenReturn(updatedAt);
+        when(clock.now()).thenReturn(discoveredAt);
         when(newStreamStatusRepository.lockStreamAndGetStreamUpdateContext(
                 streamId,
                 source,
@@ -175,7 +175,7 @@ public class StreamStatusServiceTest {
                 streamId,
                 source,
                 componentName,
-                updatedAt,
+                discoveredAt,
                 false);
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContext(
                 streamId,
@@ -203,7 +203,7 @@ public class StreamStatusServiceTest {
         final UUID streamId = fromString("1bc83024-d11a-4177-8892-1592b3741cc0");
         final long incomingPositionInStream = 23;
         final long currentStreamPosition = 99;
-        final ZonedDateTime updatedAt = new UtcClock().now();
+        final ZonedDateTime discoveredAt = new UtcClock().now();
 
         final JsonEnvelope incomingJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
@@ -215,7 +215,7 @@ public class StreamStatusServiceTest {
         when(metadata.streamId()).thenReturn(of(streamId));
         when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
-        when(clock.now()).thenReturn(updatedAt);
+        when(clock.now()).thenReturn(discoveredAt);
         when(newStreamStatusRepository.lockStreamAndGetStreamUpdateContext(
                 streamId,
                 source,
@@ -240,7 +240,7 @@ public class StreamStatusServiceTest {
                 streamId,
                 source,
                 component,
-                updatedAt,
+                discoveredAt,
                 false);
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContext(
                 streamId,
@@ -269,7 +269,7 @@ public class StreamStatusServiceTest {
         final UUID streamId = fromString("bfb89fb7-79af-4679-b01d-cd46f5b0b38f");
         final String source = "some-source";
         final long incomingPositionInStream = 87687;
-        final ZonedDateTime updatedAt = new UtcClock().now();
+        final ZonedDateTime discoveredAt = new UtcClock().now();
 
         final JsonEnvelope incomingJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
@@ -280,7 +280,7 @@ public class StreamStatusServiceTest {
         when(metadata.streamId()).thenReturn(of(streamId));
         when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
-        when(clock.now()).thenReturn(updatedAt);
+        when(clock.now()).thenReturn(discoveredAt);
         when(newStreamStatusRepository.lockStreamAndGetStreamUpdateContext(
                 streamId,
                 source,
@@ -312,7 +312,7 @@ public class StreamStatusServiceTest {
         final UUID streamId = fromString("85831bb3-1257-4096-8844-ee7d88e86a1f");
         final String source = "some-source";
         final long incomingPositionInStream = 87687;
-        final ZonedDateTime updatedAt = new UtcClock().now();
+        final ZonedDateTime discoveredAt = new UtcClock().now();
 
         final NullPointerException nullPointerException = new NullPointerException("Bunnies");
 
@@ -325,7 +325,7 @@ public class StreamStatusServiceTest {
         when(metadata.streamId()).thenReturn(of(streamId));
         when(eventSourceNameCalculator.getSource(incomingJsonEnvelope)).thenReturn(source);
         when(metadata.position()).thenReturn(of(incomingPositionInStream));
-        when(clock.now()).thenReturn(updatedAt);
+        when(clock.now()).thenReturn(discoveredAt);
         when(newStreamStatusRepository.lockStreamAndGetStreamUpdateContext(
                 streamId,
                 source,

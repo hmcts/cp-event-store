@@ -33,9 +33,10 @@ public class StreamErrorOccurrencePersistence {
                 date_created,
                 full_stack_trace,
                 component,
-                source
+                source,
+                occurred_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (stream_id, component, source) DO NOTHING
             """;
 
@@ -51,7 +52,8 @@ public class StreamErrorOccurrencePersistence {
                 date_created,
                 full_stack_trace,
                 component,
-                source
+                source,
+                occurred_at
             FROM stream_error
             WHERE id = ?
             """;
@@ -68,7 +70,8 @@ public class StreamErrorOccurrencePersistence {
                 date_created,
                 full_stack_trace,
                 component,
-                source
+                source,
+                occurred_at
             FROM stream_error
             WHERE stream_id = ?
             """;
@@ -85,7 +88,8 @@ public class StreamErrorOccurrencePersistence {
                 date_created,
                 full_stack_trace,
                 component,
-                source
+                source,
+                occurred_at
             FROM stream_error
             """;
     private static final String DELETE_AND_RETURN_HASH_SQL = """
@@ -114,6 +118,7 @@ public class StreamErrorOccurrencePersistence {
             preparedStatement.setString(10, streamErrorOccurrence.fullStackTrace());
             preparedStatement.setString(11, streamErrorOccurrence.componentName());
             preparedStatement.setString(12, streamErrorOccurrence.source());
+            preparedStatement.setTimestamp(13, toSqlTimestamp(streamErrorOccurrence.occurredAt()));
 
             return preparedStatement.executeUpdate();
         }
@@ -136,6 +141,7 @@ public class StreamErrorOccurrencePersistence {
                     final String fullStackTrace = resultSet.getString("full_stack_trace");
                     final String componentName = resultSet.getString("component");
                     final String source = resultSet.getString("source");
+                    final ZonedDateTime occurredAt = fromSqlTimestamp(resultSet.getTimestamp("occurred_at"));
 
                     final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                             id,
@@ -149,7 +155,8 @@ public class StreamErrorOccurrencePersistence {
                             dateCreated,
                             fullStackTrace,
                             componentName,
-                            source
+                            source,
+                            occurredAt
                     );
 
                     return of(streamErrorOccurrence);
@@ -179,6 +186,7 @@ public class StreamErrorOccurrencePersistence {
                     final String fullStackTrace = resultSet.getString("full_stack_trace");
                     final String componentName = resultSet.getString("component");
                     final String source = resultSet.getString("source");
+                    final ZonedDateTime occurredAt = fromSqlTimestamp(resultSet.getTimestamp("occurred_at"));
 
                     final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                             id,
@@ -192,7 +200,8 @@ public class StreamErrorOccurrencePersistence {
                             dateCreated,
                             fullStackTrace,
                             componentName,
-                            source
+                            source,
+                            occurredAt
                     );
 
                     streamErrorOccurrenceList.add(streamErrorOccurrence);
@@ -222,6 +231,7 @@ public class StreamErrorOccurrencePersistence {
                     final String fullStackTrace = resultSet.getString("full_stack_trace");
                     final String componentName = resultSet.getString("component");
                     final String source = resultSet.getString("source");
+                    final ZonedDateTime occurredAt = fromSqlTimestamp(resultSet.getTimestamp("occurred_at"));
 
                     final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
                             streamErrorId,
@@ -235,7 +245,8 @@ public class StreamErrorOccurrencePersistence {
                             dateCreated,
                             fullStackTrace,
                             componentName,
-                            source
+                            source,
+                            occurredAt
                     );
 
                     streamErrorOccurrenceList.add(streamErrorOccurrence);

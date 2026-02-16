@@ -8,7 +8,7 @@ public record StreamResponse(
         Long lastKnownPosition,
         String source,
         String component,
-        String updatedAt,
+        String discoveredAt,
         boolean upToDate,
         UUID errorId,
         Long errorPosition) {

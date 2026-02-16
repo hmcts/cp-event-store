@@ -1,6 +1,5 @@
 package uk.gov.justice.services.event.buffer.core.repository.streamerror;
 
-import static java.util.Optional.empty;
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
@@ -11,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 import uk.gov.justice.services.common.util.UtcClock;
 
@@ -18,7 +18,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -43,14 +42,10 @@ public class StreamStatusErrorPersistenceTest {
             FOR NO KEY UPDATE
             """;
 
-    private static final String UPDATE_STREAM_UPDATED_AT_IF_ERROR_IS_SAME = """
-                UPDATE stream_status
-                SET updated_at = ?
-                WHERE stream_id = ?
-                AND source = ?
-                AND component = ?
-                AND position = ?
-                AND updated_at  = ?
+    private static final String UPDATE_STREAM_ERROR_OCCURRED_AT_SQL = """
+                UPDATE stream_error
+                SET occurred_at = ?
+                WHERE id = ?
             """;
 
     @Mock
@@ -146,57 +141,25 @@ public class StreamStatusErrorPersistenceTest {
     }
 
     @Test
-    public void shouldUpdateStreamStatusUpdatedAtForSameError() throws Exception {
+    public void shouldUpdateStreamErrorOccurredAt() throws Exception {
 
-        final UUID streamId = randomUUID();
         final UUID streamErrorId = randomUUID();
+        final UUID streamId = randomUUID();
         final String source = "some-source";
-        final String componentName = "some-component";
-        final Timestamp previousUpdateAtTimestamp = new Timestamp(System.currentTimeMillis() - 1000);
-        final ZonedDateTime updatedAt = ZonedDateTime.now();
-        final int expectedRowsUpdated = 1;
-        final long lastStreamPosition = 122L;
+        final String component = "some-component";
+        final ZonedDateTime occurredAt = ZonedDateTime.now();
 
-
-        final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
-                streamErrorId,
-                "some-hash",
-                "exception-message",
-                empty(),
-                "event-name",
-                randomUUID(),
-                streamId,
-                123L,
-                ZonedDateTime.now(),
-                "stack-trace",
-                componentName,
-                source
-        );
-
-        final StreamError streamError = new StreamError(streamErrorOccurrence, null);
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
-        when(clock.now()).thenReturn(updatedAt);
-        when(connection.prepareStatement(UPDATE_STREAM_UPDATED_AT_IF_ERROR_IS_SAME)).thenReturn(preparedStatement);
-        when(preparedStatement.executeUpdate()).thenReturn(expectedRowsUpdated);
+        when(clock.now()).thenReturn(occurredAt);
+        when(connection.prepareStatement(UPDATE_STREAM_ERROR_OCCURRED_AT_SQL)).thenReturn(preparedStatement);
 
-        final int actualRowsUpdated = streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(
-                streamError,
-                lastStreamPosition,
-                previousUpdateAtTimestamp,
-                connection
-        );
-
-        assertThat(actualRowsUpdated, is(expectedRowsUpdated));
+        streamStatusErrorPersistence.updateStreamErrorOccurredAt(streamErrorId, streamId, source, component, connection);
 
         final InOrder inOrder = inOrder(preparedStatement);
-        inOrder.verify(preparedStatement).setObject(1, Timestamp.from(updatedAt.toInstant()));
-        inOrder.verify(preparedStatement).setObject(2, streamId);
-        inOrder.verify(preparedStatement).setString(3, source);
-        inOrder.verify(preparedStatement).setString(4, componentName);
-        inOrder.verify(preparedStatement).setObject(5, lastStreamPosition);
-        inOrder.verify(preparedStatement).setObject(6, previousUpdateAtTimestamp);
+        inOrder.verify(preparedStatement).setTimestamp(1, toSqlTimestamp(occurredAt));
+        inOrder.verify(preparedStatement).setObject(2, streamErrorId);
         inOrder.verify(preparedStatement).executeUpdate();
         inOrder.verify(preparedStatement).close();
 
@@ -204,52 +167,28 @@ public class StreamStatusErrorPersistenceTest {
     }
 
     @Test
-    public void shouldThrowStreamErrorHandlingExceptionWhenUpdateStreamStatusUpdatedAtForSameErrorFails() throws Exception {
+    public void shouldThrowStreamErrorHandlingExceptionWhenUpdateStreamErrorOccurredAtFails() throws Exception {
 
-        final UUID streamId = fromString("4a51e597-c019-4931-9472-5e17cc5bb839");
-        final UUID streamErrorId = randomUUID();
+        final UUID streamErrorId = fromString("4a51e597-c019-4931-9472-5e17cc5bb839");
+        final UUID streamId = fromString("b3f1e597-c019-4931-9472-5e17cc5bb123");
         final String source = "some-source";
-        final String componentName = "some-component";
-        final Timestamp previousUpdateAtTimestamp = new Timestamp(System.currentTimeMillis() - 1000);
-        final ZonedDateTime updatedAt = ZonedDateTime.now();
+        final String component = "some-component";
+        final ZonedDateTime occurredAt = ZonedDateTime.now();
         final SQLException sqlException = new SQLException("Database error");
-        final long lastStreamPosition = 122L;
 
-
-        final StreamErrorOccurrence streamErrorOccurrence = new StreamErrorOccurrence(
-                streamErrorId,
-                "some-hash",
-                "exception-message",
-                empty(),
-                "event-name",
-                randomUUID(),
-                streamId,
-                123L,
-                ZonedDateTime.now(),
-                "stack-trace",
-                componentName,
-                source
-        );
-
-        final StreamError streamError = new StreamError(streamErrorOccurrence, null);
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
-        when(clock.now()).thenReturn(updatedAt);
-        when(connection.prepareStatement(UPDATE_STREAM_UPDATED_AT_IF_ERROR_IS_SAME)).thenReturn(preparedStatement);
+        when(clock.now()).thenReturn(occurredAt);
+        when(connection.prepareStatement(UPDATE_STREAM_ERROR_OCCURRED_AT_SQL)).thenReturn(preparedStatement);
         when(preparedStatement.executeUpdate()).thenThrow(sqlException);
 
         final StreamErrorHandlingException streamErrorHandlingException = assertThrows(
                 StreamErrorHandlingException.class,
-                () -> streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(
-                        streamError,
-                        lastStreamPosition,
-                        previousUpdateAtTimestamp,
-                        connection
-                ));
+                () -> streamStatusErrorPersistence.updateStreamErrorOccurredAt(streamErrorId, streamId, source, component, connection));
 
         assertThat(streamErrorHandlingException.getCause(), is(sqlException));
-        assertThat(streamErrorHandlingException.getMessage(), is("Failed to update Stream Status updated at. streamId: '4a51e597-c019-4931-9472-5e17cc5bb839', source: 'some-source, component: 'some-component'"));
+        assertThat(streamErrorHandlingException.getMessage(), is("Failed to update stream_error occurred_at. streamErrorId: '4a51e597-c019-4931-9472-5e17cc5bb839', streamId: 'b3f1e597-c019-4931-9472-5e17cc5bb123', source: 'some-source', component: 'some-component'"));
 
         verify(preparedStatement).close();
         verify(connection, never()).close();

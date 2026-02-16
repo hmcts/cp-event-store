@@ -49,41 +49,46 @@ public class StreamStatusReadRepositoryIT {
     private static final UUID STREAM_3_ID = randomUUID();
     private static final UUID STREAM_4_ID = randomUUID();
     private static final UUID STREAM_5_ID = randomUUID();
-    private static final ZonedDateTime UPDATED_AT = new UtcClock().now().minusDays(2);
-    private static final ZonedDateTime UPDATED_AT_1 = UPDATED_AT.plusMinutes(1);
-    private static final ZonedDateTime UPDATED_AT_2 = UPDATED_AT.plusMinutes(2);
-    private static final ZonedDateTime UPDATED_AT_3 = UPDATED_AT.plusMinutes(3);
+    private static final ZonedDateTime BASE_DISCOVERED_AT = new UtcClock().now().minusDays(2);
+    private static final ZonedDateTime STREAM_1_LISTENER_DISCOVERED_AT = BASE_DISCOVERED_AT.plusSeconds(1);
+    private static final ZonedDateTime STREAM_1_INDEXER_DISCOVERED_AT = BASE_DISCOVERED_AT.plusSeconds(2);
+    private static final ZonedDateTime STREAM_2_LISTENER_DISCOVERED_AT = BASE_DISCOVERED_AT.plusSeconds(3);
+    private static final ZonedDateTime STREAM_2_INDEXER_DISCOVERED_AT = BASE_DISCOVERED_AT.plusSeconds(4);
+    private static final ZonedDateTime STREAM_3_DISCOVERED_AT = BASE_DISCOVERED_AT.plusSeconds(5);
+    private static final ZonedDateTime STREAM_4_LISTENER_DISCOVERED_AT = BASE_DISCOVERED_AT.plusMinutes(1);
+    private static final ZonedDateTime STREAM_4_INDEXER_DISCOVERED_AT = BASE_DISCOVERED_AT.plusMinutes(2);
+    private static final ZonedDateTime STREAM_5_DISCOVERED_AT = BASE_DISCOVERED_AT.plusMinutes(3);
     private static final String ERROR_1_HASH = "hash-1";
     private static final String ERROR_2_HASH = "hash-2";
     final StreamErrorOccurrence STREAM_1_LISTENER_ERROR_1 = new StreamErrorOccurrence(
             randomUUID(), ERROR_1_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_1_ID, 1L,
             new UtcClock().now(), "stack-trace",
-            EVENT_LISTENER_COMPONENT, LISTING_SOURCE
+            EVENT_LISTENER_COMPONENT, LISTING_SOURCE, new UtcClock().now()
     );
     final StreamErrorOccurrence STREAM_1_INDEXER_ERROR_1 = new StreamErrorOccurrence(
             randomUUID(), ERROR_1_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_1_ID, 1L,
             new UtcClock().now(), "stack-trace",
-            EVENT_INDEXER_COMPONENT, LISTING_SOURCE
+            EVENT_INDEXER_COMPONENT, LISTING_SOURCE, new UtcClock().now()
     );
     final StreamErrorOccurrence STREAM_2_LISTENER_ERROR_1 = new StreamErrorOccurrence(
             randomUUID(), ERROR_1_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_2_ID, 1L,
             new UtcClock().now(), "stack-trace",
-            EVENT_LISTENER_COMPONENT, LISTING_SOURCE
+            EVENT_LISTENER_COMPONENT, LISTING_SOURCE, new UtcClock().now()
     );
     final StreamErrorOccurrence STREAM_2_INDEXER_ERROR_2 = new StreamErrorOccurrence(
             randomUUID(), ERROR_2_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_2_ID, 1L,
             new UtcClock().now(), "stack-trace",
-            EVENT_INDEXER_COMPONENT, LISTING_SOURCE
+            EVENT_INDEXER_COMPONENT, LISTING_SOURCE, new UtcClock().now()
     );
     final StreamErrorOccurrence STREAM_3_ERROR_1 = new StreamErrorOccurrence(
             randomUUID(), ERROR_1_HASH, "some-exception-message", empty(),
             "event-name", randomUUID(), STREAM_3_ID, 1L,
             new UtcClock().now(), "stack-trace",
-            EVENT_LISTENER_COMPONENT, LISTING_SOURCE
+            EVENT_LISTENER_COMPONENT, LISTING_SOURCE, new UtcClock().now()
     );
 
     @Mock
@@ -126,14 +131,14 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatusReadRepository.findByStreamId(STREAM_1_ID).isEmpty(), is(true));
         assertThat(streamStatusReadRepository.findErrorStreams().isEmpty(), is(true));
 
-        newStreamStatusRepository.insertIfNotExists(STREAM_1_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, UPDATED_AT, false);
-        newStreamStatusRepository.insertIfNotExists(STREAM_1_ID, LISTING_SOURCE, EVENT_INDEXER_COMPONENT, UPDATED_AT, false);
-        newStreamStatusRepository.insertIfNotExists(STREAM_2_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, UPDATED_AT, false);
-        newStreamStatusRepository.insertIfNotExists(STREAM_2_ID, LISTING_SOURCE, EVENT_INDEXER_COMPONENT, UPDATED_AT, false);
-        newStreamStatusRepository.insertIfNotExists(STREAM_3_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, UPDATED_AT, false);
-        newStreamStatusRepository.insertIfNotExists(STREAM_4_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, UPDATED_AT_1, false);
-        newStreamStatusRepository.insertIfNotExists(STREAM_4_ID, LISTING_SOURCE, EVENT_INDEXER_COMPONENT, UPDATED_AT_2, false);
-        newStreamStatusRepository.insertIfNotExists(STREAM_5_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, UPDATED_AT_3, false);
+        newStreamStatusRepository.insertIfNotExists(STREAM_1_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, STREAM_1_LISTENER_DISCOVERED_AT, false);
+        newStreamStatusRepository.insertIfNotExists(STREAM_1_ID, LISTING_SOURCE, EVENT_INDEXER_COMPONENT, STREAM_1_INDEXER_DISCOVERED_AT, false);
+        newStreamStatusRepository.insertIfNotExists(STREAM_2_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, STREAM_2_LISTENER_DISCOVERED_AT, false);
+        newStreamStatusRepository.insertIfNotExists(STREAM_2_ID, LISTING_SOURCE, EVENT_INDEXER_COMPONENT, STREAM_2_INDEXER_DISCOVERED_AT, false);
+        newStreamStatusRepository.insertIfNotExists(STREAM_3_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, STREAM_3_DISCOVERED_AT, false);
+        newStreamStatusRepository.insertIfNotExists(STREAM_4_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, STREAM_4_LISTENER_DISCOVERED_AT, false);
+        newStreamStatusRepository.insertIfNotExists(STREAM_4_ID, LISTING_SOURCE, EVENT_INDEXER_COMPONENT, STREAM_4_INDEXER_DISCOVERED_AT, false);
+        newStreamStatusRepository.insertIfNotExists(STREAM_5_ID, LISTING_SOURCE, EVENT_LISTENER_COMPONENT, STREAM_5_DISCOVERED_AT, false);
 
         insertEntriesToStreamErrorHash(ERROR_1_HASH, ERROR_2_HASH, viewStoreDataSource);
 
@@ -144,7 +149,6 @@ public class StreamStatusReadRepositoryIT {
         streamErrorOccurrencePersistence.insert(STREAM_2_INDEXER_ERROR_2, viewStoreDataSource.getConnection());
         streamErrorOccurrencePersistence.insert(STREAM_3_ERROR_1, viewStoreDataSource.getConnection());
 
-        //stream_status updatedAt is changed by below calls, so results will be returned in the reverse order of below calls
         streamStatusErrorPersistence.markStreamAsErrored(STREAM_1_ID, STREAM_1_LISTENER_ERROR_1.id(), 1L, STREAM_1_LISTENER_ERROR_1.componentName(),
                 STREAM_1_LISTENER_ERROR_1.source(), viewStoreDataSource.getConnection());
         streamStatusErrorPersistence.markStreamAsErrored(STREAM_1_ID, STREAM_1_INDEXER_ERROR_1.id(), 1L, STREAM_1_INDEXER_ERROR_1.componentName(),
@@ -171,7 +175,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus1.isUpToDate(), is(false));
         assertThat(streamStatus1.streamErrorId().get(), is(STREAM_3_ERROR_1.id()));
         assertThat(streamStatus1.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus1.updatedAt());
+        assertNotNull(streamStatus1.discoveredAt());
 
         final StreamStatus streamStatus2 = streamStatuses.get(1);
         assertThat(streamStatus2.streamId(), is(STREAM_2_ID));
@@ -182,7 +186,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus2.isUpToDate(), is(false));
         assertThat(streamStatus2.streamErrorId().get(), is(STREAM_2_LISTENER_ERROR_1.id()));
         assertThat(streamStatus2.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus2.updatedAt());
+        assertNotNull(streamStatus2.discoveredAt());
 
         final StreamStatus streamStatus3 = streamStatuses.get(2);
         assertThat(streamStatus3.streamId(), is(STREAM_1_ID));
@@ -193,7 +197,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus3.isUpToDate(), is(false));
         assertThat(streamStatus3.streamErrorId().get(), is(STREAM_1_INDEXER_ERROR_1.id()));
         assertThat(streamStatus3.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus3.updatedAt());
+        assertNotNull(streamStatus3.discoveredAt());
 
         final StreamStatus streamStatus4 = streamStatuses.get(3);
         assertThat(streamStatus4.streamId(), is(STREAM_1_ID));
@@ -204,7 +208,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus4.isUpToDate(), is(false));
         assertThat(streamStatus4.streamErrorId().get(), is(STREAM_1_LISTENER_ERROR_1.id()));
         assertThat(streamStatus4.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus4.updatedAt());
+        assertNotNull(streamStatus4.discoveredAt());
     }
 
     @Test
@@ -221,7 +225,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus1.isUpToDate(), is(false));
         assertThat(streamStatus1.streamErrorId().get(), is(STREAM_1_INDEXER_ERROR_1.id()));
         assertThat(streamStatus1.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus1.updatedAt());
+        assertNotNull(streamStatus1.discoveredAt());
 
         final StreamStatus streamStatus2 = streamStatuses.get(1);
         assertThat(streamStatus2.streamId(), is(STREAM_1_ID));
@@ -232,7 +236,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus2.isUpToDate(), is(false));
         assertThat(streamStatus2.streamErrorId().get(), is(STREAM_1_LISTENER_ERROR_1.id()));
         assertThat(streamStatus2.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus2.updatedAt());
+        assertNotNull(streamStatus2.discoveredAt());
     }
 
     @Test
@@ -247,7 +251,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus1.isUpToDate(), is(false));
         assertThat(streamStatus1.streamErrorId().get(), is(STREAM_3_ERROR_1.id()));
         assertThat(streamStatus1.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus1.updatedAt());
+        assertNotNull(streamStatus1.discoveredAt());
 
         final StreamStatus streamStatus2 = streamStatuses.get(1);
         assertThat(streamStatus2.streamId(), is(STREAM_2_ID));
@@ -258,7 +262,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus2.isUpToDate(), is(false));
         assertThat(streamStatus2.streamErrorId().get(), is(STREAM_2_INDEXER_ERROR_2.id()));
         assertThat(streamStatus2.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus2.updatedAt());
+        assertNotNull(streamStatus2.discoveredAt());
 
         final StreamStatus streamStatus3 = streamStatuses.get(2);
         assertThat(streamStatus3.streamId(), is(STREAM_2_ID));
@@ -269,7 +273,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus3.isUpToDate(), is(false));
         assertThat(streamStatus3.streamErrorId().get(), is(STREAM_2_LISTENER_ERROR_1.id()));
         assertThat(streamStatus3.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus3.updatedAt());
+        assertNotNull(streamStatus3.discoveredAt());
 
         final StreamStatus streamStatus4 = streamStatuses.get(3);
         assertThat(streamStatus4.streamId(), is(STREAM_1_ID));
@@ -280,7 +284,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus4.isUpToDate(), is(false));
         assertThat(streamStatus4.streamErrorId().get(), is(STREAM_1_INDEXER_ERROR_1.id()));
         assertThat(streamStatus4.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus4.updatedAt());
+        assertNotNull(streamStatus4.discoveredAt());
 
         final StreamStatus streamStatus5 = streamStatuses.get(4);
         assertThat(streamStatus5.streamId(), is(STREAM_1_ID));
@@ -291,7 +295,7 @@ public class StreamStatusReadRepositoryIT {
         assertThat(streamStatus5.isUpToDate(), is(false));
         assertThat(streamStatus5.streamErrorId().get(), is(STREAM_1_LISTENER_ERROR_1.id()));
         assertThat(streamStatus5.streamErrorPosition().get(), is(1L));
-        assertNotNull(streamStatus5.updatedAt());
+        assertNotNull(streamStatus5.discoveredAt());
     }
 
     private void insertEntriesToStreamErrorHash(String error1Hash, String error2Hash, DataSource dataSource) throws Exception {
@@ -308,7 +312,7 @@ public class StreamStatusReadRepositoryIT {
                 randomUUID(), error1Hash, "some-exception-message", empty(),
                 "event-name", randomUUID(), stream1Id, position,
                 new UtcClock().now(), "stack-trace",
-                component, source
+                component, source, new UtcClock().now()
         );
         streamErrorOccurrencePersistence.insert(streamErrorOccurrence, dataSource.getConnection());
     }

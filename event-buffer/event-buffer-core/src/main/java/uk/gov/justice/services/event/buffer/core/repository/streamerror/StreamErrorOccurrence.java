@@ -16,6 +16,7 @@ public record StreamErrorOccurrence(
         ZonedDateTime dateCreated,
         String fullStackTrace,
         String componentName,
-        String source) {
+        String source,
+        ZonedDateTime occurredAt) {
 
 }

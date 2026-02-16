@@ -27,7 +27,7 @@ public class StreamStatusReadRepository {
                     position,
                     stream_error_id,
                     stream_error_position,
-                    updated_at,
+                    discovered_at,
                     latest_known_position,
                     is_up_to_date
             """;
@@ -39,7 +39,7 @@ public class StreamStatusReadRepository {
                     s.position,
                     s.stream_error_id,
                     s.stream_error_position,
-                    s.updated_at,
+                    s.discovered_at,
                     s.latest_known_position,
                     s.is_up_to_date
                  FROM stream_status s
@@ -48,19 +48,19 @@ public class StreamStatusReadRepository {
                      AND e.component = s.component
                      AND e.source = s.source
                  WHERE e.hash = ?
-                 ORDER BY s.updated_at DESC
+                 ORDER BY s.discovered_at DESC
             """;
 
     private static final String FIND_BY_STREAM_ID = """
                 %s\s
                  FROM stream_status WHERE stream_id = ?
-                 ORDER BY updated_at DESC
+                 ORDER BY discovered_at DESC
             """.formatted(SELECT_CLAUSE);
 
     private static final String FIND_ERROR_STREAMS = """
                 %s\s
                  FROM stream_status WHERE stream_error_id IS NOT NULL
-                 ORDER BY updated_at DESC
+                 ORDER BY discovered_at DESC
             """.formatted(SELECT_CLAUSE);
 
     @Inject

@@ -58,7 +58,7 @@ public class StreamStatusJdbcRepositoryTest {
         when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(dataSource);
         when(dataSource.getConnection()).thenReturn(connection);
         when(clock.now()).thenReturn(now);
-        when(connection.prepareStatement("INSERT INTO stream_status (position, stream_id, source, component, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING"))
+        when(connection.prepareStatement("INSERT INTO stream_status (position, stream_id, source, component, discovered_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING"))
                 .thenReturn(preparedStatement);
 
         streamStatusJdbcRepository.insertOrDoNothing(new Subscription(streamId, position, source, component));

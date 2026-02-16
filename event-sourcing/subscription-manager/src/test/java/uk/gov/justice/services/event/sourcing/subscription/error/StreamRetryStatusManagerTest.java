@@ -72,7 +72,6 @@ public class StreamRetryStatusManagerTest {
         assertThat(streamErrorRetry.streamId(), is(streamId));
         assertThat(streamErrorRetry.source(), is(source));
         assertThat(streamErrorRetry.component(), is(component));
-        assertThat(streamErrorRetry.occurredAt(), is(now));
         assertThat(streamErrorRetry.retryCount(), is(retryCount + 1));
         assertThat(streamErrorRetry.nextRetryTime(), is(nextRetryTime));
     }

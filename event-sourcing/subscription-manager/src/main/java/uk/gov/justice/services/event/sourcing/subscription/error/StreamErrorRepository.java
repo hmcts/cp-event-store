@@ -12,7 +12,6 @@ import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -107,16 +106,9 @@ public class StreamErrorRepository {
     }
 
     @Transactional(REQUIRED)
-    public void markSameErrorHappened(final StreamError newStreamError, final long lastStreamPosition, final Timestamp lastUpdatedAt) {
+    public void markSameErrorHappened(final UUID existingStreamErrorId, final UUID streamId, final String source, final String component) {
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
-            final int numberOfChange = streamStatusErrorPersistence.updateStreamStatusUpdatedAtForSameError(newStreamError, lastStreamPosition, lastUpdatedAt, connection);
-            if (numberOfChange == 0) {
-                logger.warn("Existing stream status entry is changed by another transaction errorId: {} streamId: {} source {} component {}",
-                        newStreamError.streamErrorOccurrence().id(),
-                        newStreamError.streamErrorOccurrence().streamId(),
-                        newStreamError.streamErrorOccurrence().source(),
-                        newStreamError.streamErrorOccurrence().componentName());
-            }
+            streamStatusErrorPersistence.updateStreamErrorOccurredAt(existingStreamErrorId, streamId, source, component, connection);
         } catch (final SQLException e) {
             throw new StreamErrorHandlingException("Failed to get connection to view-store", e);
         }

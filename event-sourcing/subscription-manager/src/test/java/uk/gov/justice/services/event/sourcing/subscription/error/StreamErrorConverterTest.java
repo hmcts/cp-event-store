@@ -108,6 +108,7 @@ public class StreamErrorConverterTest {
         assertThat(streamErrorOccurrence.fullStackTrace(), is(fullStackTrace));
         assertThat(streamErrorOccurrence.componentName(), is(componentName));
         assertThat(streamErrorOccurrence.source(), is(source));
+        assertThat(streamErrorOccurrence.occurredAt(), is(dateCreated));
 
         final StreamErrorHash streamErrorHash = streamError.streamErrorHash();
 

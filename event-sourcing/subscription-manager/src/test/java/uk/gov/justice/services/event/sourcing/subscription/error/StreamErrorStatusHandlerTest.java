@@ -201,7 +201,7 @@ public class StreamErrorStatusHandlerTest {
         when(streamErrorOccurrence.streamId()).thenReturn(streamId);
         when(streamErrorOccurrence.source()).thenReturn(source);
 
-        streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition);
+        streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition, Optional.empty());
 
         final InOrder inOrder = inOrder(transactionHandler, streamErrorRepository);
 
@@ -238,7 +238,7 @@ public class StreamErrorStatusHandlerTest {
         when(streamErrorOccurrence.source()).thenReturn(source);
         doThrow(streamErrorHandlingException).when(streamErrorRepository).markStreamAsErrored(streamError, currentPosition);
 
-        streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition);
+        streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition, Optional.empty());
 
         final InOrder inOrder = inOrder(
                 transactionHandler,
@@ -252,6 +252,137 @@ public class StreamErrorStatusHandlerTest {
         inOrder.verify(logger).error("Failed to mark stream as errored: streamId 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'", streamErrorHandlingException);
 
         verify(transactionHandler, never()).commit(userTransaction);
+        verifyNoInteractions(micrometerMetricsCounters);
+    }
+
+    @Test
+    public void shouldMarkSameErrorHappenedWhenExistingErrorIdPresentAndErrorIsSame() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final UUID existingErrorId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+        final String errorHash = "same-error-hash";
+        final long currentPosition = 456L;
+
+        final NullPointerException nullPointerException = new NullPointerException();
+
+        final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
+        final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
+        final StreamError newStreamError = mock(StreamError.class);
+        final StreamErrorOccurrence newStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
+        final StreamError existingStreamError = mock(StreamError.class);
+        final StreamErrorOccurrence existingStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
+
+        when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
+        when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(newStreamError);
+        when(newStreamError.streamErrorOccurrence()).thenReturn(newStreamErrorOccurrence);
+        when(newStreamErrorOccurrence.streamId()).thenReturn(streamId);
+        when(newStreamErrorOccurrence.source()).thenReturn(source);
+        when(newStreamErrorOccurrence.hash()).thenReturn(errorHash);
+        when(streamErrorRepository.findByErrorId(existingErrorId)).thenReturn(Optional.of(existingStreamError));
+        when(existingStreamError.streamErrorOccurrence()).thenReturn(existingStreamErrorOccurrence);
+        when(existingStreamErrorOccurrence.hash()).thenReturn(errorHash);
+
+        streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition, Optional.of(existingErrorId));
+
+        final InOrder inOrder = inOrder(
+                transactionHandler,
+                streamErrorRepository,
+                streamRetryStatusManager);
+
+        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(streamErrorRepository).markSameErrorHappened(existingErrorId, streamId, source, component);
+        inOrder.verify(streamRetryStatusManager).updateStreamRetryCountAndNextRetryTime(streamId, source, component);
+        inOrder.verify(transactionHandler).commit(userTransaction);
+
+        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(streamErrorRepository, never()).markStreamAsErrored(newStreamError, currentPosition);
+        verifyNoInteractions(micrometerMetricsCounters);
+    }
+
+    @Test
+    public void shouldMarkStreamAsErroredWhenExistingErrorIdPresentButErrorIsDifferent() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final UUID existingErrorId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+        final long currentPosition = 456L;
+
+        final NullPointerException nullPointerException = new NullPointerException();
+
+        final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
+        final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
+        final StreamError newStreamError = mock(StreamError.class);
+        final StreamErrorOccurrence newStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
+        final StreamError existingStreamError = mock(StreamError.class);
+        final StreamErrorOccurrence existingStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
+
+        when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
+        when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(newStreamError);
+        when(newStreamError.streamErrorOccurrence()).thenReturn(newStreamErrorOccurrence);
+        when(newStreamErrorOccurrence.streamId()).thenReturn(streamId);
+        when(newStreamErrorOccurrence.source()).thenReturn(source);
+        when(newStreamErrorOccurrence.hash()).thenReturn("new-error-hash");
+        when(streamErrorRepository.findByErrorId(existingErrorId)).thenReturn(Optional.of(existingStreamError));
+        when(existingStreamError.streamErrorOccurrence()).thenReturn(existingStreamErrorOccurrence);
+        when(existingStreamErrorOccurrence.hash()).thenReturn("old-error-hash");
+
+        streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition, Optional.of(existingErrorId));
+
+        final InOrder inOrder = inOrder(
+                transactionHandler,
+                streamErrorRepository,
+                streamRetryStatusManager);
+
+        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(streamErrorRepository).markStreamAsErrored(newStreamError, currentPosition);
+        inOrder.verify(streamRetryStatusManager).updateStreamRetryCountAndNextRetryTime(streamId, source, component);
+        inOrder.verify(transactionHandler).commit(userTransaction);
+
+        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(streamErrorRepository, never()).markSameErrorHappened(existingErrorId, streamId, source, component);
+        verifyNoInteractions(micrometerMetricsCounters);
+    }
+
+    @Test
+    public void shouldMarkStreamAsErroredWhenExistingErrorIdPresentButExistingErrorNotFoundInRepo() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final UUID existingErrorId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+        final long currentPosition = 456L;
+
+        final NullPointerException nullPointerException = new NullPointerException();
+
+        final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
+        final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
+        final StreamError newStreamError = mock(StreamError.class);
+        final StreamErrorOccurrence newStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
+
+        when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
+        when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(newStreamError);
+        when(newStreamError.streamErrorOccurrence()).thenReturn(newStreamErrorOccurrence);
+        when(newStreamErrorOccurrence.streamId()).thenReturn(streamId);
+        when(newStreamErrorOccurrence.source()).thenReturn(source);
+        when(streamErrorRepository.findByErrorId(existingErrorId)).thenReturn(Optional.empty());
+
+        streamErrorStatusHandler.onStreamProcessingFailure(jsonEnvelope, nullPointerException, component, currentPosition, Optional.of(existingErrorId));
+
+        final InOrder inOrder = inOrder(
+                transactionHandler,
+                streamErrorRepository,
+                streamRetryStatusManager);
+
+        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(streamErrorRepository).markStreamAsErrored(newStreamError, currentPosition);
+        inOrder.verify(streamRetryStatusManager).updateStreamRetryCountAndNextRetryTime(streamId, source, component);
+        inOrder.verify(transactionHandler).commit(userTransaction);
+
+        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(streamErrorRepository, never()).markSameErrorHappened(existingErrorId, streamId, source, component);
         verifyNoInteractions(micrometerMetricsCounters);
     }
 }

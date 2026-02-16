@@ -372,13 +372,14 @@ public class StreamEventProcessorTest {
         final NullPointerException nullPointerException = new NullPointerException("Ooops");
 
         final UUID streamId = randomUUID();
+        final UUID streamErrorId = randomUUID();
         final String source = "some-source";
         final String component = "some-component";
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
         final long eventPositionInStream = 6L;
 
-        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, of(streamErrorId));
         final LinkedEventSource linkedEventSource = mock(LinkedEventSource.class);
         final LinkedEvent linkedEvent = mock(LinkedEvent.class);
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
@@ -427,7 +428,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
         inOrder.verify(transactionHandler).rollback(userTransaction);
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, component, currentPosition);
+        inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, component, currentPosition, of(streamErrorId));
         inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
 
         verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
@@ -481,7 +482,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
         inOrder.verify(transactionHandler).rollback(userTransaction);
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(currentPosition));
+        inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(currentPosition), eq(empty()));
         inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
 
         verify(interceptorChainProcessorProducer, never()).produceLocalProcessor(any());

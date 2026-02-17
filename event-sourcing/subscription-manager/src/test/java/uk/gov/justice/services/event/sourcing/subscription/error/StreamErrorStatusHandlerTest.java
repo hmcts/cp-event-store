@@ -90,16 +90,15 @@ public class StreamErrorStatusHandlerTest {
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
                 transactionHandler,
-                streamErrorRepository,
-                streamRetryStatusManager);
+                streamErrorRepository);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
         inOrder.verify(transactionHandler).begin(userTransaction);
         inOrder.verify(streamErrorRepository).markStreamAsErrored(streamError, currentStreamPosition);
-        inOrder.verify(streamRetryStatusManager).updateStreamRetryCountAndNextRetryTime(streamId, source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
 
         verify(transactionHandler, never()).rollback(userTransaction);
+        verifyNoInteractions(streamRetryStatusManager);
     }
 
     @Test
@@ -167,17 +166,16 @@ public class StreamErrorStatusHandlerTest {
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
                 transactionHandler,
-                streamErrorRepository,
-                streamRetryStatusManager);
+                streamErrorRepository);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
         inOrder.verify(transactionHandler).begin(userTransaction);
         inOrder.verify(streamErrorRepository).markSameErrorHappened(existingStreamErrorId, streamId, source, component);
-        inOrder.verify(streamRetryStatusManager).updateStreamRetryCountAndNextRetryTime(streamId, source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
 
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(streamErrorRepository, never()).markStreamAsErrored(newStreamError, streamUpdateContext.currentStreamPosition());
+        verifyNoInteractions(streamRetryStatusManager);
     }
 
     @Test

@@ -55,8 +55,6 @@ public class StreamErrorStatusHandler {
                 streamErrorRepository.markStreamAsErrored(newStreamError, streamUpdateContext.currentStreamPosition());
             }
 
-            streamRetryStatusManager.updateStreamRetryCountAndNextRetryTime(streamId, source, component);
-
             transactionHandler.commit(userTransaction);
         } catch (final Exception e) {
             transactionHandler.rollback(userTransaction);

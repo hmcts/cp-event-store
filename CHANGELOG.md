@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.105.0-M8] - 2026-02-17
 ### Changed
 - EventDiscoveryBootstrapper should only create entries for event listener and indexers
 - bump parent-pom to 17.105.0-M1
@@ -19,7 +21,6 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
   - `event.publishing.stream.processing.max.event.retries`
   - `event.publishing.stream.processing.retry.delay.milliseconds`
   - `event.publishing.stream.processing.retry.delay.multiplier`
-
   
 # [17.105.0-M7] - 2026-02-06
 ### Changed

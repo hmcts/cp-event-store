@@ -120,7 +120,7 @@ public class StreamEventProcessor {
             } catch (final Exception e) {
                 transactionHandler.rollback(userTransaction);
                 micrometerMetricsCounters.incrementEventsFailedCount(source, component);
-                streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, component, streamCurrentPosition);
+                streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, component, streamCurrentPosition, lockedStreamStatus.streamErrorId());
                 return EVENT_FOUND;
             } finally {
                 streamEventLoggerMetadataAdder.clearMdc();

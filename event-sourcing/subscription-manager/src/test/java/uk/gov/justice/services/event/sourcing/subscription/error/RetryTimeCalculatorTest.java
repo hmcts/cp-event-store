@@ -5,12 +5,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.event.sourcing.subscription.manager.StreamRetryConfiguration;
+import uk.gov.justice.services.event.sourcing.subscription.manager.timer.StreamProcessingConfig;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class RetryTimeCalculatorTest {
 
     @Mock
-    private StreamRetryConfiguration streamRetryConfiguration;
+    private StreamProcessingConfig streamProcessingConfig;
 
     @InjectMocks
     private RetryTimeCalculator retryTimeCalculator;
@@ -39,8 +38,8 @@ public class RetryTimeCalculatorTest {
         // 1 (second) * 6 * 5 should make a delay of 30 seconds
         final ZonedDateTime thirtySecondsTime = now.plusSeconds(30);
 
-        when(streamRetryConfiguration.getRetryDelayMilliseconds()).thenReturn(retryDelayMilliseconds);
-        when(streamRetryConfiguration.getRetryDelayMultiplier()).thenReturn(retryDelayMultiplier);
+        when(streamProcessingConfig.getRetryDelayMilliseconds()).thenReturn(retryDelayMilliseconds);
+        when(streamProcessingConfig.getRetryDelayMultiplier()).thenReturn(retryDelayMultiplier);
 
         assertThat(retryTimeCalculator.calculateNextRetryTime(retryCount, now), is(thirtySecondsTime));
     }

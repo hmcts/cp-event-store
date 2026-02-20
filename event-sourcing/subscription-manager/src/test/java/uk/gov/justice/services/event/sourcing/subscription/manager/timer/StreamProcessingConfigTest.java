@@ -1,5 +1,7 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
+import java.math.BigDecimal;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -43,5 +45,77 @@ public class StreamProcessingConfigTest {
         setField(streamProcessingConfig, "maxWorkers", "" + maxWorkers);
 
         assertThat(streamProcessingConfig.getMaxWorkers(), is(maxWorkers));
+    }
+
+    @Test
+    public void shouldParseMaxRetriesStringAndReturnAsInteger() throws Exception {
+
+        final Integer maxRetries = 23;
+        setField(streamProcessingConfig, "maxRetries", maxRetries + "");
+
+        assertThat(streamProcessingConfig.getMaxRetries(), is(maxRetries));
+    }
+
+    @Test
+    public void shouldCacheMaxRetriesOnceParsed() throws Exception {
+
+        final Integer maxRetries = 42;
+
+        setField(streamProcessingConfig, "maxRetries", maxRetries + "");
+        assertThat(streamProcessingConfig.getMaxRetries(), is(maxRetries));
+
+        setField(streamProcessingConfig, "maxRetries", 66 + "");
+        assertThat(streamProcessingConfig.getMaxRetries(), is(maxRetries));
+
+        setField(streamProcessingConfig, "maxRetries", 111 + "");
+        assertThat(streamProcessingConfig.getMaxRetries(), is(maxRetries));
+    }
+
+    @Test
+    public void shouldParseRetryDelayStringAndReturnAsLong() throws Exception {
+
+        final Long retryDelay = 75L;
+        setField(streamProcessingConfig, "retryDelayMilliseconds", retryDelay + "");
+
+        assertThat(streamProcessingConfig.getRetryDelayMilliseconds(), is(retryDelay));
+    }
+
+    @Test
+    public void shouldCacheRetryDelayOnceParsed() throws Exception {
+
+        final Long retryDelay = 32L;
+
+        setField(streamProcessingConfig, "retryDelayMilliseconds", retryDelay + "");
+        assertThat(streamProcessingConfig.getRetryDelayMilliseconds(), is(retryDelay));
+
+        setField(streamProcessingConfig, "retryDelayMilliseconds", 55 + "");
+        assertThat(streamProcessingConfig.getRetryDelayMilliseconds(), is(retryDelay));
+
+        setField(streamProcessingConfig, "retryDelayMilliseconds", 87 + "");
+        assertThat(streamProcessingConfig.getRetryDelayMilliseconds(), is(retryDelay));
+    }
+
+    @Test
+    public void shouldParseRetryDelayMultiplierStringAndReturnAsBigDecimal() throws Exception {
+
+        final BigDecimal retryDelayMultiplier = new BigDecimal("1.23");
+        setField(streamProcessingConfig, "retryDelayMultiplier", retryDelayMultiplier + "");
+
+        assertThat(streamProcessingConfig.getRetryDelayMultiplier(), is(retryDelayMultiplier));
+    }
+
+    @Test
+    public void shouldCacheRetryDelayMultiplierOnceParsed() throws Exception {
+
+        final BigDecimal retryDelayMultiplier = new BigDecimal("3.142");
+
+        setField(streamProcessingConfig, "retryDelayMultiplier", retryDelayMultiplier + "");
+        assertThat(streamProcessingConfig.getRetryDelayMultiplier(), is(retryDelayMultiplier));
+
+        setField(streamProcessingConfig, "retryDelayMultiplier", "5.322");
+        assertThat(streamProcessingConfig.getRetryDelayMultiplier(), is(retryDelayMultiplier));
+
+        setField(streamProcessingConfig, "retryDelayMultiplier", "2.887");
+        assertThat(streamProcessingConfig.getRetryDelayMultiplier(), is(retryDelayMultiplier));
     }
 }

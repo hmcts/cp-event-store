@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
+import uk.gov.justice.services.event.sourcing.subscription.manager.timer.StreamProcessingConfig;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -25,7 +26,7 @@ public class OldestStreamSelectorTest {
     private NewStreamStatusRepository streamStatusRepository;
 
     @Mock
-    private StreamRetryConfiguration streamRetryConfiguration;
+    private StreamProcessingConfig streamProcessingConfig;
 
     @InjectMocks
     private OldestStreamSelector oldestStreamSelector;
@@ -44,7 +45,7 @@ public class OldestStreamSelectorTest {
 
         when(streamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, component, maxRetries))
                 .thenReturn(of(lockedStreamStatus));
-        when(streamRetryConfiguration.getMaxRetries()).thenReturn(maxRetries);
+        when(streamProcessingConfig.getMaxRetries()).thenReturn(maxRetries);
 
         final Optional<LockedStreamStatus> streamToProcess = oldestStreamSelector.findStreamToProcess(source, component);
 
@@ -65,7 +66,7 @@ public class OldestStreamSelectorTest {
 
         when(streamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, component, maxRetries))
                 .thenReturn(empty());
-        when(streamRetryConfiguration.getMaxRetries()).thenReturn(maxRetries);
+        when(streamProcessingConfig.getMaxRetries()).thenReturn(maxRetries);
 
         final Optional<LockedStreamStatus> streamToProcess = oldestStreamSelector.findStreamToProcess(source, component);
 

@@ -1,8 +1,5 @@
 package uk.gov.justice.services.eventsourcing.source.core;
 
-import static javax.transaction.Transactional.TxType.REQUIRED;
-import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
-
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MultipleDataSourceEventRepository;
 import uk.gov.justice.services.eventsourcing.source.api.service.core.LinkedEventSource;
@@ -11,8 +8,6 @@ import uk.gov.justice.services.eventsourcing.source.api.streams.MissingEventRang
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
-
-import javax.transaction.Transactional;
 
 public class DefaultLinkedEventSource implements LinkedEventSource {
 
@@ -27,7 +22,6 @@ public class DefaultLinkedEventSource implements LinkedEventSource {
         return multipleDataSourceEventRepository.findEventsSince(eventNumber);
     }
 
-    @Transactional(REQUIRED)
     @Override
     public Stream<LinkedEvent> findEventRange(final MissingEventRange missingEventRange) {
 
@@ -37,19 +31,16 @@ public class DefaultLinkedEventSource implements LinkedEventSource {
         return multipleDataSourceEventRepository.findEventRange(fromEventNumber, toEventNumber);
     }
 
-    @Transactional(REQUIRED)
     @Override
     public Optional<LinkedEvent> findByEventId(final UUID eventId) {
         return multipleDataSourceEventRepository.findByEventId(eventId);
     }
 
-    @Transactional(REQUIRES_NEW)
     @Override
     public Optional<LinkedEvent> findNextEventInTheStreamAfterPosition(final UUID streamId, final Long position) {
         return multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId, position);
     }
 
-    @Transactional(REQUIRED)
     @Override
     public Long getHighestPublishedEventNumber() {
         final Optional<LinkedEvent> latestPublishedEvent = multipleDataSourceEventRepository

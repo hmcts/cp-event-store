@@ -16,9 +16,6 @@ import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStat
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamRetryStatusManager;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
-import uk.gov.justice.services.eventsourcing.source.api.service.core.LinkedEventSource;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
@@ -45,10 +42,7 @@ public class StreamEventProcessor {
     private StreamSelector streamSelector;
 
     @Inject
-    private LinkedEventSourceProvider linkedEventSourceProvider;
-
-    @Inject
-    private EventConverter eventConverter;
+    private TransactionalEventReader transactionalEventReader;
 
     @Inject
     private NewStreamStatusRepository newStreamStatusRepository;
@@ -163,9 +157,7 @@ public class StreamEventProcessor {
         final Long latestKnownPosition = lockedStreamStatus.latestKnownPosition();
 
         try {
-            final LinkedEventSource linkedEventSource = linkedEventSourceProvider.getLinkedEventSource(source);
-            Optional<LinkedEvent> linkedEvent = linkedEventSource.findNextEventInTheStreamAfterPosition(streamId, position);
-            eventJsonEnvelope = linkedEvent.map(eventConverter::envelopeOf);
+            eventJsonEnvelope = transactionalEventReader.readNextEvent(source, streamId, position);
         } catch (Exception e) {
             micrometerMetricsCounters.incrementEventsFailedCount(source, component);
             transactionHandler.rollback(userTransaction);

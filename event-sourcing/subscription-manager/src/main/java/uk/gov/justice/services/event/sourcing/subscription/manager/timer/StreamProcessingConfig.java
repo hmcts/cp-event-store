@@ -27,12 +27,12 @@ public class StreamProcessingConfig {
     private String timerIntervalMilliseconds;
 
     @Inject
-    @Value(key = "stream.processing.timer.between.runs.milliseconds", defaultValue = "5")
-    private String timeBetweenRunsMilliseconds;
-
-    @Inject
     @Value(key = "stream.processing.max.workers", defaultValue = "15")
     private String maxWorkers;
+
+    @Inject
+    @Value(key = "stream.processing.idle.threshold.milliseconds", defaultValue = "1000")
+    private String idleThresholdMilliseconds;
 
     @Inject
     @Value(key = "event.publishing.stream.processing.max.event.retries", defaultValue = "7")
@@ -54,12 +54,12 @@ public class StreamProcessingConfig {
         return parseLong(timerIntervalMilliseconds);
     }
 
-    public long getTimeBetweenRunsMilliseconds() {
-        return parseLong(timeBetweenRunsMilliseconds);
-    }
-
     public int getMaxWorkers() {
         return parseInt(maxWorkers);
+    }
+
+    public long getIdleThresholdMilliseconds() {
+        return parseLong(idleThresholdMilliseconds);
     }
 
     public Integer getMaxRetries() {

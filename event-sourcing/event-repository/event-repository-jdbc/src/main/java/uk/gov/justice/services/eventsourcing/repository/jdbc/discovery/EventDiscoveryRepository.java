@@ -29,10 +29,10 @@ public class EventDiscoveryRepository {
                     ORDER BY MAX(event_number) ASC
             """;
     public static final String SELECT_LE_EVENT_BY_BATCH_SIZE = """
-                    SELECT id, event_number 
-                    FROM event_log 
-                    WHERE event_number <= ? 
-                    ORDER BY event_number DESC 
+                    SELECT id, event_number
+                    FROM event_log
+                    WHERE event_number <= ?
+                    ORDER BY event_number DESC
                     LIMIT 1
             """;
     public static final String SELECT_EVENT_NUMBER = "SELECT event_number FROM event_log WHERE id = ?";

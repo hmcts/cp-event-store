@@ -17,6 +17,7 @@ import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.eventsourcing.discovery.DiscoveryResult;
 import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoveryBean;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventDiscoveryRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
 import uk.gov.justice.subscription.SourceComponentPair;
 
@@ -43,6 +44,9 @@ public class EventDiscoveryWorkerTest {
     private EventSubscriptionDiscoveryBean eventSubscriptionDiscoveryBean;
 
     @Mock
+    private EventDiscoveryRepository eventDiscoveryRepository;
+
+    @Mock
     private Logger logger;
 
     @Mock
@@ -57,6 +61,7 @@ public class EventDiscoveryWorkerTest {
         final String source = "some-source";
         final String component = "some-component";
         final UUID latestKnownEventId = randomUUID();
+        final long firstEventNumber = 10L;
         final UUID streamId_1 = fromString("1111ef5f-2b26-42a2-a01c-4591d2911111");
         final UUID streamId_2 = fromString("2222ef5f-2b26-42a2-a01c-4591d2912222");
         final Long positionInStream_1 = 111L;
@@ -75,7 +80,8 @@ public class EventDiscoveryWorkerTest {
         final UUID newLatestEventId = randomUUID();
         when(eventSubscriptionStatusRepository.findBy( source, component)).thenReturn(of(eventSubscriptionStatus));
         when(eventSubscriptionStatus.latestEventId()).thenReturn(of(latestKnownEventId));
-        when(eventSubscriptionDiscoveryBean.discoverNewEvents(of(latestKnownEventId))).thenReturn(new DiscoveryResult(asList(streamPosition_1, streamPosition_2), of(newLatestEventId)));
+        when(eventDiscoveryRepository.getEventNumberFor(latestKnownEventId)).thenReturn(firstEventNumber);
+        when(eventSubscriptionDiscoveryBean.discoverNewEvents(firstEventNumber, latestKnownEventId)).thenReturn(new DiscoveryResult(asList(streamPosition_1, streamPosition_2), of(newLatestEventId)));
 
         when(streamPosition_1.streamId()).thenReturn(streamId_1);
         when(streamPosition_1.positionInStream()).thenReturn(positionInStream_1);

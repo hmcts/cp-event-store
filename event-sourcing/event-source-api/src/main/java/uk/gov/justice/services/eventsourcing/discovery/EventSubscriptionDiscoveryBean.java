@@ -8,7 +8,6 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPos
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,8 +20,6 @@ import javax.inject.Inject;
 @TransactionManagement(CONTAINER)
 public class EventSubscriptionDiscoveryBean {
 
-    private static final long ZEROTH_EVENT_NUMBER = 0L;
-
     @Inject
     private EventDiscoveryRepository eventDiscoveryRepository;
 
@@ -30,16 +27,12 @@ public class EventSubscriptionDiscoveryBean {
     private EventDiscoveryConfig eventDiscoveryConfig;
 
     @TransactionAttribute(REQUIRES_NEW)
-    public DiscoveryResult discoverNewEvents(final Optional<UUID> latestKnownEventId) {
+    public DiscoveryResult discoverNewEvents(final long firstEventNumber, final UUID latestKnownEventId) {
 
         final int batchSize = eventDiscoveryConfig.getBatchSize();
 
-        final long firstEventNumber = latestKnownEventId
-                .map(eventDiscoveryRepository::getEventNumberFor)
-                .orElse(ZEROTH_EVENT_NUMBER);
-
         return eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize)
-                .filter(newLatestEvent -> !Objects.equals(newLatestEvent.id(),latestKnownEventId.orElse(null)))
+                .filter(newLatestEvent -> !newLatestEvent.id().equals(latestKnownEventId))
                 .map(newLatestEvent -> {
                     final List<StreamPosition> streamPositions = eventDiscoveryRepository.getLatestStreamPositionsBetween(
                             firstEventNumber,

@@ -46,7 +46,6 @@ public class EventSubscriptionDiscoveryBeanTest {
         final UUID newLatestEventId = randomUUID();
 
         when(eventDiscoveryConfig.getBatchSize()).thenReturn(batchSize);
-        when(eventDiscoveryRepository.getEventNumberFor(latestKnownEventId)).thenReturn(firstEventNumber);
         when(eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize))
                 .thenReturn(of(new EventIdNumber(newLatestEventId, lastEventNumber)));
 
@@ -56,7 +55,7 @@ public class EventSubscriptionDiscoveryBeanTest {
                         streamPosition_2)
                 );
 
-        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(of(latestKnownEventId));
+        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(firstEventNumber, latestKnownEventId);
 
         assertThat(discoveryResult.streamPositions().size(), is(2));
         assertThat(discoveryResult.streamPositions().get(0), is(streamPosition_1));
@@ -85,7 +84,7 @@ public class EventSubscriptionDiscoveryBeanTest {
                         streamPosition_2)
                 );
 
-        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(empty());
+        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(firstEventNumber, null);
 
         assertThat(discoveryResult.streamPositions().size(), is(2));
         assertThat(discoveryResult.streamPositions().get(0), is(streamPosition_1));
@@ -101,11 +100,10 @@ public class EventSubscriptionDiscoveryBeanTest {
         final int batchSize = 23;
 
         when(eventDiscoveryConfig.getBatchSize()).thenReturn(batchSize);
-        when(eventDiscoveryRepository.getEventNumberFor(latestKnownEventId)).thenReturn(firstEventNumber);
         when(eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize))
                 .thenReturn(of(new EventIdNumber(latestKnownEventId, firstEventNumber)));
 
-        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(of(latestKnownEventId));
+        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(firstEventNumber, latestKnownEventId);
 
         assertThat(discoveryResult.streamPositions().isEmpty(), is(true));
         assertThat(discoveryResult.latestKnownEventId(), is(empty()));

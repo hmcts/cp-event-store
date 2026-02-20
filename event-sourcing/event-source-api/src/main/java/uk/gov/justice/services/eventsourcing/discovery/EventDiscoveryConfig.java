@@ -1,5 +1,6 @@
 package uk.gov.justice.services.eventsourcing.discovery;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 
@@ -14,11 +15,19 @@ public class EventDiscoveryConfig {
     @Value(key = "event.discovery.batch.size", defaultValue = "100")
     private String batchSize;
 
+    @Inject
+    @Value(key = "event.discovery.access.event.store.via.rest", defaultValue = "false")
+    private String accessEventStoreViaRest;
+
     public int getBatchSize() {
         try {
             return parseInt(batchSize);
         } catch (final NumberFormatException e) {
             throw new EventStoreEventDiscoveryException(format("'event.discovery.batch.size' jndi value is not an integer. Was '%s'", batchSize), e);
         }
+    }
+
+    public boolean accessEventStoreViaRest() {
+        return parseBoolean(accessEventStoreViaRest);
     }
 }

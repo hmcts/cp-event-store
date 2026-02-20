@@ -16,7 +16,7 @@ import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.eventsourcing.discovery.DiscoveryResult;
-import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoveryBean;
+import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoverer;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
 import uk.gov.justice.subscription.SourceComponentPair;
 
@@ -40,7 +40,7 @@ public class EventDiscoveryWorkerTest {
     private NewStreamStatusRepository newStreamStatusRepository;
 
     @Mock
-    private EventSubscriptionDiscoveryBean eventSubscriptionDiscoveryBean;
+    private EventSubscriptionDiscoverer eventSubscriptionDiscoverer;
 
     @Mock
     private Logger logger;
@@ -75,7 +75,7 @@ public class EventDiscoveryWorkerTest {
         final UUID newLatestEventId = randomUUID();
         when(eventSubscriptionStatusRepository.findBy( source, component)).thenReturn(of(eventSubscriptionStatus));
         when(eventSubscriptionStatus.latestEventId()).thenReturn(of(latestKnownEventId));
-        when(eventSubscriptionDiscoveryBean.discoverNewEvents(of(latestKnownEventId))).thenReturn(new DiscoveryResult(asList(streamPosition_1, streamPosition_2), of(newLatestEventId)));
+        when(eventSubscriptionDiscoverer.discoverNewEvents(of(latestKnownEventId))).thenReturn(new DiscoveryResult(asList(streamPosition_1, streamPosition_2), of(newLatestEventId)));
 
         when(streamPosition_1.streamId()).thenReturn(streamId_1);
         when(streamPosition_1.positionInStream()).thenReturn(positionInStream_1);
@@ -124,6 +124,6 @@ public class EventDiscoveryWorkerTest {
 
         eventDiscoveryWorker.runEventDiscoveryForSourceComponentPair(sourceComponentPair);
 
-        verifyNoInteractions(eventSubscriptionDiscoveryBean);
+        verifyNoInteractions(eventSubscriptionDiscoverer);
     }
 }

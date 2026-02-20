@@ -25,7 +25,5 @@ public interface LinkedEventSource {
 
     Optional<LinkedEvent> findByEventId(final UUID id);
 
-    Optional<LinkedEvent> findNextEventInTheStreamAfterPosition(final UUID streamId, final Long position);
-
     Long getHighestPublishedEventNumber();
 }

@@ -25,9 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class EventSubscriptionDiscoveryBeanTest {
 
     @Mock
-    private EventDiscoveryConfig eventDiscoveryConfig;
-
-    @Mock
     private EventDiscoveryRepository eventDiscoveryRepository;
 
     @InjectMocks
@@ -45,7 +42,7 @@ public class EventSubscriptionDiscoveryBeanTest {
         final StreamPosition streamPosition_2 = mock(StreamPosition.class);
         final UUID newLatestEventId = randomUUID();
 
-        when(eventDiscoveryConfig.getBatchSize()).thenReturn(batchSize);
+        when(eventDiscoveryRepository.getEventNumberFor(latestKnownEventId)).thenReturn(firstEventNumber);
         when(eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize))
                 .thenReturn(of(new EventIdNumber(newLatestEventId, lastEventNumber)));
 
@@ -55,7 +52,7 @@ public class EventSubscriptionDiscoveryBeanTest {
                         streamPosition_2)
                 );
 
-        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(firstEventNumber, latestKnownEventId);
+        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(of(latestKnownEventId), batchSize);
 
         assertThat(discoveryResult.streamPositions().size(), is(2));
         assertThat(discoveryResult.streamPositions().get(0), is(streamPosition_1));
@@ -74,7 +71,6 @@ public class EventSubscriptionDiscoveryBeanTest {
         final StreamPosition streamPosition_2 = mock(StreamPosition.class);
         final UUID newLatestEventId = randomUUID();
 
-        when(eventDiscoveryConfig.getBatchSize()).thenReturn(batchSize);
         when(eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize))
                 .thenReturn(of(new EventIdNumber(newLatestEventId, lastEventNumber)));
 
@@ -84,7 +80,7 @@ public class EventSubscriptionDiscoveryBeanTest {
                         streamPosition_2)
                 );
 
-        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(firstEventNumber, null);
+        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(empty(), batchSize);
 
         assertThat(discoveryResult.streamPositions().size(), is(2));
         assertThat(discoveryResult.streamPositions().get(0), is(streamPosition_1));
@@ -99,11 +95,11 @@ public class EventSubscriptionDiscoveryBeanTest {
         final long firstEventNumber = 10L;
         final int batchSize = 23;
 
-        when(eventDiscoveryConfig.getBatchSize()).thenReturn(batchSize);
+        when(eventDiscoveryRepository.getEventNumberFor(latestKnownEventId)).thenReturn(firstEventNumber);
         when(eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize))
                 .thenReturn(of(new EventIdNumber(latestKnownEventId, firstEventNumber)));
 
-        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(firstEventNumber, latestKnownEventId);
+        final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(of(latestKnownEventId), batchSize);
 
         assertThat(discoveryResult.streamPositions().isEmpty(), is(true));
         assertThat(discoveryResult.latestKnownEventId(), is(empty()));

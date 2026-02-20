@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 
 import uk.gov.justice.services.resources.rest.streams.ActiveErrorsResource;
+import uk.gov.justice.services.resources.rest.streams.EventsDiscoveryResource;
 import uk.gov.justice.services.resources.rest.streams.StreamErrorsResource;
 import uk.gov.justice.services.resources.rest.streams.StreamsResource;
 
@@ -20,9 +21,10 @@ class FrameworkApplicationTest {
     void validateConfiguredResourceClasses() {
         final Set<Class<?>> resourceClasses = frameworkApplication.getClasses();
 
-        assertThat(resourceClasses.size(), is(3));
+        assertThat(resourceClasses.size(), is(4));
         assertThat(resourceClasses, hasItem(StreamsResource.class));
         assertThat(resourceClasses, hasItem(StreamErrorsResource.class));
         assertThat(resourceClasses, hasItem(ActiveErrorsResource.class));
+        assertThat(resourceClasses, hasItem(EventsDiscoveryResource.class));
     }
 }

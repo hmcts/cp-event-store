@@ -8,8 +8,8 @@ import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.eventsourcing.discovery.DiscoveryResult;
+import uk.gov.justice.services.eventsourcing.discovery.EventDiscoveryConfig;
 import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoveryBean;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventDiscoveryRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
 import uk.gov.justice.subscription.SourceComponentPair;
 
@@ -23,8 +23,6 @@ import org.slf4j.Logger;
 
 public class EventDiscoveryWorker {
 
-    private static final long ZEROTH_EVENT_NUMBER = 0L;
-
     @Inject
     private EventSubscriptionStatusRepository eventSubscriptionStatusRepository;
 
@@ -35,7 +33,7 @@ public class EventDiscoveryWorker {
     private EventSubscriptionDiscoveryBean eventSubscriptionDiscoveryBean;
 
     @Inject
-    private EventDiscoveryRepository eventDiscoveryRepository;
+    private EventDiscoveryConfig eventDiscoveryConfig;
 
     @Inject
     private Logger logger;
@@ -57,12 +55,9 @@ public class EventDiscoveryWorker {
             final EventSubscriptionStatus eventSubscriptionStatus = eventSubscriptionStatusOptional.get();
 
             final Optional<UUID> latestKnownEventId = eventSubscriptionStatus.latestEventId();
+            final int batchSize = eventDiscoveryConfig.getBatchSize();
 
-            final long firstEventNumber = latestKnownEventId
-                    .map(eventDiscoveryRepository::getEventNumberFor)
-                    .orElse(ZEROTH_EVENT_NUMBER);
-
-            final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(firstEventNumber, latestKnownEventId.orElse(null));
+            final DiscoveryResult discoveryResult = eventSubscriptionDiscoveryBean.discoverNewEvents(latestKnownEventId, batchSize);
 
             discoveryResult.streamPositions()
                     .forEach(streamPosition -> runDiscoveryFor(streamPosition, source, component));

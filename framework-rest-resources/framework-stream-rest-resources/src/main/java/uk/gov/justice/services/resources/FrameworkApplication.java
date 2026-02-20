@@ -1,6 +1,7 @@
 package uk.gov.justice.services.resources;
 
 import uk.gov.justice.services.resources.rest.streams.ActiveErrorsResource;
+import uk.gov.justice.services.resources.rest.streams.EventsDiscoveryResource;
 import uk.gov.justice.services.resources.rest.streams.StreamErrorsResource;
 import uk.gov.justice.services.resources.rest.streams.StreamsResource;
 
@@ -19,6 +20,7 @@ public class FrameworkApplication extends Application {
         classes.add(StreamsResource.class);
         classes.add(StreamErrorsResource.class);
         classes.add(ActiveErrorsResource.class);
+        classes.add(EventsDiscoveryResource.class);
         return classes;
     }
 }

@@ -118,4 +118,14 @@ public class StreamProcessingConfigTest {
         setField(streamProcessingConfig, "retryDelayMultiplier", "2.887");
         assertThat(streamProcessingConfig.getRetryDelayMultiplier(), is(retryDelayMultiplier));
     }
+
+    @Test
+    public void shouldGetTheIdleThreshold() {
+
+        final long milliseconds = 2000L;
+
+        setField(streamProcessingConfig, "idleThresholdMilliseconds", "" + milliseconds);
+
+        assertThat(streamProcessingConfig.getIdleThresholdMilliseconds(), is(milliseconds));
+    }
 }

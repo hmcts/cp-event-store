@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+### Changed
+- Replace StreamProcessingTimerBean with StreamProcessingCoordinator using ManagedExecutorService worker pool
+- Extract session-level advisory lock handling into StreamSessionLockManager
+- Add NULL checks for event_number to eliminate not-linked events in EventDiscoveryRepository queries
+
 ### Fixed
 - Fix @Transactional ignored on EventSubscriptionDiscoveryBean (EJB requires @TransactionAttribute)
 - Fix @Transactional ignored on DefaultLinkedEventSource (non-CDI bean); extract TransactionalEventReader

@@ -1,7 +1,7 @@
 package uk.gov.justice.services.eventsourcing.discovery;
 
+import static javax.ejb.TransactionAttributeType.REQUIRES_NEW;
 import static javax.ejb.TransactionManagementType.CONTAINER;
-import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventDiscoveryRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
@@ -13,9 +13,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionManagement;
 import javax.inject.Inject;
-import javax.transaction.Transactional;
 
 @Stateless
 @TransactionManagement(CONTAINER)
@@ -29,7 +29,7 @@ public class EventSubscriptionDiscoveryBean {
     @Inject
     private EventDiscoveryConfig eventDiscoveryConfig;
 
-    @Transactional(REQUIRES_NEW)
+    @TransactionAttribute(REQUIRES_NEW)
     public DiscoveryResult discoverNewEvents(final Optional<UUID> latestKnownEventId) {
 
         final int batchSize = eventDiscoveryConfig.getBatchSize();

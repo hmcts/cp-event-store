@@ -2,6 +2,7 @@ package uk.gov.justice.services.event.sourcing.subscription.manager;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
+import uk.gov.justice.services.event.sourcing.subscription.manager.timer.StreamProcessingConfig;
 
 import java.util.Optional;
 
@@ -15,10 +16,10 @@ public class OldestStreamSelector implements StreamSelector {
     NewStreamStatusRepository streamStatusRepository;
 
     @Inject
-    StreamRetryConfiguration streamRetryConfiguration;
+    StreamProcessingConfig streamProcessingConfig;
 
     @Override
     public Optional<LockedStreamStatus> findStreamToProcess(final String source, final String component) {
-        return streamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, component, streamRetryConfiguration.getMaxRetries());
+        return streamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, component, streamProcessingConfig.getMaxRetries());
     }
 }

@@ -22,6 +22,8 @@ import javax.ejb.Timeout;
 import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 import javax.ejb.TimerService;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -86,6 +88,7 @@ public class StreamProcessingTimerBean {
     }
 
     @Timeout
+    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     public void processStreamEvents(final Timer timer) {
         final WorkerTimerInfo workerTimerInfo = (WorkerTimerInfo) timer.getInfo();
         final SourceComponentPair pair = workerTimerInfo.sourceComponentPair();

@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+### Fixed
+- Fix @Transactional ignored on EventSubscriptionDiscoveryBean (EJB requires @TransactionAttribute)
+- Fix @Transactional ignored on DefaultLinkedEventSource (non-CDI bean); extract TransactionalEventReader
+- Merge StreamRetryConfiguration into StreamProcessingConfig
+
 # [17.105.0-M8] - 2026-02-17
 ### Changed
 - EventDiscoveryBootstrapper should only create entries for event listener and indexers

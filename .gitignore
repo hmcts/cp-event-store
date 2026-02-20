@@ -19,6 +19,7 @@ pom.xml~
 activemq-data/
 .sonar
 *.puml
+.claude
 
 ### SublimeText ###
 # cache files for sublime text

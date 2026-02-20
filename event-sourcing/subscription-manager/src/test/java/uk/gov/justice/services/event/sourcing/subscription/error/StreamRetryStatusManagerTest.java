@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetry;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository;
-import uk.gov.justice.services.event.sourcing.subscription.manager.StreamRetryConfiguration;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;

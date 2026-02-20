@@ -19,7 +19,7 @@ import javax.inject.Inject;
 
 @Stateless
 @TransactionManagement(CONTAINER)
-public class EventSubscriptionDiscoveryBean {
+public class TransactionalEventSubscriptionDiscoverer implements EventSubscriptionDiscoverer {
 
     private static final long ZEROTH_EVENT_NUMBER = 0L;
 
@@ -30,6 +30,7 @@ public class EventSubscriptionDiscoveryBean {
     private EventDiscoveryConfig eventDiscoveryConfig;
 
     @TransactionAttribute(REQUIRES_NEW)
+    @Override
     public DiscoveryResult discoverNewEvents(final Optional<UUID> latestKnownEventId) {
 
         final int batchSize = eventDiscoveryConfig.getBatchSize();
@@ -39,7 +40,7 @@ public class EventSubscriptionDiscoveryBean {
                 .orElse(ZEROTH_EVENT_NUMBER);
 
         return eventDiscoveryRepository.getLatestEventIdAndNumberAtOffset(firstEventNumber, batchSize)
-                .filter(newLatestEvent -> !Objects.equals(newLatestEvent.id(),latestKnownEventId.orElse(null)))
+                .filter(newLatestEvent -> !Objects.equals(newLatestEvent.id(), latestKnownEventId.orElse(null)))
                 .map(newLatestEvent -> {
                     final List<StreamPosition> streamPositions = eventDiscoveryRepository.getLatestStreamPositionsBetween(
                             firstEventNumber,

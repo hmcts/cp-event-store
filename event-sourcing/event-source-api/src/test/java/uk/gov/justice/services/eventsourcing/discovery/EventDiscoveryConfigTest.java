@@ -40,4 +40,20 @@ public class EventDiscoveryConfigTest {
         assertThat(eventStoreEventDiscoveryException.getMessage(), is("'event.discovery.batch.size' jndi value is not an integer. Was 'something-silly'"));
         assertThat(eventStoreEventDiscoveryException.getCause(), is(instanceOf(NumberFormatException.class)));
     }
+
+    @Test
+    public void shouldReturnTrueWhenAccessEventStoreViaRestIsTrue() {
+
+        setField(eventDiscoveryConfig, "accessEventStoreViaRest", "true");
+
+        assertThat(eventDiscoveryConfig.accessEventStoreViaRest(), is(true));
+    }
+
+    @Test
+    public void shouldReturnFalseWhenAccessEventStoreViaRestIsFalse() {
+
+        setField(eventDiscoveryConfig, "accessEventStoreViaRest", "false");
+
+        assertThat(eventDiscoveryConfig.accessEventStoreViaRest(), is(false));
+    }
 }

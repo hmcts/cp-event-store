@@ -1,5 +1,6 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 
@@ -46,6 +47,10 @@ public class StreamProcessingConfig {
     @Value(key = "event.publishing.stream.processing.retry.delay.multiplier", defaultValue = "1.0")
     private String retryDelayMultiplier;
 
+    @Inject
+    @Value(key = "stream.processing.access.event.store.via.rest", defaultValue = "false")
+    private String accessEventStoreViaRest;
+
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
@@ -72,5 +77,9 @@ public class StreamProcessingConfig {
 
     public BigDecimal getRetryDelayMultiplier() {
         return retryDelayMultiplierLazyValue.createIfAbsent(() -> new BigDecimal(retryDelayMultiplier));
+    }
+
+    public boolean accessEventStoreViaRest() {
+        return parseBoolean(accessEventStoreViaRest);
     }
 }

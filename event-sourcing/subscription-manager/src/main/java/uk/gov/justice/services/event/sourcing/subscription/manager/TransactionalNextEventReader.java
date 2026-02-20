@@ -12,6 +12,7 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+@TransactionalReader
 public class TransactionalNextEventReader implements NextEventReader {
 
     @Inject

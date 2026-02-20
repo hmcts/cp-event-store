@@ -19,6 +19,7 @@ import javax.inject.Inject;
 
 @Stateless
 @TransactionManagement(CONTAINER)
+@TransactionalDiscoverer
 public class TransactionalEventSubscriptionDiscoverer implements EventSubscriptionDiscoverer {
 
     private static final long ZEROTH_EVENT_NUMBER = 0L;

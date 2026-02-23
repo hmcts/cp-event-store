@@ -48,7 +48,7 @@ public class StreamProcessingConfig {
     private String retryDelayMultiplier;
 
     @Inject
-    @Value(key = "stream.processing.access.event.store.via.rest", defaultValue = "false")
+    @Value(key = "pull.mechanism.access.event.store.via.rest", defaultValue = "false")
     private String accessEventStoreViaRest;
 
     public long getTimerStartWaitMilliseconds() {

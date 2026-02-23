@@ -7,7 +7,7 @@ import java.util.UUID;
 public class RestEventSubscriptionDiscoverer implements EventSubscriptionDiscoverer {
 
     @Override
-    public DiscoveryResult discoverNewEvents(final Optional<UUID> latestKnownEventId) {
+    public DiscoveryResult discoverNewEvents(final Optional<UUID> latestKnownEventId, final int batchSize) {
         throw new UnsupportedOperationException("RestEventSubscriptionDiscoverer is not yet implemented");
     }
 }

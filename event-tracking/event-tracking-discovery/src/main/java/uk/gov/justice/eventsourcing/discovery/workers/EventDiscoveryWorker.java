@@ -8,6 +8,7 @@ import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.eventsourcing.discovery.DiscoveryResult;
+import uk.gov.justice.services.eventsourcing.discovery.EventDiscoveryConfig;
 import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoverer;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
 import uk.gov.justice.subscription.SourceComponentPair;
@@ -32,6 +33,9 @@ public class EventDiscoveryWorker {
     private EventSubscriptionDiscoverer eventSubscriptionDiscoverer;
 
     @Inject
+    private EventDiscoveryConfig eventDiscoveryConfig;
+
+    @Inject
     private Logger logger;
 
     @Inject
@@ -51,8 +55,9 @@ public class EventDiscoveryWorker {
             final EventSubscriptionStatus eventSubscriptionStatus = eventSubscriptionStatusOptional.get();
 
             final Optional<UUID> latestKnownEventId = eventSubscriptionStatus.latestEventId();
+            final int batchSize = eventDiscoveryConfig.getBatchSize();
 
-            final DiscoveryResult discoveryResult = eventSubscriptionDiscoverer.discoverNewEvents(latestKnownEventId);
+            final DiscoveryResult discoveryResult = eventSubscriptionDiscoverer.discoverNewEvents(latestKnownEventId, batchSize);
 
             discoveryResult.streamPositions()
                     .forEach(streamPosition -> runDiscoveryFor(streamPosition, source, component));

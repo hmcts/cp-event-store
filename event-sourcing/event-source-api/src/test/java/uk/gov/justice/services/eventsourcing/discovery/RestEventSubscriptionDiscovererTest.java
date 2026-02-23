@@ -21,7 +21,7 @@ public class RestEventSubscriptionDiscovererTest {
 
         final UnsupportedOperationException exception = assertThrows(
                 UnsupportedOperationException.class,
-                () -> restEventSubscriptionDiscoverer.discoverNewEvents(empty()));
+                () -> restEventSubscriptionDiscoverer.discoverNewEvents(empty(), 100));
 
         assertThat(exception.getMessage(), is("RestEventSubscriptionDiscoverer is not yet implemented"));
     }

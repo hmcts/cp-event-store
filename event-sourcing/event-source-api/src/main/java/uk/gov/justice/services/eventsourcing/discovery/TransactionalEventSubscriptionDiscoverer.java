@@ -27,14 +27,9 @@ public class TransactionalEventSubscriptionDiscoverer implements EventSubscripti
     @Inject
     private EventDiscoveryRepository eventDiscoveryRepository;
 
-    @Inject
-    private EventDiscoveryConfig eventDiscoveryConfig;
-
     @TransactionAttribute(REQUIRES_NEW)
     @Override
-    public DiscoveryResult discoverNewEvents(final Optional<UUID> latestKnownEventId) {
-
-        final int batchSize = eventDiscoveryConfig.getBatchSize();
+    public DiscoveryResult discoverNewEvents(final Optional<UUID> latestKnownEventId, final int batchSize) {
 
         final long firstEventNumber = latestKnownEventId
                 .map(eventDiscoveryRepository::getEventNumberFor)

@@ -3,6 +3,7 @@ package uk.gov.justice.services.event.sourcing.subscription.manager;
 import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
+import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventJdbcRepository;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 

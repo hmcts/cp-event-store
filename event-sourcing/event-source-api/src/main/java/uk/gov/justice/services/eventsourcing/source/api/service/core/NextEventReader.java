@@ -1,4 +1,4 @@
-package uk.gov.justice.services.event.sourcing.subscription.manager;
+package uk.gov.justice.services.eventsourcing.source.api.service.core;
 
 import uk.gov.justice.services.messaging.JsonEnvelope;
 

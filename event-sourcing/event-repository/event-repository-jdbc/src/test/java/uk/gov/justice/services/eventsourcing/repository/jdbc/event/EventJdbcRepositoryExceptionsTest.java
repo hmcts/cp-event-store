@@ -158,4 +158,25 @@ public class EventJdbcRepositoryExceptionsTest {
             verify(logger).error("Failed to read stream {}", streamId, sqlException);
         }
     }
+
+    @Test
+    public void shouldLogAndThrowExceptionIfSqlExceptionIsThrownInFindNextEventInTheStreamAfterPosition() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final long position = 5L;
+        final SQLException sqlException = new SQLException();
+
+        final DataSource dataSource = mock(DataSource.class);
+
+        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenThrow(sqlException);
+
+        try {
+            eventJdbcRepository.findNextEventInTheStreamAfterPosition(streamId, position);
+            fail();
+        } catch (final JdbcRepositoryException e) {
+            assertThat(e.getMessage(), is("Failed to find next event in stream '" + streamId + "' after position " + position));
+            verify(logger).error("Failed to find next event in stream '" + streamId + "' after position " + position, sqlException);
+        }
+    }
 }

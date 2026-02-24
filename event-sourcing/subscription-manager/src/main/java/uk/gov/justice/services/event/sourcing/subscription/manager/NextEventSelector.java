@@ -4,9 +4,6 @@ import static java.lang.String.format;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
-import uk.gov.justice.services.eventsourcing.source.api.service.core.LinkedEventSource;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
@@ -19,10 +16,7 @@ import javax.transaction.UserTransaction;
 public class NextEventSelector {
 
     @Inject
-    private LinkedEventSourceProvider linkedEventSourceProvider;
-
-    @Inject
-    private EventConverter eventConverter;
+    private NextEventReader nextEventReader;
 
     @Inject
     private MicrometerMetricsCounters micrometerMetricsCounters;
@@ -57,9 +51,7 @@ public class NextEventSelector {
         final Long latestKnownPosition = lockedStreamStatus.latestKnownPosition();
 
         try {
-            final LinkedEventSource linkedEventSource = linkedEventSourceProvider.getLinkedEventSource(source);
-            Optional<LinkedEvent> linkedEvent = linkedEventSource.findNextEventInTheStreamAfterPosition(streamId, position);
-            eventJsonEnvelope = linkedEvent.map(eventConverter::envelopeOf);
+            eventJsonEnvelope = nextEventReader.read(streamId, position);
         } catch (Exception e) {
             micrometerMetricsCounters.incrementEventsFailedCount(source, component);
             transactionHandler.rollback(userTransaction);

@@ -37,11 +37,6 @@ public class DefaultLinkedEventSource implements LinkedEventSource {
     }
 
     @Override
-    public Optional<LinkedEvent> findNextEventInTheStreamAfterPosition(final UUID streamId, final Long position) {
-        return multipleDataSourceEventRepository.findNextEventInTheStreamAfterPosition(streamId, position);
-    }
-
-    @Override
     public Long getHighestPublishedEventNumber() {
         final Optional<LinkedEvent> latestPublishedEvent = multipleDataSourceEventRepository
                 .getLatestLinkedEvent();

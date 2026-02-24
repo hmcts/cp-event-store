@@ -44,6 +44,13 @@ public class EventJdbcRepository {
     static final String SQL_FIND_BY_STREAM_ID = "SELECT * FROM event_log WHERE stream_id=? ORDER BY position_in_stream ASC";
     static final String SQL_FIND_BY_STREAM_ID_AND_POSITION = "SELECT * FROM event_log WHERE stream_id=? AND position_in_stream>=? ORDER BY position_in_stream ASC";
     static final String SQL_FIND_BY_STREAM_ID_AND_POSITION_BY_PAGE = "SELECT * FROM event_log WHERE stream_id=? AND position_in_stream>=? ORDER BY position_in_stream ASC LIMIT ?";
+    static final String SQL_FIND_NEXT_EVENT_IN_THE_STREAM_AFTER_POSITION = """
+            SELECT id, stream_id, position_in_stream, name, payload, metadata, date_created, event_number, previous_event_number
+            FROM event_log
+            WHERE stream_id = ?
+            AND position_in_stream > ?
+            ORDER BY position_in_stream ASC
+            LIMIT 1""";
     static final String SQL_FIND_LATEST_POSITION = "SELECT MAX(position_in_stream) FROM event_log WHERE stream_id=?";
     static final String SQL_DISTINCT_STREAM_ID = "SELECT DISTINCT stream_id FROM event_log";
     static final String SQL_DELETE_STREAM = "DELETE FROM event_log t WHERE t.stream_id=?";
@@ -286,6 +293,30 @@ public class EventJdbcRepository {
         });
     }
 
+    public Optional<LinkedEvent> findNextEventInTheStreamAfterPosition(final UUID streamId, final Long position) {
+
+        final DataSource dataSource = eventStoreDataSourceProvider.getDefaultDataSource();
+
+        try (final Connection connection = dataSource.getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(SQL_FIND_NEXT_EVENT_IN_THE_STREAM_AFTER_POSITION)) {
+
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setLong(2, position);
+
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return of(asLinkedEvent().apply(resultSet));
+                }
+            }
+        } catch (final SQLException e) {
+            final String message = format("Failed to find next event in stream '%s' after position %d", streamId, position);
+            logger.error(message, e);
+            throw new JdbcRepositoryException(message, e);
+        }
+
+        return empty();
+    }
+
     private Function<ResultSet, Event> asEvent() {
         return resultSet -> {
             try {
@@ -297,6 +328,26 @@ public class EventJdbcRepository {
                         resultSet.getString("payload"),
                         fromSqlTimestamp(resultSet.getTimestamp("date_created")),
                         ofNullable(resultSet.getObject("event_number", Long.class))
+                );
+            } catch (final SQLException e) {
+                throw new JdbcRepositoryException(e);
+            }
+        };
+    }
+
+    private Function<ResultSet, LinkedEvent> asLinkedEvent() {
+        return resultSet -> {
+            try {
+                return new LinkedEvent(
+                        (UUID) resultSet.getObject("id"),
+                        (UUID) resultSet.getObject("stream_id"),
+                        resultSet.getObject("position_in_stream", Long.class),
+                        resultSet.getString("name"),
+                        resultSet.getString("metadata"),
+                        resultSet.getString("payload"),
+                        fromSqlTimestamp(resultSet.getTimestamp("date_created")),
+                        resultSet.getObject("event_number", Long.class),
+                        resultSet.getObject("previous_event_number", Long.class)
                 );
             } catch (final SQLException e) {
                 throw new JdbcRepositoryException(e);

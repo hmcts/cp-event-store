@@ -144,6 +144,24 @@ public class NewStreamStatusRepository {
             AND source = ?
             AND component = ?
             """;
+    private static final String COUNT_STREAMS_BEHIND_SQL = """
+            SELECT COUNT(*) FROM (
+                SELECT 1
+                FROM stream_status ss
+                LEFT JOIN stream_error_retry ser
+                    ON  ser.stream_id = ss.stream_id
+                    AND ser.source    = ss.source
+                    AND ser.component = ss.component
+                WHERE ss.source = ?
+                  AND ss.component = ?
+                  AND ss.position < ss.latest_known_position
+                  AND (
+                      ss.stream_error_id IS NULL
+                      OR (ser.retry_count < ? AND ser.next_retry_time <= now())
+                  )
+                LIMIT ?
+            ) pending
+            """;
     @Inject
     private NewStreamStatusRowMapper streamStatusRowMapper;
 
@@ -400,6 +418,28 @@ public class NewStreamStatusRepository {
                     streamId,
                     source,
                     componentName),
+                    e);
+        }
+    }
+
+    public int countStreamsBehind(final String source, final String component, final int maxRetries, final int maxWorkers) {
+
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(COUNT_STREAMS_BEHIND_SQL)) {
+
+            preparedStatement.setString(1, source);
+            preparedStatement.setString(2, component);
+            preparedStatement.setInt(3, maxRetries);
+            preparedStatement.setInt(4, maxWorkers);
+
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                return resultSet.next() ? resultSet.getInt(1) : 0;
+            }
+        } catch (final SQLException e) {
+            throw new StreamStatusException(format(
+                    "Failed to count streams behind for source '%s', component '%s'",
+                    source,
+                    component),
                     e);
         }
     }

@@ -134,4 +134,14 @@ public class StreamProcessingConfigTest {
 
         assertThat(streamProcessingConfig.accessEventStoreViaRest(), is(false));
     }
+
+    @Test
+    public void shouldGetTheIdleThreshold() {
+
+        final long milliseconds = 2000L;
+
+        setField(streamProcessingConfig, "idleThresholdMilliseconds", "" + milliseconds);
+
+        assertThat(streamProcessingConfig.getIdleThresholdMilliseconds(), is(milliseconds));
+    }
 }

@@ -5,6 +5,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+### Changed
+- Demand-driven worker scaling: StreamProcessingCoordinator spawns workers based on stream_status demand
+
 ### Fixed
 - Fix @Transactional ignored on EventSubscriptionDiscoveryBean (EJB requires @TransactionAttribute)
 - Fix @Transactional ignored on DefaultLinkedEventSource (non-CDI bean); extract TransactionalEventReader

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
+import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;

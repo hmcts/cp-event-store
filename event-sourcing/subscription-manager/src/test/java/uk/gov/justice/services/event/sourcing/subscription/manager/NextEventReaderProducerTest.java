@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.sourcing.subscription.manager.timer.StreamProcessingConfig;
+import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

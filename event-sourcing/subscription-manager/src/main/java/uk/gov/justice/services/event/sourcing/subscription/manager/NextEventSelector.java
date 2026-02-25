@@ -3,6 +3,7 @@ package uk.gov.justice.services.event.sourcing.subscription.manager;
 import static java.lang.String.format;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
+import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;

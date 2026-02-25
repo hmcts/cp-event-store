@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.transaction.UserTransaction;
 
 public class NextEventSelector {
 
@@ -24,9 +23,6 @@ public class NextEventSelector {
 
     @Inject
     private TransactionHandler transactionHandler;
-
-    @Inject
-    private UserTransaction userTransaction;
 
     public Optional<PulledEvent> selectNextEvent(
             final String source,
@@ -55,7 +51,7 @@ public class NextEventSelector {
             eventJsonEnvelope = nextEventReader.read(streamId, position);
         } catch (Exception e) {
             micrometerMetricsCounters.incrementEventsFailedCount(source, component);
-            transactionHandler.rollback(userTransaction);
+            transactionHandler.rollback();
             throw new StreamProcessingException(
                     format("Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d", streamId, position, latestKnownPosition));
         }
@@ -63,7 +59,7 @@ public class NextEventSelector {
         //TODO revisit this later to understand the requirement on whether to mark the stream as failed if this ever happens, but with current db schema without an event stream can not be marked as error
         return eventJsonEnvelope.orElseThrow(() -> {
             micrometerMetricsCounters.incrementEventsFailedCount(source, component);
-            transactionHandler.rollback(userTransaction);
+            transactionHandler.rollback();
             throw new StreamProcessingException(
                     format("Unable to find next event to process for streamId: '%s', position: %d, latestKnownPosition: %d", streamId, position, latestKnownPosition));
         });

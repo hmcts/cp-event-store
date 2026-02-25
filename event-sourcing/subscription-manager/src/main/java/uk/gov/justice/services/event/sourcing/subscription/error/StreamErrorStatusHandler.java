@@ -4,7 +4,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
-import javax.transaction.UserTransaction;
 import org.slf4j.Logger;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
@@ -31,9 +30,6 @@ public class StreamErrorStatusHandler {
     private MicrometerMetricsCounters micrometerMetricsCounters;
 
     @Inject
-    private UserTransaction userTransaction;
-
-    @Inject
     private TransactionHandler transactionHandler;
 
     @Inject
@@ -47,7 +43,7 @@ public class StreamErrorStatusHandler {
         final StreamError newStreamError = streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component);
         final UUID streamId = newStreamError.streamErrorOccurrence().streamId();
         try {
-            transactionHandler.begin(userTransaction);
+            transactionHandler.begin();
 
             if (isErrorSameAsBefore(newStreamError, streamUpdateContext))
                 streamErrorRepository.markSameErrorHappened(streamUpdateContext.streamErrorId().get(), streamId, source, component);
@@ -55,9 +51,9 @@ public class StreamErrorStatusHandler {
                 streamErrorRepository.markStreamAsErrored(newStreamError, streamUpdateContext.currentStreamPosition());
             }
 
-            transactionHandler.commit(userTransaction);
+            transactionHandler.commit();
         } catch (final Exception e) {
-            transactionHandler.rollback(userTransaction);
+            transactionHandler.rollback();
             logger.error("Failed to mark stream as errored: streamId '%s'".formatted(streamId), e);
         }
     }
@@ -68,7 +64,7 @@ public class StreamErrorStatusHandler {
         final UUID streamId = newStreamError.streamErrorOccurrence().streamId();
         final String source = newStreamError.streamErrorOccurrence().source();
         try {
-            transactionHandler.begin(userTransaction);
+            transactionHandler.begin();
 
             if (existingErrorId.isPresent() && isErrorSameAsBefore(newStreamError, existingErrorId.get())) {
                 streamErrorRepository.markSameErrorHappened(existingErrorId.get(), streamId, source, component);
@@ -78,11 +74,36 @@ public class StreamErrorStatusHandler {
 
             streamRetryStatusManager.updateStreamRetryCountAndNextRetryTime(streamId, source, component);
 
-            transactionHandler.commit(userTransaction);
+            transactionHandler.commit();
         } catch (final Exception e) {
-            transactionHandler.rollback(userTransaction);
+            transactionHandler.rollback();
             logger.error("Failed to mark stream as errored: streamId '%s'".formatted(streamId), e);
         }
+    }
+
+    public void recordStreamError(
+            final JsonEnvelope jsonEnvelope,
+            final Throwable exception,
+            final String component,
+            final long currentPosition,
+            final Optional<UUID> existingErrorId) {
+
+        final ExceptionDetails exceptionDetails = exceptionDetailsRetriever.getExceptionDetailsFrom(exception);
+        final StreamError newStreamError = streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component);
+        final UUID streamId = newStreamError.streamErrorOccurrence().streamId();
+        final String source = newStreamError.streamErrorOccurrence().source();
+
+        if (existingErrorId.isPresent() && isErrorSameAsBefore(newStreamError, existingErrorId.get())) {
+            streamErrorRepository.markSameErrorHappened(existingErrorId.get(), streamId, source, component);
+        } else {
+            streamErrorRepository.saveStreamError(newStreamError);
+        }
+        streamRetryStatusManager.updateStreamRetryCountAndNextRetryTime(streamId, source, component);
+    }
+
+    public void markStreamAsFixed(final UUID streamErrorId, final UUID streamId, final String source, final String component) {
+        streamErrorRepository.markStreamAsFixed(streamErrorId, streamId, source, component);
+        streamRetryStatusManager.removeStreamRetryStatus(streamId, source, component);
     }
 
     private boolean isErrorSameAsBefore(final StreamError newStreamError, final StreamUpdateContext streamUpdateContext) {

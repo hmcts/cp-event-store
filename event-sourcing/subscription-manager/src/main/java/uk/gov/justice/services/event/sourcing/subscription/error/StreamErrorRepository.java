@@ -75,6 +75,26 @@ public class StreamErrorRepository {
     }
 
     @Transactional(MANDATORY)
+    public void saveStreamError(final StreamError streamError) {
+
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
+            final StreamErrorOccurrence streamErrorOccurrence = streamError.streamErrorOccurrence();
+
+            if (streamErrorPersistence.save(streamError, connection)) {
+                streamStatusErrorPersistence.markStreamAsErrored(
+                        streamErrorOccurrence.streamId(),
+                        streamErrorOccurrence.id(),
+                        streamErrorOccurrence.positionInStream(),
+                        streamErrorOccurrence.componentName(),
+                        streamErrorOccurrence.source(),
+                        connection);
+            }
+        } catch (final SQLException e) {
+            throw new StreamErrorHandlingException("Failed to get connection to view-store", e);
+        }
+    }
+
+    @Transactional(MANDATORY)
     public void markStreamAsFixed(final UUID streamErrorId, final UUID streamId, final String source, final String componentName) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {

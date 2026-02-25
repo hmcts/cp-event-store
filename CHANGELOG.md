@@ -5,6 +5,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+### Changed
+- Replace full transaction rollback with JDBC savepoint rollback in pull-based stream processing to eliminate race condition in error path
+- Add StreamErrorRepository.saveStreamError() to skip redundant row lock when caller already holds FOR NO KEY UPDATE lock
+
 ### Fixed
 - Fix @Transactional ignored on EventSubscriptionDiscoveryBean (EJB requires @TransactionAttribute)
 - Fix @Transactional ignored on DefaultLinkedEventSource (non-CDI bean); extract TransactionalEventReader

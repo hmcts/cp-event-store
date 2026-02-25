@@ -21,18 +21,17 @@ import static uk.gov.justice.services.event.sourcing.subscription.manager.EventP
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamRetryStatusManager;
 import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
+import uk.gov.justice.services.event.sourcing.subscription.manager.TransactionHandler.SavepointContext;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
+import java.sql.SQLException;
 import java.util.UUID;
 
-import javax.transaction.UserTransaction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +39,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
 
 @ExtendWith(MockitoExtension.class)
 public class StreamEventProcessorTest {
@@ -51,16 +51,13 @@ public class StreamEventProcessorTest {
     private StreamErrorStatusHandler streamErrorStatusHandler;
 
     @Mock
-    private StreamSelectorManager streamSelectorManager;
+    private OldestStreamSelector oldestStreamSelector;
 
     @Mock
     private NextEventSelector nextEventSelector;
 
     @Mock
     private NewStreamStatusRepository newStreamStatusRepository;
-
-    @Mock
-    private UserTransaction userTransaction;
 
     @Mock
     private TransactionHandler transactionHandler;
@@ -75,10 +72,7 @@ public class StreamEventProcessorTest {
     private StreamEventValidator streamEventValidator;
 
     @Mock
-    private StreamRetryStatusManager streamRetryStatusManager;
-
-    @Mock
-    private StreamErrorRepository streamErrorRepository;
+    private Logger logger;
 
     @InjectMocks
     private StreamEventProcessor streamEventProcessor;
@@ -97,9 +91,11 @@ public class StreamEventProcessorTest {
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
+        final SavepointContext savepointContext = mock(SavepointContext.class);
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
+        when(transactionHandler.createSavepointContext()).thenReturn(savepointContext);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
 
@@ -108,34 +104,33 @@ public class StreamEventProcessorTest {
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
                 transactionHandler,
-                streamSelectorManager,
+                oldestStreamSelector,
                 nextEventSelector,
                 streamEventLoggerMetadataAdder,
                 streamEventValidator,
                 componentEventProcessor,
                 newStreamStatusRepository,
                 micrometerMetricsCounters,
-                transactionHandler,
-                streamRetryStatusManager);
+                transactionHandler);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
+        inOrder.verify(transactionHandler).begin();
+        inOrder.verify(oldestStreamSelector).findStreamToProcess(source, component);
         inOrder.verify(nextEventSelector).selectNextEvent(source, component, of(lockedStreamStatus));
+        inOrder.verify(transactionHandler).createSavepointContext();
         inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
         inOrder.verify(streamEventValidator).validate(eventJsonEnvelope, source, component);
         inOrder.verify(componentEventProcessor).process(eventJsonEnvelope, component);
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
-        inOrder.verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
+        inOrder.verify(transactionHandler).releaseSavepointAndCommit(savepointContext);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
-        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
 
-        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(streamEventLoggerMetadataAdder).clearMdc();
+        verify(transactionHandler).closeSavepointContext(savepointContext);
+        verify(transactionHandler, never()).rollback();
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
         verifyNoInteractions(streamErrorStatusHandler);
-        verifyNoInteractions(streamErrorRepository);
     }
 
     @Test
@@ -152,43 +147,24 @@ public class StreamEventProcessorTest {
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
+        final SavepointContext savepointContext = mock(SavepointContext.class);
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
+        when(transactionHandler.createSavepointContext()).thenReturn(savepointContext);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
 
         assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
-        final InOrder inOrder = inOrder(
-                micrometerMetricsCounters,
-                transactionHandler,
-                streamSelectorManager,
-                nextEventSelector,
-                streamEventLoggerMetadataAdder,
-                streamEventValidator,
-                componentEventProcessor,
-                newStreamStatusRepository,
-                micrometerMetricsCounters,
-                transactionHandler);
-
-        inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
-        inOrder.verify(nextEventSelector).selectNextEvent(source, component, of(lockedStreamStatus));
-        inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
-        inOrder.verify(streamEventValidator).validate(eventJsonEnvelope, source, component);
-        inOrder.verify(componentEventProcessor).process(eventJsonEnvelope, component);
-        inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
-        inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
-        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
-
+        verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
-        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(transactionHandler).releaseSavepointAndCommit(savepointContext);
+        verify(streamEventLoggerMetadataAdder).clearMdc();
+        verify(transactionHandler).closeSavepointContext(savepointContext);
+        verify(transactionHandler, never()).rollback();
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
         verifyNoInteractions(streamErrorStatusHandler);
-        verifyNoInteractions(streamErrorRepository);
     }
 
     @Test
@@ -197,7 +173,7 @@ public class StreamEventProcessorTest {
         final String source = "some-source";
         final String component = "some-component";
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(empty());
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(empty());
         when(nextEventSelector.selectNextEvent(source, component, empty())).thenReturn(empty());
 
         assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_NOT_FOUND));
@@ -205,15 +181,15 @@ public class StreamEventProcessorTest {
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
                 transactionHandler,
-                streamSelectorManager,
+                oldestStreamSelector,
                 nextEventSelector,
                 transactionHandler);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
+        inOrder.verify(transactionHandler).begin();
+        inOrder.verify(oldestStreamSelector).findStreamToProcess(source, component);
         inOrder.verify(nextEventSelector).selectNextEvent(source, component, empty());
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commitWithFallbackToRollback();
 
         verifyNoInteractions(componentEventProcessor);
         verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
@@ -222,38 +198,7 @@ public class StreamEventProcessorTest {
     }
 
     @Test
-    public void shouldRollbackWhenCommitFailsAfterNoStreamFound() throws Exception {
-
-        final String source = "some-source";
-        final String component = "some-component";
-        final RuntimeException commitException = new RuntimeException("Commit failed");
-
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(empty());
-        when(nextEventSelector.selectNextEvent(source, component, empty())).thenReturn(empty());
-        doThrow(commitException).when(transactionHandler).commit(userTransaction);
-
-        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_NOT_FOUND));
-
-        final InOrder inOrder = inOrder(
-                micrometerMetricsCounters,
-                transactionHandler,
-                streamSelectorManager,
-                nextEventSelector,
-                transactionHandler);
-
-        inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
-        inOrder.verify(nextEventSelector).selectNextEvent(source, component, empty());
-        inOrder.verify(transactionHandler).commit(userTransaction);
-        inOrder.verify(transactionHandler).rollback(userTransaction);
-
-        verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
-        verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
-    }
-
-    @Test
-    public void shouldThrowStreamProcessingExceptionWhenStreamSelectionFails() throws Exception {
+    public void shouldRollbackAndRethrowWhenStreamSelectionFails() throws Exception {
 
         final String source = "some-source";
         final String component = "some-component";
@@ -261,32 +206,20 @@ public class StreamEventProcessorTest {
         final StreamProcessingException streamProcessingException = new StreamProcessingException(
                 "Failed to find stream to process, source: 'some-source', component: 'some-component'", selectionException);
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenThrow(streamProcessingException);
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenThrow(streamProcessingException);
 
         final StreamProcessingException thrown = org.junit.jupiter.api.Assertions.assertThrows(
-                StreamProcessingException.class,
-                () -> streamEventProcessor.processSingleEvent(source, component));
+                StreamProcessingException.class, () -> streamEventProcessor.processSingleEvent(source, component));
 
         assertThat(thrown.getCause(), is(selectionException));
         assertThat(thrown.getMessage(), is("Failed to find stream to process, source: 'some-source', component: 'some-component'"));
 
-        final InOrder inOrder = inOrder(
-                micrometerMetricsCounters,
-                transactionHandler,
-                streamSelectorManager);
-
-        inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
-
+        verify(transactionHandler).rollback();
         verifyNoInteractions(nextEventSelector);
-        verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
-        verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
-        verifyNoInteractions(streamErrorStatusHandler);
     }
 
     @Test
-    public void shouldThrowStreamProcessingExceptionWhenEventNotFound() throws Exception {
+    public void shouldRollbackAndRethrowWhenEventNotFound() throws Exception {
 
         final UUID streamId = randomUUID();
         final String source = "some-source";
@@ -295,32 +228,19 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 10L;
 
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
-        final StreamProcessingException streamProcessingException = new StreamProcessingException(
-                "Unable to find next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition));
+        final String expectedMessage = "Unable to find next event to process for streamId: '%s', position: %d, latestKnownPosition: %d"
+                .formatted(streamId, currentPosition, latestKnownPosition);
+        final StreamProcessingException streamProcessingException = new StreamProcessingException(expectedMessage);
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenThrow(streamProcessingException);
 
         final StreamProcessingException thrown = org.junit.jupiter.api.Assertions.assertThrows(
-                StreamProcessingException.class,
-                () -> streamEventProcessor.processSingleEvent(source, component));
+                StreamProcessingException.class, () -> streamEventProcessor.processSingleEvent(source, component));
 
-        assertThat(thrown.getMessage(), is("Unable to find next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition)));
+        assertThat(thrown.getMessage(), is(expectedMessage));
 
-        final InOrder inOrder = inOrder(
-                micrometerMetricsCounters,
-                transactionHandler,
-                streamSelectorManager,
-                nextEventSelector);
-
-        inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
-        inOrder.verify(nextEventSelector).selectNextEvent(source, component, of(lockedStreamStatus));
-
-        verifyNoInteractions(componentEventProcessor);
-        verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
-        verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
+        verify(transactionHandler).rollback();
     }
 
     @Test
@@ -340,9 +260,11 @@ public class StreamEventProcessorTest {
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
+        final SavepointContext savepointContext = mock(SavepointContext.class);
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
+        when(transactionHandler.createSavepointContext()).thenReturn(savepointContext);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         doThrow(nullPointerException).when(componentEventProcessor).process(eventJsonEnvelope, component);
@@ -350,32 +272,19 @@ public class StreamEventProcessorTest {
         assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
         final InOrder inOrder = inOrder(
-                micrometerMetricsCounters,
-                transactionHandler,
-                streamSelectorManager,
-                nextEventSelector,
-                streamEventLoggerMetadataAdder,
-                streamEventValidator,
-                componentEventProcessor,
                 transactionHandler,
                 micrometerMetricsCounters,
-                streamErrorStatusHandler);
+                streamErrorStatusHandler,
+                transactionHandler);
 
-        inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
-        inOrder.verify(nextEventSelector).selectNextEvent(source, component, of(lockedStreamStatus));
-        inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
-        inOrder.verify(streamEventValidator).validate(eventJsonEnvelope, source, component);
-        inOrder.verify(componentEventProcessor).process(eventJsonEnvelope, component);
-        inOrder.verify(transactionHandler).rollback(userTransaction);
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, component, currentPosition, of(streamErrorId));
-        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
+        inOrder.verify(transactionHandler).rollbackSavepointAndRestartIfTainted(savepointContext);
+        inOrder.verify(streamErrorStatusHandler).recordStreamError(eventJsonEnvelope, nullPointerException, component, currentPosition, of(streamErrorId));
+        inOrder.verify(transactionHandler).commit();
 
+        verify(streamEventLoggerMetadataAdder).clearMdc();
+        verify(transactionHandler).closeSavepointContext(savepointContext);
         verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
-        verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
-        verify(transactionHandler, never()).commit(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
     }
 
@@ -392,38 +301,24 @@ public class StreamEventProcessorTest {
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
+        final SavepointContext savepointContext = mock(SavepointContext.class);
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
+        when(transactionHandler.createSavepointContext()).thenReturn(savepointContext);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(empty());
 
         assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
-        final InOrder inOrder = inOrder(
-                micrometerMetricsCounters,
-                transactionHandler,
-                streamSelectorManager,
-                nextEventSelector,
-                streamEventLoggerMetadataAdder,
-                transactionHandler,
-                micrometerMetricsCounters,
-                streamErrorStatusHandler);
-
-        inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
-        inOrder.verify(nextEventSelector).selectNextEvent(source, component, of(lockedStreamStatus));
-        inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
-        inOrder.verify(transactionHandler).rollback(userTransaction);
-        inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(currentPosition), eq(empty()));
-        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
-
+        verify(transactionHandler).rollbackSavepointAndRestartIfTainted(savepointContext);
+        verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
+        verify(streamErrorStatusHandler).recordStreamError(
+                eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(currentPosition), eq(empty()));
+        verify(transactionHandler).commit();
+        verify(streamEventLoggerMetadataAdder).clearMdc();
+        verify(transactionHandler).closeSavepointContext(savepointContext);
         verifyNoInteractions(componentEventProcessor);
-        verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
-        verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
-        verifyNoInteractions(streamEventValidator);
     }
 
     @Test
@@ -436,33 +331,19 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 10L;
 
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
-        final StreamProcessingException streamProcessingException = new StreamProcessingException(
-                "Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition));
+        final String expectedMessage = "Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d"
+                .formatted(streamId, currentPosition, latestKnownPosition);
+        final StreamProcessingException streamProcessingException = new StreamProcessingException(expectedMessage);
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenThrow(streamProcessingException);
 
         final StreamProcessingException thrown = org.junit.jupiter.api.Assertions.assertThrows(
-                StreamProcessingException.class,
-                () -> streamEventProcessor.processSingleEvent(source, component));
+                StreamProcessingException.class, () -> streamEventProcessor.processSingleEvent(source, component));
 
-        assertThat(thrown.getMessage(), is("Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition)));
+        assertThat(thrown.getMessage(), is(expectedMessage));
 
-        final InOrder inOrder = inOrder(
-                micrometerMetricsCounters,
-                transactionHandler,
-                streamSelectorManager,
-                nextEventSelector);
-
-        inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
-        inOrder.verify(nextEventSelector).selectNextEvent(source, component, of(lockedStreamStatus));
-
-        verifyNoInteractions(componentEventProcessor);
-        verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
-        verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
-        verifyNoInteractions(streamErrorStatusHandler);
+        verify(transactionHandler).rollback();
     }
 
     @Test
@@ -475,33 +356,19 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 10L;
 
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
-        final StreamProcessingException streamProcessingException = new StreamProcessingException(
-                "Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition));
+        final String expectedMessage = "Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d"
+                .formatted(streamId, currentPosition, latestKnownPosition);
+        final StreamProcessingException streamProcessingException = new StreamProcessingException(expectedMessage);
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenThrow(streamProcessingException);
 
         final StreamProcessingException thrown = org.junit.jupiter.api.Assertions.assertThrows(
-                StreamProcessingException.class,
-                () -> streamEventProcessor.processSingleEvent(source, component));
+                StreamProcessingException.class, () -> streamEventProcessor.processSingleEvent(source, component));
 
-        assertThat(thrown.getMessage(), is("Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition)));
+        assertThat(thrown.getMessage(), is(expectedMessage));
 
-        final InOrder inOrder = inOrder(
-                micrometerMetricsCounters,
-                transactionHandler,
-                streamSelectorManager,
-                nextEventSelector);
-
-        inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
-        inOrder.verify(nextEventSelector).selectNextEvent(source, component, of(lockedStreamStatus));
-
-        verifyNoInteractions(componentEventProcessor);
-        verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
-        verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
-        verifyNoInteractions(streamErrorStatusHandler);
+        verify(transactionHandler).rollback();
     }
 
     @Test
@@ -519,9 +386,11 @@ public class StreamEventProcessorTest {
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
+        final SavepointContext savepointContext = mock(SavepointContext.class);
 
-        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
+        when(transactionHandler.createSavepointContext()).thenReturn(savepointContext);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
 
@@ -530,34 +399,108 @@ public class StreamEventProcessorTest {
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
                 transactionHandler,
-                streamSelectorManager,
+                oldestStreamSelector,
                 nextEventSelector,
                 streamEventLoggerMetadataAdder,
                 streamEventValidator,
                 componentEventProcessor,
                 newStreamStatusRepository,
+                streamErrorStatusHandler,
                 micrometerMetricsCounters,
-                transactionHandler,
-                streamRetryStatusManager,
-                streamErrorRepository);
+                transactionHandler);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
+        inOrder.verify(transactionHandler).begin();
+        inOrder.verify(oldestStreamSelector).findStreamToProcess(source, component);
         inOrder.verify(nextEventSelector).selectNextEvent(source, component, of(lockedStreamStatus));
+        inOrder.verify(transactionHandler).createSavepointContext();
         inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
         inOrder.verify(streamEventValidator).validate(eventJsonEnvelope, source, component);
         inOrder.verify(componentEventProcessor).process(eventJsonEnvelope, component);
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
-        inOrder.verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
-        inOrder.verify(streamErrorRepository).markStreamAsFixed(streamErrorId, streamId, source, component);
+        inOrder.verify(streamErrorStatusHandler).markStreamAsFixed(streamErrorId, streamId, source, component);
+        inOrder.verify(transactionHandler).releaseSavepointAndCommit(savepointContext);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
-        inOrder.verify(streamEventLoggerMetadataAdder).clearMdc();
 
-        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(streamEventLoggerMetadataAdder).clearMdc();
+        verify(transactionHandler).closeSavepointContext(savepointContext);
+        verify(transactionHandler, never()).rollback();
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
-        verifyNoInteractions(streamErrorStatusHandler);
+    }
+
+    @Test
+    public void shouldRollbackEntireTransactionWhenRecordStreamErrorFails() throws Exception {
+
+        final NullPointerException nullPointerException = new NullPointerException("Ooops");
+        final RuntimeException errorRecordingException = new RuntimeException("Error recording failed");
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final long currentPosition = 5L;
+        final long latestKnownPosition = 10L;
+        final long eventPositionInStream = 6L;
+
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
+        final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
+        final Metadata metadata = mock(Metadata.class);
+        final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
+        final SavepointContext savepointContext = mock(SavepointContext.class);
+
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
+        when(transactionHandler.createSavepointContext()).thenReturn(savepointContext);
+        when(eventJsonEnvelope.metadata()).thenReturn(metadata);
+        when(metadata.position()).thenReturn(of(eventPositionInStream));
+        doThrow(nullPointerException).when(componentEventProcessor).process(eventJsonEnvelope, component);
+        doThrow(errorRecordingException).when(streamErrorStatusHandler).recordStreamError(
+                eq(eventJsonEnvelope), eq(nullPointerException), eq(component), eq(currentPosition), eq(empty()));
+
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
+
+        final InOrder inOrder = inOrder(
+                transactionHandler,
+                micrometerMetricsCounters,
+                streamErrorStatusHandler,
+                logger,
+                transactionHandler);
+
+        inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
+        inOrder.verify(transactionHandler).rollbackSavepointAndRestartIfTainted(savepointContext);
+        inOrder.verify(streamErrorStatusHandler).recordStreamError(
+                eq(eventJsonEnvelope), eq(nullPointerException), eq(component), eq(currentPosition), eq(empty()));
+        inOrder.verify(logger).error(eq("Failed to record stream error for streamId '{}': {}"),
+                eq(streamId), eq(errorRecordingException.getMessage()), eq(errorRecordingException));
+        inOrder.verify(transactionHandler).rollback();
+
+        verify(streamEventLoggerMetadataAdder).clearMdc();
+        verify(transactionHandler).closeSavepointContext(savepointContext);
+        verify(transactionHandler, never()).commit();
+    }
+
+    @Test
+    public void shouldRollbackTransactionWhenSavepointContextCreationFails() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final long currentPosition = 5L;
+        final long latestKnownPosition = 10L;
+
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
+        final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
+        final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
+        final SQLException sqlException = new SQLException("Savepoint failed");
+
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
+        when(transactionHandler.createSavepointContext()).thenThrow(sqlException);
+
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
+
+        verify(logger).error(eq("Failed to create savepoint context for streamId '{}': {}"), eq(streamId), eq("Savepoint failed"), eq(sqlException));
+        verify(transactionHandler).rollback();
+        verifyNoInteractions(componentEventProcessor);
     }
 }

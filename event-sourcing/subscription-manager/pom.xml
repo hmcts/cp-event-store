@@ -62,6 +62,10 @@
             <artifactId>framework-api-event-buffer</artifactId>
         </dependency>
         <dependency>
+            <groupId>uk.gov.justice.framework-generators</groupId>
+            <artifactId>rest-client-core</artifactId>
+        </dependency>
+        <dependency>
             <groupId>uk.gov.justice.services</groupId>
             <artifactId>jmx-command-handling</artifactId>
         </dependency>

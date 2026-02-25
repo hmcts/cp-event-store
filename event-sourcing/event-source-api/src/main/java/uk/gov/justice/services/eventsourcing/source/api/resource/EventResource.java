@@ -15,6 +15,7 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -35,8 +36,9 @@ public class EventResource {
     private Logger logger;
 
     @GET
+    @Path("/{streamId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response nextEvent(@QueryParam("streamId") final UUID streamId,
+    public Response nextEvent(@PathParam("streamId") final UUID streamId,
                               @QueryParam("afterPosition") final long afterPosition) {
 
         try {

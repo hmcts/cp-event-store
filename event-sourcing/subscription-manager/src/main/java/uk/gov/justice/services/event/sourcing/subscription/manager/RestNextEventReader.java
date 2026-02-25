@@ -10,7 +10,7 @@ import java.util.UUID;
 public class RestNextEventReader implements NextEventReader {
 
     @Override
-    public Optional<JsonEnvelope> read(final UUID streamId, final Long position) {
+    public Optional<JsonEnvelope> read(final UUID streamId, final Long position, final String source) {
         throw new UnsupportedOperationException("RestNextEventReader is not yet implemented");
     }
 }

@@ -21,7 +21,7 @@ public class RestNextEventReaderTest {
 
         final UnsupportedOperationException exception = assertThrows(
                 UnsupportedOperationException.class,
-                () -> restNextEventReader.read(randomUUID(), 1L));
+                () -> restNextEventReader.read(randomUUID(), 1L, "some-source"));
 
         assertThat(exception.getMessage(), is("RestNextEventReader is not yet implemented"));
     }

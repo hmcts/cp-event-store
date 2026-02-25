@@ -58,7 +58,7 @@ public class NextEventSelectorTest {
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
 
-        when(nextEventReader.read(streamId, currentPosition)).thenReturn(of(eventJsonEnvelope));
+        when(nextEventReader.read(streamId, currentPosition, source)).thenReturn(of(eventJsonEnvelope));
 
         final Optional<PulledEvent> result = nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus));
 
@@ -90,7 +90,7 @@ public class NextEventSelectorTest {
 
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
 
-        when(nextEventReader.read(streamId, currentPosition)).thenReturn(empty());
+        when(nextEventReader.read(streamId, currentPosition, source)).thenReturn(empty());
 
         final StreamProcessingException exception = assertThrows(
                 StreamProcessingException.class,
@@ -112,7 +112,7 @@ public class NextEventSelectorTest {
 
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
 
-        when(nextEventReader.read(streamId, currentPosition)).thenThrow(eventFindingException);
+        when(nextEventReader.read(streamId, currentPosition, source)).thenThrow(eventFindingException);
 
         final StreamProcessingException exception = assertThrows(
                 StreamProcessingException.class,

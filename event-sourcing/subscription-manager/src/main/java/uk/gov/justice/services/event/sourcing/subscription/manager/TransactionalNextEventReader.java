@@ -24,7 +24,7 @@ public class TransactionalNextEventReader implements NextEventReader {
 
     @Transactional(REQUIRES_NEW)
     @Override
-    public Optional<JsonEnvelope> read(final UUID streamId, final Long position) {
+    public Optional<JsonEnvelope> read(final UUID streamId, final Long position, final String source) {
         return eventJdbcRepository.findNextEventInTheStreamAfterPosition(streamId, position)
                 .map(eventConverter::envelopeOf);
     }

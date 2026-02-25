@@ -40,7 +40,7 @@ public class EventResource {
                               @QueryParam("afterPosition") final long afterPosition) {
 
         try {
-            return nextEventReader.read(streamId, afterPosition)
+            return nextEventReader.read(streamId, afterPosition, null)
                     .map(jsonEnvelope -> ok(converter.convert(jsonEnvelope)).build())
                     .orElseGet(() -> noContent().build());
         } catch (final Exception e) {

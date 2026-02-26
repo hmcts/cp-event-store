@@ -7,6 +7,7 @@ import static javax.ws.rs.core.Response.status;
 import uk.gov.justice.services.common.converter.ObjectToJsonValueConverter;
 import uk.gov.justice.services.eventsourcing.discovery.DiscoveryResult;
 import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoverer;
+import uk.gov.justice.services.eventsourcing.discovery.TransactionalDiscoverer;
 
 import static java.lang.String.format;
 
@@ -27,6 +28,7 @@ import org.slf4j.Logger;
 public class EventDiscoveryResource {
 
     @Inject
+    @TransactionalDiscoverer
     private EventSubscriptionDiscoverer eventSubscriptionDiscoverer;
 
     @Inject

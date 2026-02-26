@@ -4,7 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
-
+### Added
+- New rest endpoint `ResetStreamRetryCountResource` for resetting retry count for a (stuck) stream  `/internal/reset-stream-retry-count`
 ### Fixed
 - Fix @Transactional ignored on EventSubscriptionDiscoveryBean (EJB requires @TransactionAttribute)
 - Fix @Transactional ignored on DefaultLinkedEventSource (non-CDI bean); extract TransactionalEventReader

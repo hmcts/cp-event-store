@@ -52,7 +52,7 @@ public class EventDiscoveryResourceTest {
         final DiscoveryResult discoveryResult = new DiscoveryResult(emptyList(), of(randomUUID()));
         final JsonValue jsonValue = mock(JsonValue.class);
 
-        when(eventSubscriptionDiscoverer.discoverNewEvents(of(afterEventId), batchSize)).thenReturn(discoveryResult);
+        when(eventSubscriptionDiscoverer.discoverNewEvents(of(afterEventId), batchSize, null)).thenReturn(discoveryResult);
         when(converter.convert(discoveryResult)).thenReturn(jsonValue);
 
         try (Response response = eventDiscoveryResource.discoverEvents(afterEventId, batchSize)) {
@@ -68,7 +68,7 @@ public class EventDiscoveryResourceTest {
         final DiscoveryResult discoveryResult = new DiscoveryResult(emptyList(), empty());
         final JsonValue jsonValue = mock(JsonValue.class);
 
-        when(eventSubscriptionDiscoverer.discoverNewEvents(empty(), batchSize)).thenReturn(discoveryResult);
+        when(eventSubscriptionDiscoverer.discoverNewEvents(empty(), batchSize, null)).thenReturn(discoveryResult);
         when(converter.convert(discoveryResult)).thenReturn(jsonValue);
 
         try (Response response = eventDiscoveryResource.discoverEvents(null, batchSize)) {
@@ -84,7 +84,7 @@ public class EventDiscoveryResourceTest {
         final int batchSize = 100;
         final RuntimeException exception = new RuntimeException("Discovery failed");
 
-        when(eventSubscriptionDiscoverer.discoverNewEvents(of(afterEventId), batchSize)).thenThrow(exception);
+        when(eventSubscriptionDiscoverer.discoverNewEvents(of(afterEventId), batchSize, null)).thenThrow(exception);
 
         try (Response response = eventDiscoveryResource.discoverEvents(afterEventId, batchSize)) {
             assertThat(response.getStatus(), is(INTERNAL_SERVER_ERROR.getStatusCode()));

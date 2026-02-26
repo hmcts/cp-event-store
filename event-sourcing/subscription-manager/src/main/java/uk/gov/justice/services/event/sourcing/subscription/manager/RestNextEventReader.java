@@ -21,11 +21,7 @@ public class RestNextEventReader implements NextEventReader {
     @Override
     public Optional<JsonEnvelope> read(final UUID streamId, final Long position, final String source) {
 
-        final String baseRestUri = eventSourceDefinitionRegistry
-                .getEventSourceDefinitionFor(source)
-                .flatMap(def -> def.getLocation().getRestUri())
-                .orElseThrow(() -> new RestNextEventReaderException(
-                        "No REST URI configured for event source: " + source));
+        final String baseRestUri = eventSourceDefinitionRegistry.getRestUri(source);
 
         return eventStoreHttpClient.getNextEvent(baseRestUri, streamId, position);
     }

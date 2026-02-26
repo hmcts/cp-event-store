@@ -1,8 +1,10 @@
 package uk.gov.justice.subscription.registry;
 
 import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
@@ -165,5 +167,38 @@ public class EventSourceDefinitionRegistryTest {
         assertThat(eventSourceDefinitionRegistry.getEventSourceDefinitionFor("nonExitingEventSourceDefinition"), is(empty()));
     }
 
+    @Test
+    public void shouldReturnRestUriForEventSourceName() {
 
+        final String restUri = "http://some-event-store/rest";
+        final Location location = new Location("", of(restUri), empty());
+        final EventSourceDefinition eventSourceDefinition = eventSourceDefinition()
+                .withName("some-event-source")
+                .withLocation(location)
+                .build();
+
+        final EventSourceDefinitionRegistry eventSourceDefinitionRegistry = new EventSourceDefinitionRegistry();
+        eventSourceDefinitionRegistry.register(eventSourceDefinition);
+
+        assertThat(eventSourceDefinitionRegistry.getRestUri("some-event-source"), is(restUri));
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenNoRestUriConfiguredForEventSource() {
+
+        final Location location = new Location("", empty(), empty());
+        final EventSourceDefinition eventSourceDefinition = eventSourceDefinition()
+                .withName("some-event-source")
+                .withLocation(location)
+                .build();
+
+        final EventSourceDefinitionRegistry eventSourceDefinitionRegistry = new EventSourceDefinitionRegistry();
+        eventSourceDefinitionRegistry.register(eventSourceDefinition);
+
+        final RegistryException exception = assertThrows(
+                RegistryException.class,
+                () -> eventSourceDefinitionRegistry.getRestUri("some-event-source"));
+
+        assertThat(exception.getMessage(), is("No REST URI configured for event source: some-event-source"));
+    }
 }

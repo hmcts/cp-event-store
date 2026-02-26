@@ -29,7 +29,7 @@ public class TransactionalEventSubscriptionDiscoverer implements EventSubscripti
 
     @TransactionAttribute(REQUIRES_NEW)
     @Override
-    public DiscoveryResult discoverNewEvents(final Optional<UUID> latestKnownEventId, final int batchSize) {
+    public DiscoveryResult discoverNewEvents(final Optional<UUID> latestKnownEventId, final int batchSize, final String source) {
 
         final long firstEventNumber = latestKnownEventId
                 .map(eventDiscoveryRepository::getEventNumberFor)

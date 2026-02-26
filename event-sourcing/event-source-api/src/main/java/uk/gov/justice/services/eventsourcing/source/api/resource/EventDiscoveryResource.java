@@ -43,7 +43,7 @@ public class EventDiscoveryResource {
         try {
             final DiscoveryResult discoveryResult = eventSubscriptionDiscoverer.discoverNewEvents(
                     Optional.ofNullable(afterEventId),
-                    batchSize);
+                    batchSize, null);
 
             return ok(converter.convert(discoveryResult)).build();
         } catch (final Exception e) {

@@ -74,6 +74,16 @@ public class StreamErrorRetryRepository {
             FROM stream_error_retry
             """;
 
+    static final String RESET_RETRY_COUNT_TO_ZERO_SQL = """
+            UPDATE stream_error_retry
+            SET
+                retry_count = 0,
+                next_retry_time = ?
+            WHERE stream_id = ?
+            AND source = ?
+            AND component = ?
+            """;
+
     private static final long ZERO_RETRIES = 0L;
 
     @Inject
@@ -167,6 +177,37 @@ public class StreamErrorRetryRepository {
                             component),
                     e);
         }
+    }
+
+    @Transactional(REQUIRED)
+    public boolean resetRetriesToZero(
+            final UUID streamId,
+            final String source,
+            final String component,
+            final ZonedDateTime newRetryTime) {
+
+        try(final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
+            final PreparedStatement preparedStatement = connection.prepareStatement(RESET_RETRY_COUNT_TO_ZERO_SQL)) {
+
+            preparedStatement.setTimestamp(1, toSqlTimestamp(newRetryTime));
+            preparedStatement.setObject(2, streamId);
+            preparedStatement.setString(3, source);
+            preparedStatement.setString(4, component);
+
+            final int rowsAffected = preparedStatement.executeUpdate();
+
+            return rowsAffected > 0;
+
+        } catch (final SQLException e) {
+            throw new StreamErrorPersistenceException(
+                    format("Failed to retryCount on stream_error_retry to zero. streamId: '%s', source: '%s', component: '%s', nextRetryTime '%s'",
+                            streamId,
+                            source,
+                            component,
+                            newRetryTime),
+                    e);
+        }
+
     }
 
     @Transactional(REQUIRED)

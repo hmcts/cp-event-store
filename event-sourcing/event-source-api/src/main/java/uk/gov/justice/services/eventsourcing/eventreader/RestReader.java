@@ -1,4 +1,4 @@
-package uk.gov.justice.services.event.sourcing.subscription.manager;
+package uk.gov.justice.services.eventsourcing.eventreader;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
@@ -14,5 +14,5 @@ import javax.inject.Qualifier;
 @Qualifier
 @Retention(RUNTIME)
 @Target({TYPE, METHOD, PARAMETER, FIELD})
-public @interface TransactionalReader {
+public @interface RestReader {
 }

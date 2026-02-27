@@ -1,4 +1,4 @@
-package uk.gov.justice.services.event.sourcing.subscription.manager;
+package uk.gov.justice.services.eventsourcing.eventreader;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import uk.gov.justice.services.eventsourcing.eventreader.EventStoreHttpClient;
+import uk.gov.justice.services.eventsourcing.eventreader.RestNextEventReader;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.subscription.registry.EventSourceDefinitionRegistry;
 import uk.gov.justice.subscription.registry.RegistryException;

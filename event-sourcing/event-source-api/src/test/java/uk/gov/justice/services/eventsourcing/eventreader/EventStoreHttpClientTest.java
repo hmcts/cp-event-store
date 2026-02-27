@@ -1,4 +1,4 @@
-package uk.gov.justice.services.event.sourcing.subscription.manager;
+package uk.gov.justice.services.eventsourcing.eventreader;
 
 import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
@@ -10,6 +10,9 @@ import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.clients.core.HttpCallerResponse;
 import uk.gov.justice.services.clients.core.httpclient.DefaultHttpCaller;
+import uk.gov.justice.services.eventsourcing.eventreader.EventStoreHttpClient;
+import uk.gov.justice.services.eventsourcing.eventreader.LinkedEventMapper;
+import uk.gov.justice.services.eventsourcing.eventreader.RestNextEventReaderException;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import java.util.Map;

@@ -1,4 +1,4 @@
-package uk.gov.justice.services.event.sourcing.subscription.manager;
+package uk.gov.justice.services.eventsourcing.eventreader;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import uk.gov.justice.services.eventsourcing.eventreader.LinkedEventMapper;
+import uk.gov.justice.services.eventsourcing.eventreader.RestNextEventReaderException;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
@@ -40,9 +42,7 @@ public class LinkedEventMapperTest {
         when(objectMapper.readValue(jsonString, LinkedEvent.class)).thenReturn(linkedEvent);
         when(eventConverter.envelopeOf(linkedEvent)).thenReturn(jsonEnvelope);
 
-        final JsonEnvelope result = linkedEventMapper.toJsonEnvelope(jsonString);
-
-        assertThat(result, is(jsonEnvelope));
+        assertThat(linkedEventMapper.toJsonEnvelope(jsonString), is(jsonEnvelope));
     }
 
     @Test

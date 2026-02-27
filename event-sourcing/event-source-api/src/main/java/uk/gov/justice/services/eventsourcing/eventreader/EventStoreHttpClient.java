@@ -1,4 +1,7 @@
-package uk.gov.justice.services.event.sourcing.subscription.manager;
+package uk.gov.justice.services.eventsourcing.eventreader;
+
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 
 import uk.gov.justice.services.clients.core.HttpCallerResponse;
 import uk.gov.justice.services.clients.core.httpclient.DefaultHttpCaller;
@@ -10,9 +13,6 @@ import java.util.UUID;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
 
 @ApplicationScoped
 public class EventStoreHttpClient {

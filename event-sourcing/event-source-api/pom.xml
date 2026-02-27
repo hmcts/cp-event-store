@@ -47,6 +47,15 @@
             <artifactId>event-repository-jdbc</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>uk.gov.justice.event-store</groupId>
+            <artifactId>event-subscription-registry</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>uk.gov.justice.framework-generators</groupId>
+            <artifactId>rest-client-core</artifactId>
+        </dependency>
         <!--Test Dependencies-->
         <dependency>
             <groupId>org.mockito</groupId>

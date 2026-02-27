@@ -6,6 +6,7 @@ import static javax.ws.rs.core.Response.ok;
 import static javax.ws.rs.core.Response.status;
 
 import uk.gov.justice.services.common.converter.ObjectToJsonValueConverter;
+import uk.gov.justice.services.eventsourcing.eventreader.TransactionalReader;
 import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
 
 import static java.lang.String.format;
@@ -27,6 +28,7 @@ import org.slf4j.Logger;
 public class EventResource {
 
     @Inject
+    @TransactionalReader
     private NextEventReader nextEventReader;
 
     @Inject

@@ -1,4 +1,4 @@
-package uk.gov.justice.services.event.sourcing.subscription.manager;
+package uk.gov.justice.services.eventsourcing.eventreader;
 
 public class RestNextEventReaderException extends RuntimeException {
 

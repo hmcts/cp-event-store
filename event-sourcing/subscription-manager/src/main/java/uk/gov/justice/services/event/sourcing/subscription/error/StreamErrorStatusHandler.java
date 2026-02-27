@@ -58,39 +58,15 @@ public class StreamErrorStatusHandler {
         }
     }
 
-    public void onStreamProcessingFailure(final JsonEnvelope jsonEnvelope, final Throwable exception, final String component, final long currentPosition, final Optional<UUID> existingErrorId) {
-        final ExceptionDetails exceptionDetails = exceptionDetailsRetriever.getExceptionDetailsFrom(exception);
-        final StreamError newStreamError = streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component);
-        final UUID streamId = newStreamError.streamErrorOccurrence().streamId();
-        final String source = newStreamError.streamErrorOccurrence().source();
-        try {
-            transactionHandler.begin();
-
-            if (existingErrorId.isPresent() && isErrorSameAsBefore(newStreamError, existingErrorId.get())) {
-                streamErrorRepository.markSameErrorHappened(existingErrorId.get(), streamId, source, component);
-            } else {
-                streamErrorRepository.markStreamAsErrored(newStreamError, currentPosition);
-            }
-
-            streamRetryStatusManager.updateStreamRetryCountAndNextRetryTime(streamId, source, component);
-
-            transactionHandler.commit();
-        } catch (final Exception e) {
-            transactionHandler.rollback();
-            logger.error("Failed to mark stream as errored: streamId '%s'".formatted(streamId), e);
-        }
-    }
-
     public void recordStreamError(
             final JsonEnvelope jsonEnvelope,
             final Throwable exception,
             final String component,
-            final long currentPosition,
             final Optional<UUID> existingErrorId) {
 
         final ExceptionDetails exceptionDetails = exceptionDetailsRetriever.getExceptionDetailsFrom(exception);
         final StreamError newStreamError = streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component);
-        final UUID streamId = newStreamError.streamErrorOccurrence().streamId();
+    final UUID streamId = newStreamError.streamErrorOccurrence().streamId();
         final String source = newStreamError.streamErrorOccurrence().source();
 
         if (existingErrorId.isPresent() && isErrorSameAsBefore(newStreamError, existingErrorId.get())) {

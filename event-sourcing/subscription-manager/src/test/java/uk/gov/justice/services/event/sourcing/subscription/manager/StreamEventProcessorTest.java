@@ -278,8 +278,8 @@ public class StreamEventProcessorTest {
                 transactionHandler);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        inOrder.verify(transactionHandler).rollbackSavepointAndRestartIfTainted(savepointContext);
-        inOrder.verify(streamErrorStatusHandler).recordStreamError(eventJsonEnvelope, nullPointerException, component, currentPosition, of(streamErrorId));
+        inOrder.verify(transactionHandler).checkTaintedAndRollbackToSavepoint(savepointContext);
+        inOrder.verify(streamErrorStatusHandler).recordStreamError(eventJsonEnvelope, nullPointerException, component, of(streamErrorId));
         inOrder.verify(transactionHandler).commit();
 
         verify(streamEventLoggerMetadataAdder).clearMdc();
@@ -311,10 +311,10 @@ public class StreamEventProcessorTest {
 
         assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
-        verify(transactionHandler).rollbackSavepointAndRestartIfTainted(savepointContext);
+        verify(transactionHandler).checkTaintedAndRollbackToSavepoint(savepointContext);
         verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
         verify(streamErrorStatusHandler).recordStreamError(
-                eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(currentPosition), eq(empty()));
+                eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(empty()));
         verify(transactionHandler).commit();
         verify(streamEventLoggerMetadataAdder).clearMdc();
         verify(transactionHandler).closeSavepointContext(savepointContext);
@@ -455,7 +455,7 @@ public class StreamEventProcessorTest {
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         doThrow(nullPointerException).when(componentEventProcessor).process(eventJsonEnvelope, component);
         doThrow(errorRecordingException).when(streamErrorStatusHandler).recordStreamError(
-                eq(eventJsonEnvelope), eq(nullPointerException), eq(component), eq(currentPosition), eq(empty()));
+                eq(eventJsonEnvelope), eq(nullPointerException), eq(component), eq(empty()));
 
         assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
@@ -467,9 +467,9 @@ public class StreamEventProcessorTest {
                 transactionHandler);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        inOrder.verify(transactionHandler).rollbackSavepointAndRestartIfTainted(savepointContext);
+        inOrder.verify(transactionHandler).checkTaintedAndRollbackToSavepoint(savepointContext);
         inOrder.verify(streamErrorStatusHandler).recordStreamError(
-                eq(eventJsonEnvelope), eq(nullPointerException), eq(component), eq(currentPosition), eq(empty()));
+                eq(eventJsonEnvelope), eq(nullPointerException), eq(component), eq(empty()));
         inOrder.verify(logger).error(eq("Failed to record stream error for streamId '{}': {}"),
                 eq(streamId), eq(errorRecordingException.getMessage()), eq(errorRecordingException));
         inOrder.verify(transactionHandler).rollback();
@@ -477,6 +477,49 @@ public class StreamEventProcessorTest {
         verify(streamEventLoggerMetadataAdder).clearMdc();
         verify(transactionHandler).closeSavepointContext(savepointContext);
         verify(transactionHandler, never()).commit();
+    }
+
+    @Test
+    public void shouldSkipErrorRecordingWhenTransactionIsTainted() throws Exception {
+
+        final NullPointerException nullPointerException = new NullPointerException("Ooops");
+        final String taintMessage = "JTA transaction unexpectedly marked for rollback. " +
+                "EntityManagerFlushInterceptor should prevent transaction tainting via direct FlushEventListener.onFlush(). " +
+                "This indicates a bug — row lock on stream_status has been lost.";
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final long currentPosition = 5L;
+        final long latestKnownPosition = 10L;
+        final long eventPositionInStream = 6L;
+
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
+        final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
+        final Metadata metadata = mock(Metadata.class);
+        final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
+        final SavepointContext savepointContext = mock(SavepointContext.class);
+
+        when(oldestStreamSelector.findStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
+        when(transactionHandler.createSavepointContext()).thenReturn(savepointContext);
+        when(eventJsonEnvelope.metadata()).thenReturn(metadata);
+        when(metadata.position()).thenReturn(of(eventPositionInStream));
+        when(metadata.name()).thenReturn("some-event-name");
+        doThrow(nullPointerException).when(componentEventProcessor).process(eventJsonEnvelope, component);
+        doThrow(new TransactionTaintedException(taintMessage)).when(transactionHandler).checkTaintedAndRollbackToSavepoint(savepointContext);
+
+        assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
+
+        verify(logger).error(
+                eq("Skipping error recording for streamId '{}' — row lock lost. " +
+                        "Event '{}' will be retried on the next timer tick. Cause: {}"),
+                eq(streamId), eq("some-event-name"), eq(taintMessage));
+
+        verifyNoInteractions(streamErrorStatusHandler);
+        verify(transactionHandler, never()).commit();
+        verify(streamEventLoggerMetadataAdder).clearMdc();
+        verify(transactionHandler).closeSavepointContext(savepointContext);
     }
 
     @Test

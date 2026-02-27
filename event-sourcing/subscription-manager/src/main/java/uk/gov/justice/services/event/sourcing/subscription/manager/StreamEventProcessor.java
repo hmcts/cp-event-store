@@ -120,23 +120,22 @@ public class StreamEventProcessor {
 
         } catch (final Exception e) {
             micrometerMetricsCounters.incrementEventsFailedCount(source, component);
-            transactionHandler.rollbackSavepointAndRestartIfTainted(ctx);
-            recordStreamErrorSafely(eventJsonEnvelope, e, component, streamCurrentPosition, lockedStreamStatus, streamId);
+            try {
+                transactionHandler.checkTaintedAndRollbackToSavepoint(ctx);
+                streamErrorStatusHandler.recordStreamError(eventJsonEnvelope, e, component, lockedStreamStatus.streamErrorId());
+                transactionHandler.commit();
+            } catch (final TransactionTaintedException tte) {
+                logger.error("Skipping error recording for streamId '{}' — row lock lost. " +
+                        "Event '{}' will be retried on the next timer tick. Cause: {}",
+                        streamId, metadata.name(), tte.getMessage());
+            } catch (final Exception errorException) {
+                logger.error("Failed to record stream error for streamId '{}': {}", streamId, errorException.getMessage(), errorException);
+                transactionHandler.rollback();
+            }
 
         } finally {
             streamEventLoggerMetadataAdder.clearMdc();
             transactionHandler.closeSavepointContext(ctx);
-        }
-    }
-
-    private void recordStreamErrorSafely(final JsonEnvelope eventJsonEnvelope, final Exception cause, final String component,
-            final long streamCurrentPosition, final LockedStreamStatus lockedStreamStatus, final UUID streamId) {
-        try {
-            streamErrorStatusHandler.recordStreamError(eventJsonEnvelope, cause, component, streamCurrentPosition, lockedStreamStatus.streamErrorId());
-            transactionHandler.commit();
-        } catch (final Exception errorException) {
-            logger.error("Failed to record stream error for streamId '{}': {}", streamId, errorException.getMessage(), errorException);
-            transactionHandler.rollback();
         }
     }
 }

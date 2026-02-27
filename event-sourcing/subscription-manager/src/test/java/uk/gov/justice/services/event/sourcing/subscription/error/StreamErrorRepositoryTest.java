@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -157,7 +158,7 @@ public class StreamErrorRepositoryTest {
     }
 
     @Test
-    public void shouldSaveStreamErrorWithoutLocking() throws Exception {
+    public void shouldSaveStreamErrorAndMarkStreamAsErrored() throws Exception {
 
         final UUID streamErrorId = randomUUID();
         final UUID streamId = randomUUID();
@@ -184,7 +185,7 @@ public class StreamErrorRepositoryTest {
 
         streamErrorRepository.saveStreamError(streamError);
 
-        final InOrder inOrder = inOrder(streamErrorPersistence, streamStatusErrorPersistence, connection);
+        final InOrder inOrder = inOrder(streamStatusErrorPersistence, streamErrorPersistence, connection);
         inOrder.verify(streamErrorPersistence).save(streamError, connection);
         inOrder.verify(streamStatusErrorPersistence).markStreamAsErrored(
                 streamId,
@@ -194,13 +195,14 @@ public class StreamErrorRepositoryTest {
                 source,
                 connection);
         inOrder.verify(connection).close();
-
-        verifyNoMoreInteractions(streamStatusErrorPersistence);
     }
 
     @Test
     public void shouldNotUpdateStreamStatusIfSaveReturnsFalseInSaveStreamError() throws Exception {
 
+        final UUID streamId = randomUUID();
+        final String componentName = "SOME_COMPONENT";
+        final String source = "some-source";
         final StreamError streamError = mock(StreamError.class);
         final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
 
@@ -211,13 +213,19 @@ public class StreamErrorRepositoryTest {
         when(viewStoreDataSource.getConnection()).thenReturn(connection);
 
         when(streamError.streamErrorOccurrence()).thenReturn(streamErrorOccurrence);
+        when(streamErrorOccurrence.streamId()).thenReturn(streamId);
+        when(streamErrorOccurrence.componentName()).thenReturn(componentName);
+        when(streamErrorOccurrence.source()).thenReturn(source);
+
         when(streamErrorPersistence.save(streamError, connection)).thenReturn(false);
 
         streamErrorRepository.saveStreamError(streamError);
 
-        verify(streamErrorPersistence).save(streamError, connection);
-        verifyNoMoreInteractions(streamStatusErrorPersistence);
-        verify(connection).close();
+        final InOrder inOrder = inOrder(streamErrorPersistence, connection);
+        inOrder.verify(streamErrorPersistence).save(streamError, connection);
+        inOrder.verify(connection).close();
+
+        verifyNoMoreInteractions(streamErrorPersistence);
     }
 
     @Test

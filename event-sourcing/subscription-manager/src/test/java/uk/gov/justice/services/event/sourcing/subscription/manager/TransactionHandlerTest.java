@@ -241,7 +241,7 @@ public class TransactionHandlerTest {
     }
 
     @Test
-    public void shouldRollbackSavepointAndRestartIfTainted() throws Exception {
+    public void shouldRollbackTransactionAndThrowIfTainted() throws Exception {
 
         final Connection physicalConnection = mock(Connection.class);
         final Savepoint savepoint = mock(Savepoint.class);
@@ -249,16 +249,20 @@ public class TransactionHandlerTest {
 
         when(userTransaction.getStatus()).thenReturn(STATUS_MARKED_ROLLBACK);
 
-        transactionHandler.rollbackSavepointAndRestartIfTainted(ctx);
+        final TransactionTaintedException exception = assertThrows(
+                TransactionTaintedException.class,
+                () -> transactionHandler.checkTaintedAndRollbackToSavepoint(ctx));
 
-        verify(physicalConnection).rollback(savepoint);
-        verify(entityManager).clear();
+        assertThat(exception.getMessage(), is(
+                "JTA transaction unexpectedly marked for rollback. " +
+                "EntityManagerFlushInterceptor should prevent transaction tainting via direct FlushEventListener.onFlush(). " +
+                "This indicates a bug — row lock on stream_status has been lost."));
         verify(userTransaction).rollback();
-        verify(userTransaction).begin();
+        verify(physicalConnection, never()).rollback(savepoint);
     }
 
     @Test
-    public void shouldRollbackSavepointButNotRestartWhenNotTainted() throws Exception {
+    public void shouldRollbackSavepointWhenNotTainted() throws Exception {
 
         final Connection physicalConnection = mock(Connection.class);
         final Savepoint savepoint = mock(Savepoint.class);
@@ -266,30 +270,28 @@ public class TransactionHandlerTest {
 
         when(userTransaction.getStatus()).thenReturn(STATUS_ACTIVE);
 
-        transactionHandler.rollbackSavepointAndRestartIfTainted(ctx);
+        transactionHandler.checkTaintedAndRollbackToSavepoint(ctx);
 
         verify(physicalConnection).rollback(savepoint);
         verify(entityManager).clear();
         verify(userTransaction, never()).rollback();
-        verify(userTransaction, never()).begin();
     }
 
     @Test
-    public void shouldStillRestartIfRollbackSavepointFails() throws Exception {
+    public void shouldWarnIfSavepointRollbackFailsWhenNotTainted() throws Exception {
 
         final Connection physicalConnection = mock(Connection.class);
         final Savepoint savepoint = mock(Savepoint.class);
         final SavepointContext ctx = new SavepointContext(mock(Connection.class), physicalConnection, savepoint);
         final SQLException sqlException = new SQLException("Rollback failed");
 
+        when(userTransaction.getStatus()).thenReturn(STATUS_ACTIVE);
         doThrow(sqlException).when(physicalConnection).rollback(savepoint);
-        when(userTransaction.getStatus()).thenReturn(STATUS_MARKED_ROLLBACK);
 
-        transactionHandler.rollbackSavepointAndRestartIfTainted(ctx);
+        transactionHandler.checkTaintedAndRollbackToSavepoint(ctx);
 
-        verify(logger).warn("Failed to rollback savepoint, continuing with transaction recovery", sqlException);
-        verify(userTransaction).rollback();
-        verify(userTransaction).begin();
+        verify(logger).warn("Failed to rollback savepoint", sqlException);
+        verify(userTransaction, never()).rollback();
     }
 
     @Test
@@ -319,28 +321,6 @@ public class TransactionHandlerTest {
 
         verify(logger).warn("Failed to release savepoint, continuing with commit", sqlException);
         verify(userTransaction).commit();
-    }
-
-    @Test
-    public void shouldRestartTransactionWhenMarkedForRollback() throws Exception {
-
-        when(userTransaction.getStatus()).thenReturn(STATUS_MARKED_ROLLBACK);
-
-        transactionHandler.restartTransactionIfTainted();
-
-        verify(userTransaction).rollback();
-        verify(userTransaction).begin();
-    }
-
-    @Test
-    public void shouldNotRestartTransactionWhenNotTainted() throws Exception {
-
-        when(userTransaction.getStatus()).thenReturn(STATUS_ACTIVE);
-
-        transactionHandler.restartTransactionIfTainted();
-
-        verify(userTransaction, never()).rollback();
-        verify(userTransaction, never()).begin();
     }
 
     @Test

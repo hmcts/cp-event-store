@@ -98,13 +98,19 @@ public class TransactionHandler {
         commit();
     }
 
-    public void rollbackSavepointAndRestartIfTainted(final SavepointContext ctx) {
+    public void checkTaintedAndRollbackToSavepoint(final SavepointContext ctx) {
+        if (isTransactionMarkedForRollback()) {
+            rollback();
+            throw new TransactionTaintedException(
+                    "JTA transaction unexpectedly marked for rollback. " +
+                    "EntityManagerFlushInterceptor should prevent transaction tainting via direct FlushEventListener.onFlush(). " +
+                    "This indicates a bug — row lock on stream_status has been lost.");
+        }
         try {
             rollbackSavepoint(ctx);
         } catch (final SQLException e) {
-            logger.warn("Failed to rollback savepoint, continuing with transaction recovery", e);
+            logger.warn("Failed to rollback savepoint", e);
         }
-        restartTransactionIfTainted();
     }
 
     public void closeSavepointContext(final SavepointContext ctx) {
@@ -112,13 +118,6 @@ public class TransactionHandler {
             ctx.close();
         } catch (final SQLException e) {
             logger.warn("Failed to close savepoint context connection", e);
-        }
-    }
-
-    public void restartTransactionIfTainted() {
-        if (isTransactionMarkedForRollback()) {
-            rollback();
-            begin();
         }
     }
 
@@ -139,7 +138,7 @@ public class TransactionHandler {
         }
     }
 
-    private Connection unwrapPhysicalConnection(final Connection connection) throws SQLException {
+    Connection unwrapPhysicalConnection(final Connection connection) throws SQLException {
         try {
             return (Connection) connection.unwrap((Class<?>) Class.forName("org.postgresql.PGConnection"));
         } catch (final ClassNotFoundException e) {

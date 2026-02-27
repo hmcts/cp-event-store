@@ -1,6 +1,8 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
 import uk.gov.justice.services.event.sourcing.subscription.manager.timer.StreamProcessingConfig;
+import uk.gov.justice.services.eventsourcing.eventreader.RestReader;
+import uk.gov.justice.services.eventsourcing.eventreader.TransactionalReader;
 import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
 
 import javax.enterprise.inject.Produces;

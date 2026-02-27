@@ -52,7 +52,7 @@ public class NextEventSelector {
         final Long latestKnownPosition = lockedStreamStatus.latestKnownPosition();
 
         try {
-            eventJsonEnvelope = nextEventReader.read(streamId, position);
+            eventJsonEnvelope = nextEventReader.read(streamId, position, source);
         } catch (Exception e) {
             micrometerMetricsCounters.incrementEventsFailedCount(source, component);
             transactionHandler.rollback(userTransaction);

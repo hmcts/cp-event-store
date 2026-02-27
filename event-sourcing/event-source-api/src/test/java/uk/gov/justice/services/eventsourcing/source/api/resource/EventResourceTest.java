@@ -53,7 +53,7 @@ public class EventResourceTest {
         final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
         final JsonValue jsonValue = mock(JsonValue.class);
 
-        when(nextEventReader.read(streamId, afterPosition)).thenReturn(of(jsonEnvelope));
+        when(nextEventReader.read(streamId, afterPosition, null)).thenReturn(of(jsonEnvelope));
         when(converter.convert(jsonEnvelope)).thenReturn(jsonValue);
 
         try (Response response = eventResource.nextEvent(streamId, afterPosition)) {
@@ -68,7 +68,7 @@ public class EventResourceTest {
         final UUID streamId = randomUUID();
         final long afterPosition = 5L;
 
-        when(nextEventReader.read(streamId, afterPosition)).thenReturn(empty());
+        when(nextEventReader.read(streamId, afterPosition, null)).thenReturn(empty());
 
         try (Response response = eventResource.nextEvent(streamId, afterPosition)) {
             assertThat(response.getStatus(), is(NO_CONTENT.getStatusCode()));
@@ -83,7 +83,7 @@ public class EventResourceTest {
         final long afterPosition = 5L;
         final RuntimeException exception = new RuntimeException("Read failed");
 
-        when(nextEventReader.read(streamId, afterPosition)).thenThrow(exception);
+        when(nextEventReader.read(streamId, afterPosition, null)).thenThrow(exception);
 
         try (Response response = eventResource.nextEvent(streamId, afterPosition)) {
             assertThat(response.getStatus(), is(INTERNAL_SERVER_ERROR.getStatusCode()));

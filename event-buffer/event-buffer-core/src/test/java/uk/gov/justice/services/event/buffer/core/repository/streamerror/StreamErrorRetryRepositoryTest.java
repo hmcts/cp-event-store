@@ -3,6 +3,7 @@ package uk.gov.justice.services.event.buffer.core.repository.streamerror;
 import static java.lang.String.format;
 import static java.time.ZoneOffset.UTC;
 import static java.time.ZonedDateTime.of;
+import static java.time.ZonedDateTime.parse;
 import static java.util.Optional.empty;
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
@@ -19,6 +20,7 @@ import static uk.gov.justice.services.event.buffer.core.repository.streamerror.S
 import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.FIND_ALL_SQL;
 import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.FIND_BY_SQL;
 import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.GET_RETRY_COUNT_SQL;
+import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.RESET_RETRY_COUNT_TO_ZERO_SQL;
 import static uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository.UPSERT_SQL;
 
 import uk.gov.justice.services.common.util.UtcClock;
@@ -453,6 +455,120 @@ public class StreamErrorRetryRepositoryTest {
         inOrder.verify(preparedStatement).setObject(1, streamId);
         inOrder.verify(preparedStatement).setString(2, source);
         inOrder.verify(preparedStatement).setString(3, component);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldSetRetriesToZero() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final ZonedDateTime newRetryTime = new UtcClock().now();
+
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(RESET_RETRY_COUNT_TO_ZERO_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeUpdate()).thenReturn(1);
+
+        final boolean rowUpdated = streamErrorRetryRepository.resetRetriesToZero(
+                streamId,
+                source,
+                component,
+                newRetryTime
+        );
+
+        assertThat(rowUpdated, is(true));
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setTimestamp(1, toSqlTimestamp(newRetryTime));
+        inOrder.verify(preparedStatement).setObject(2, streamId);
+        inOrder.verify(preparedStatement).setString(3, source);
+        inOrder.verify(preparedStatement).setString(4, component);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldReturnFalseIfSettingRetriesToZeroAffectsNoRows() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final ZonedDateTime newRetryTime = new UtcClock().now();
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(RESET_RETRY_COUNT_TO_ZERO_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeUpdate()).thenReturn(0);
+
+        final boolean rowUpdated = streamErrorRetryRepository.resetRetriesToZero(
+                streamId,
+                source,
+                component,
+                newRetryTime
+        );
+
+        assertThat(rowUpdated, is(false));
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setTimestamp(1, toSqlTimestamp(newRetryTime));
+        inOrder.verify(preparedStatement).setObject(2, streamId);
+        inOrder.verify(preparedStatement).setString(3, source);
+        inOrder.verify(preparedStatement).setString(4, component);
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldThrowStreamErrorPersistenceExceptionIfSettingRetriesToZeroFails() throws Exception {
+
+        final UUID streamId = fromString("84bb5959-6371-41be-a5a3-fb5f32663c9a");
+        final String source = "some-source";
+        final String component = "some-component";
+        final ZonedDateTime newRetryTime = parse("2026-02-26T11:40:10.784Z");
+        final SQLException sqlException = new SQLException("Oh no");
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+        when(connection.prepareStatement(RESET_RETRY_COUNT_TO_ZERO_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeUpdate()).thenThrow(sqlException);
+
+        final StreamErrorPersistenceException streamErrorPersistenceException = assertThrows(StreamErrorPersistenceException.class, () -> streamErrorRetryRepository.resetRetriesToZero(
+                streamId,
+                source,
+                component,
+                newRetryTime
+        ));
+
+        assertThat(streamErrorPersistenceException.getCause(), is(sqlException));
+        assertThat(streamErrorPersistenceException.getMessage(), is("Failed to retryCount on stream_error_retry to zero. streamId: '84bb5959-6371-41be-a5a3-fb5f32663c9a', source: 'some-source', component: 'some-component', nextRetryTime '2026-02-26T11:40:10.784Z'"));
+
+        final InOrder inOrder = inOrder(preparedStatement, connection);
+
+        inOrder.verify(preparedStatement).setTimestamp(1, toSqlTimestamp(newRetryTime));
+        inOrder.verify(preparedStatement).setObject(2, streamId);
+        inOrder.verify(preparedStatement).setString(3, source);
+        inOrder.verify(preparedStatement).setString(4, component);
         inOrder.verify(preparedStatement).executeUpdate();
         inOrder.verify(preparedStatement).close();
         inOrder.verify(connection).close();

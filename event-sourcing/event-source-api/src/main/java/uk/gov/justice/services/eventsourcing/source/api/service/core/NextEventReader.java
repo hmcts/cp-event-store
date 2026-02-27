@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface NextEventReader {
 
-    Optional<JsonEnvelope> read(UUID streamId, Long position);
+    Optional<JsonEnvelope> read(UUID streamId, Long position, String source);
 }

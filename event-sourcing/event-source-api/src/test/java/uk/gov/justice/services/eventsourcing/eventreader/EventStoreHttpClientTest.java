@@ -8,8 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import uk.gov.justice.services.clients.core.HttpCaller;
 import uk.gov.justice.services.clients.core.HttpCallerResponse;
-import uk.gov.justice.services.clients.core.httpclient.DefaultHttpCaller;
 import uk.gov.justice.services.eventsourcing.eventreader.EventStoreHttpClient;
 import uk.gov.justice.services.eventsourcing.eventreader.LinkedEventMapper;
 import uk.gov.justice.services.eventsourcing.eventreader.RestNextEventReaderException;
@@ -31,7 +31,7 @@ public class EventStoreHttpClientTest {
     private static final String REST_URI = "http://localhost:8080/some-context";
 
     @Mock
-    private DefaultHttpCaller defaultHttpCaller;
+    private HttpCaller defaultHttpCaller;
 
     @Mock
     private LinkedEventMapper linkedEventMapper;

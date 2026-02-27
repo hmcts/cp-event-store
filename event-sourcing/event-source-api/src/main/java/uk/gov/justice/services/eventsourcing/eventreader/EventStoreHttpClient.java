@@ -3,8 +3,8 @@ package uk.gov.justice.services.eventsourcing.eventreader;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
+import uk.gov.justice.services.clients.core.HttpCaller;
 import uk.gov.justice.services.clients.core.HttpCallerResponse;
-import uk.gov.justice.services.clients.core.httpclient.DefaultHttpCaller;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import java.util.Map;
@@ -18,7 +18,7 @@ import javax.inject.Inject;
 public class EventStoreHttpClient {
 
     @Inject
-    private DefaultHttpCaller defaultHttpCaller;
+    private HttpCaller defaultHttpCaller;
 
     @Inject
     private LinkedEventMapper linkedEventMapper;

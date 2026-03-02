@@ -118,4 +118,20 @@ public class StreamProcessingConfigTest {
         setField(streamProcessingConfig, "retryDelayMultiplier", "2.887");
         assertThat(streamProcessingConfig.getRetryDelayMultiplier(), is(retryDelayMultiplier));
     }
+
+    @Test
+    public void shouldReturnTrueWhenAccessEventStoreViaRestIsTrue() {
+
+        setField(streamProcessingConfig, "accessEventStoreViaRest", "true");
+
+        assertThat(streamProcessingConfig.accessEventStoreViaRest(), is(true));
+    }
+
+    @Test
+    public void shouldReturnFalseWhenAccessEventStoreViaRestIsFalse() {
+
+        setField(streamProcessingConfig, "accessEventStoreViaRest", "false");
+
+        assertThat(streamProcessingConfig.accessEventStoreViaRest(), is(false));
+    }
 }

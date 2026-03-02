@@ -15,6 +15,8 @@ public class EventSourceApiApplication extends Application {
         Set<Class<?>> classes = new HashSet<>();
         classes.add(EventPageResource.class);
         classes.add(EventStreamPageResource.class);
+        classes.add(EventDiscoveryResource.class);
+        classes.add(EventResource.class);
         return classes;
     }
 }

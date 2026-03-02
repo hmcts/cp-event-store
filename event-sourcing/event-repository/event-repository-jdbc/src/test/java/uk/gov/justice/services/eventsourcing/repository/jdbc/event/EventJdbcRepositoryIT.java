@@ -7,6 +7,8 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static uk.gov.justice.services.test.utils.events.EventBuilder.eventBuilder;
 
@@ -32,6 +34,7 @@ import javax.sql.DataSource;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -267,5 +270,58 @@ public class EventJdbcRepositoryIT {
         assertThat(deletedStreamLatestSequenceId, equalTo(0L));
     }
 
+    @Nested
+    class FindNextEventInTheStreamAfterPositionTest {
+
+        @Test
+        public void shouldReturnNextEventAfterGivenPositionInStream() throws Exception {
+            final UUID streamId1 = randomUUID();
+            final UUID streamId2 = randomUUID();
+
+            jdbcRepository.insert(eventBuilder().withStreamId(streamId1).withPositionInStream(1L).build());
+            jdbcRepository.insert(eventBuilder().withStreamId(streamId1).withPositionInStream(2L).build());
+            jdbcRepository.insert(eventBuilder().withStreamId(streamId1).withPositionInStream(4L).build());
+            jdbcRepository.insert(eventBuilder().withStreamId(streamId2).withPositionInStream(1L).build());
+            jdbcRepository.insert(eventBuilder().withStreamId(streamId2).withPositionInStream(2L).build());
+
+            final Optional<LinkedEvent> nextEvent1 = jdbcRepository.findNextEventInTheStreamAfterPosition(streamId1, 1L);
+
+            assertTrue(nextEvent1.isPresent());
+            assertThat(nextEvent1.get().getStreamId(), is(streamId1));
+            assertThat(nextEvent1.get().getPositionInStream(), is(2L));
+
+            final Optional<LinkedEvent> nextEvent2 = jdbcRepository.findNextEventInTheStreamAfterPosition(streamId1, 2L);
+
+            assertTrue(nextEvent2.isPresent());
+            assertThat(nextEvent2.get().getStreamId(), is(streamId1));
+            assertThat(nextEvent2.get().getPositionInStream(), is(4L));
+        }
+
+        @Test
+        public void shouldReturnEmptyWhenNoEventFoundAfterPosition() throws Exception {
+            final UUID streamId = randomUUID();
+
+            jdbcRepository.insert(eventBuilder().withStreamId(streamId).withPositionInStream(1L).build());
+            jdbcRepository.insert(eventBuilder().withStreamId(streamId).withPositionInStream(2L).build());
+            jdbcRepository.insert(eventBuilder().withStreamId(streamId).withPositionInStream(3L).build());
+
+            final Optional<LinkedEvent> nextEvent = jdbcRepository.findNextEventInTheStreamAfterPosition(streamId, 3L);
+
+            assertFalse(nextEvent.isPresent());
+        }
+
+        @Test
+        public void shouldReturnEmptyWhenStreamDoesNotExist() throws Exception {
+            final UUID streamId = randomUUID();
+            final UUID differentStreamId = randomUUID();
+
+            jdbcRepository.insert(eventBuilder().withStreamId(differentStreamId).withPositionInStream(1L).build());
+            jdbcRepository.insert(eventBuilder().withStreamId(differentStreamId).withPositionInStream(2L).build());
+
+            final Optional<LinkedEvent> nextEvent = jdbcRepository.findNextEventInTheStreamAfterPosition(streamId, 1L);
+
+            assertFalse(nextEvent.isPresent());
+        }
+    }
 
 }

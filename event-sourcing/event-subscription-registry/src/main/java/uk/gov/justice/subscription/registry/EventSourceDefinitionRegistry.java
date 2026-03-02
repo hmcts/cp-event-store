@@ -32,6 +32,12 @@ public class EventSourceDefinitionRegistry {
         return ofNullable(registry.get(eventSourceName));
     }
 
+    public String getRestUri(final String eventSourceName) {
+        return getEventSourceDefinitionFor(eventSourceName)
+                .flatMap(def -> def.getLocation().getRestUri())
+                .orElseThrow(() -> new RegistryException("No REST URI configured for event source: " + eventSourceName));
+    }
+
     public EventSourceDefinition getDefaultEventSourceDefinition() {
         return getEventSourceDefinitionFor(defaultEventSourceName)
                 .orElseThrow(() -> new RegistryException("You must define a default event source"));

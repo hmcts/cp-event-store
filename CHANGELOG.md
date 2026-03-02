@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.105.0-M8] - 2026-03-02
 ### Added
 - New rest endpoint `ResetStreamRetryCountResource` for resetting retry count for a (stuck) stream  `/internal/reset-stream-retry-count`
 ### Fixed

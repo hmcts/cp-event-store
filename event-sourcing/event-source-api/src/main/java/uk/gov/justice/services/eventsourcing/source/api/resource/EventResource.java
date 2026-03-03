@@ -5,9 +5,9 @@ import static javax.ws.rs.core.Response.noContent;
 import static javax.ws.rs.core.Response.ok;
 import static javax.ws.rs.core.Response.status;
 
-import uk.gov.justice.services.common.converter.ObjectToJsonValueConverter;
 import uk.gov.justice.services.eventsourcing.eventreader.TransactionalReader;
 import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
+import uk.gov.justice.services.messaging.JsonObjectEnvelopeConverter;
 
 import static java.lang.String.format;
 
@@ -32,7 +32,7 @@ public class EventResource {
     private NextEventReader nextEventReader;
 
     @Inject
-    private ObjectToJsonValueConverter converter;
+    private JsonObjectEnvelopeConverter jsonObjectEnvelopeConverter;
 
     @Inject
     private Logger logger;
@@ -45,7 +45,7 @@ public class EventResource {
 
         try {
             return nextEventReader.read(streamId, afterPosition, null)
-                    .map(jsonEnvelope -> ok(converter.convert(jsonEnvelope)).build())
+                    .map(jsonEnvelope -> ok(jsonObjectEnvelopeConverter.fromEnvelope(jsonEnvelope)).build())
                     .orElseGet(() -> noContent().build());
         } catch (final Exception e) {
             logger.error(format("Failed to read next event: streamId '%s', afterPosition '%d'", streamId, afterPosition), e);

@@ -6,6 +6,7 @@ import static java.util.Optional.of;
 import uk.gov.justice.services.clients.core.HttpCaller;
 import uk.gov.justice.services.clients.core.HttpCallerResponse;
 import uk.gov.justice.services.messaging.JsonEnvelope;
+import uk.gov.justice.services.messaging.JsonObjectEnvelopeConverter;
 
 import java.util.Map;
 import java.util.Optional;
@@ -21,7 +22,7 @@ public class EventStoreHttpClient {
     private HttpCaller defaultHttpCaller;
 
     @Inject
-    private LinkedEventMapper linkedEventMapper;
+    private JsonObjectEnvelopeConverter jsonObjectEnvelopeConverter;
 
     public Optional<JsonEnvelope> getNextEvent(final String restUri, final UUID streamId, final Long afterPosition) {
 
@@ -39,6 +40,6 @@ public class EventStoreHttpClient {
                     ", streamId: " + streamId + ", afterPosition: " + afterPosition);
         }
 
-        return of(linkedEventMapper.toJsonEnvelope(response.getBody()));
+        return of(jsonObjectEnvelopeConverter.asEnvelope(response.getBody()));
     }
 }

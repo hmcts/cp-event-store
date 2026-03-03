@@ -11,9 +11,9 @@ import static org.mockito.Mockito.when;
 import uk.gov.justice.services.clients.core.HttpCaller;
 import uk.gov.justice.services.clients.core.HttpCallerResponse;
 import uk.gov.justice.services.eventsourcing.eventreader.EventStoreHttpClient;
-import uk.gov.justice.services.eventsourcing.eventreader.LinkedEventMapper;
 import uk.gov.justice.services.eventsourcing.eventreader.RestNextEventReaderException;
 import uk.gov.justice.services.messaging.JsonEnvelope;
+import uk.gov.justice.services.messaging.JsonObjectEnvelopeConverter;
 
 import java.util.Map;
 import java.util.Optional;
@@ -34,7 +34,7 @@ public class EventStoreHttpClientTest {
     private HttpCaller defaultHttpCaller;
 
     @Mock
-    private LinkedEventMapper linkedEventMapper;
+    private JsonObjectEnvelopeConverter jsonObjectEnvelopeConverter;
 
     @InjectMocks
     private EventStoreHttpClient eventStoreHttpClient;
@@ -50,7 +50,7 @@ public class EventStoreHttpClientTest {
 
         when(defaultHttpCaller.get(expectedUrl, Map.of("Accept", "application/json")))
                 .thenReturn(new HttpCallerResponse(200, responseBody));
-        when(linkedEventMapper.toJsonEnvelope(responseBody)).thenReturn(jsonEnvelope);
+        when(jsonObjectEnvelopeConverter.asEnvelope(responseBody)).thenReturn(jsonEnvelope);
 
         final Optional<JsonEnvelope> result = eventStoreHttpClient.getNextEvent(REST_URI, streamId, afterPosition);
 

@@ -14,13 +14,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import uk.gov.justice.services.common.converter.ObjectToJsonValueConverter;
 import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
 import uk.gov.justice.services.messaging.JsonEnvelope;
+import uk.gov.justice.services.messaging.JsonObjectEnvelopeConverter;
 
 import java.util.UUID;
 
-import javax.json.JsonValue;
+import javax.json.JsonObject;
 import javax.ws.rs.core.Response;
 
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ public class EventResourceTest {
     private NextEventReader nextEventReader;
 
     @Mock
-    private ObjectToJsonValueConverter converter;
+    private JsonObjectEnvelopeConverter jsonObjectEnvelopeConverter;
 
     @Mock
     private Logger logger;
@@ -51,14 +51,14 @@ public class EventResourceTest {
         final UUID streamId = randomUUID();
         final long afterPosition = 5L;
         final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
-        final JsonValue jsonValue = mock(JsonValue.class);
+        final JsonObject jsonObject = mock(JsonObject.class);
 
         when(nextEventReader.read(streamId, afterPosition, null)).thenReturn(of(jsonEnvelope));
-        when(converter.convert(jsonEnvelope)).thenReturn(jsonValue);
+        when(jsonObjectEnvelopeConverter.fromEnvelope(jsonEnvelope)).thenReturn(jsonObject);
 
         try (Response response = eventResource.nextEvent(streamId, afterPosition)) {
             assertThat(response.getStatus(), is(OK.getStatusCode()));
-            assertThat(response.getEntity(), is(jsonValue));
+            assertThat(response.getEntity(), is(jsonObject));
         }
     }
 

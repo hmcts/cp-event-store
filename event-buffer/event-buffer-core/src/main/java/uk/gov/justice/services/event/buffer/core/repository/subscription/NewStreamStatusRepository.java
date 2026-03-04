@@ -437,7 +437,7 @@ public class NewStreamStatusRepository {
             }
         } catch (final SQLException e) {
             throw new StreamStatusException(format(
-                    "Failed to count streams behind for source '%s', component '%s'",
+                    "Failed to count streams with remaining unprocessed events for source '%s', component '%s'",
                     source,
                     component),
                     e);

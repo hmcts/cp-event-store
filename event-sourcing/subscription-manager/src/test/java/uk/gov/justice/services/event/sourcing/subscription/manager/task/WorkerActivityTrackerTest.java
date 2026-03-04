@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 public class WorkerActivityTrackerTest {
 
-    private final mnvnWorkerActivityTracker workerActivityTracker = new WorkerActivityTracker();
+    private final WorkerActivityTracker workerActivityTracker = new WorkerActivityTracker();
 
     @Test
     public void shouldReturnZeroActiveCountForNewPair() {

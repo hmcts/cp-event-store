@@ -1,7 +1,5 @@
 package uk.gov.justice.eventsourcing.discovery.timers;
 
-import static javax.ejb.TransactionAttributeType.NEVER;
-
 import uk.gov.justice.eventsourcing.discovery.workers.EventDiscoveryWorker;
 import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.services.ejb.timer.TimerConfigFactory;
@@ -19,11 +17,11 @@ import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 import javax.ejb.TimerService;
 import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
 
 @Singleton
 @Startup
-@TransactionAttribute(NEVER)
 @ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 public class EventDiscoveryTimerBean {
 
@@ -55,6 +53,7 @@ public class EventDiscoveryTimerBean {
     }
 
     @Timeout
+    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     public void runEventDiscovery(final Timer timer) {
         eventDiscoveryWorker.runEventDiscoveryForSourceComponentPair((SourceComponentPair) timer.getInfo());
     }

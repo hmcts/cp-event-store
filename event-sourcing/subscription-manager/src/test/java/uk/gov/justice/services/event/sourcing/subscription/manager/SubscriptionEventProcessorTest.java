@@ -28,7 +28,6 @@ import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStre
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamStatusLockingException;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamUpdateContext;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
@@ -40,7 +39,6 @@ import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCoun
 
 import java.util.UUID;
 
-import javax.transaction.UserTransaction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,16 +66,10 @@ public class SubscriptionEventProcessorTest {
     private NewEventBufferRepository newEventBufferRepository;
 
     @Mock
-    private StreamErrorRepository streamErrorRepository;
-
-    @Mock
     private EventProcessingStatusCalculator eventProcessingStatusCalculator;
 
     @Mock
     private MicrometerMetricsCounters micrometerMetricsCounters;
-
-    @Mock
-    private UserTransaction userTransaction;
 
     @Mock
     private TransactionHandler transactionHandler;
@@ -129,12 +121,12 @@ public class SubscriptionEventProcessorTest {
                 interceptorChainProcessor,
                 newEventBufferRepository,
                 newStreamStatusRepository,
-                streamErrorRepository,
+                streamErrorStatusHandler,
                 transactionHandler,
                 micrometerMetricsCounters);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContextWithError(
                 streamId,
                 source,
@@ -145,10 +137,10 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
-        verify(streamErrorRepository, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
-        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(streamErrorStatusHandler, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
+        verify(transactionHandler, never()).rollback();
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
     }
 
@@ -193,12 +185,12 @@ public class SubscriptionEventProcessorTest {
                 interceptorChainProcessor,
                 newEventBufferRepository,
                 newStreamStatusRepository,
-                streamErrorRepository,
+                streamErrorStatusHandler,
                 transactionHandler,
                 micrometerMetricsCounters);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContextWithError(
                 streamId,
                 source,
@@ -209,10 +201,10 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
-        verify(streamErrorRepository, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
-        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(streamErrorStatusHandler, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
+        verify(transactionHandler, never()).rollback();
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
     }
 
@@ -258,12 +250,12 @@ public class SubscriptionEventProcessorTest {
                 interceptorChainProcessor,
                 newEventBufferRepository,
                 newStreamStatusRepository,
-                streamErrorRepository,
+                streamErrorStatusHandler,
                 transactionHandler,
                 micrometerMetricsCounters);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContextWithError(
                 streamId,
                 source,
@@ -272,10 +264,10 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
-        inOrder.verify(streamErrorRepository).markStreamAsFixed(previousStreamErrorId, streamId, source, component);
+        inOrder.verify(streamErrorStatusHandler).markStreamAsFixed(previousStreamErrorId, streamId, source, component);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
     }
@@ -322,12 +314,12 @@ public class SubscriptionEventProcessorTest {
                 interceptorChainProcessor,
                 newEventBufferRepository,
                 newStreamStatusRepository,
-                streamErrorRepository,
+                streamErrorStatusHandler,
                 transactionHandler,
                 micrometerMetricsCounters);
 
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContextWithError(
                 streamId,
                 source,
@@ -337,10 +329,10 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
-        verify(streamErrorRepository, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
-        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(streamErrorStatusHandler, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
+        verify(transactionHandler, never()).rollback();
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
     }
@@ -385,12 +377,12 @@ public class SubscriptionEventProcessorTest {
                 interceptorChainProcessor,
                 newStreamStatusRepository,
                 newEventBufferRepository,
-                streamErrorRepository,
+                streamErrorStatusHandler,
                 transactionHandler,
                 micrometerMetricsCounters);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContextWithError(
                 streamId,
                 source,
@@ -400,10 +392,10 @@ public class SubscriptionEventProcessorTest {
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newEventBufferRepository).remove(streamId, source, component, eventPositionInStream);
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
-        verify(streamErrorRepository, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
-        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(streamErrorStatusHandler, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
+        verify(transactionHandler, never()).rollback();
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
     }
 
@@ -444,25 +436,25 @@ public class SubscriptionEventProcessorTest {
                 interceptorChainProcessor,
                 newEventBufferRepository,
                 newStreamStatusRepository,
-                streamErrorRepository,
+                streamErrorStatusHandler,
                 transactionHandler,
                 micrometerMetricsCounters);
 
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContextWithError(
                 streamId,
                 source,
                 component,
                 eventPositionInStream);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
         verify(interceptorChainProcessor, never()).process(interceptorContext);
         verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newEventBufferRepository, never()).remove(streamId, source, component, eventPositionInStream);
-        verify(streamErrorRepository, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
+        verify(streamErrorStatusHandler, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
-        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(transactionHandler, never()).rollback();
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
     }
 
@@ -503,26 +495,26 @@ public class SubscriptionEventProcessorTest {
                 interceptorChainProcessor,
                 newEventBufferRepository,
                 newStreamStatusRepository,
-                streamErrorRepository,
+                streamErrorStatusHandler,
                 transactionHandler,
                 micrometerMetricsCounters);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContextWithError(
                 streamId,
                 source,
                 component,
                 eventPositionInStream);
         inOrder.verify(micrometerMetricsCounters).incrementEventsIgnoredCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
         verify(interceptorChainProcessor, never()).process(interceptorContext);
         verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newEventBufferRepository, never()).remove(streamId, source, component, eventPositionInStream);
-        verify(streamErrorRepository, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
+        verify(streamErrorStatusHandler, never()).markStreamAsFixed(any(UUID.class), eq(streamId), eq(source), eq(component));
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
-        verify(transactionHandler, never()).rollback(userTransaction);
+        verify(transactionHandler, never()).rollback();
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
     }
@@ -579,19 +571,19 @@ public class SubscriptionEventProcessorTest {
                 micrometerMetricsCounters);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).lockStreamAndGetStreamUpdateContextWithError(
                 streamId,
                 source,
                 component,
                 eventPositionInStream);
         inOrder.verify(interceptorChainProcessor).process(interceptorContext);
-        inOrder.verify(transactionHandler).rollback(userTransaction);
+        inOrder.verify(transactionHandler).rollback();
         inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, source, component, streamUpdateContext);
 
         verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newEventBufferRepository, never()).remove(streamId, source, component, eventPositionInStream);
-        verify(transactionHandler, never()).commit(userTransaction);
+        verify(transactionHandler, never()).commit();
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
         verify(micrometerMetricsCounters, never()).incrementEventsIgnoredCount(source, component);
     }
@@ -634,7 +626,7 @@ public class SubscriptionEventProcessorTest {
                 micrometerMetricsCounters);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).rollback(userTransaction);
+        inOrder.verify(transactionHandler).rollback();
 
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
         verify(micrometerMetricsCounters, never()).incrementEventsIgnoredCount(source, component);
@@ -680,7 +672,7 @@ public class SubscriptionEventProcessorTest {
                 micrometerMetricsCounters);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(transactionHandler).rollback(userTransaction);
+        inOrder.verify(transactionHandler).rollback();
         inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, source, component, streamUpdateContext);
 
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);

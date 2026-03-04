@@ -10,7 +10,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 @ApplicationScoped
-public class OldestStreamSelector implements StreamSelector {
+public class OldestStreamSelector {
 
     @Inject
     NewStreamStatusRepository streamStatusRepository;
@@ -18,7 +18,6 @@ public class OldestStreamSelector implements StreamSelector {
     @Inject
     StreamProcessingConfig streamProcessingConfig;
 
-    @Override
     public Optional<LockedStreamStatus> findStreamToProcess(final String source, final String component) {
         return streamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, component, streamProcessingConfig.getMaxRetries());
     }

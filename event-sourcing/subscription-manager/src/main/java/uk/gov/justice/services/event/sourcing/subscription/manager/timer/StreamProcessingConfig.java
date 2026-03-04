@@ -40,7 +40,7 @@ public class StreamProcessingConfig {
     private String maxRetries;
 
     @Inject
-    @Value(key = "event.publishing.stream.processing.retry.delay.milliseconds", defaultValue = "1000")
+    @Value(key = "event.publishing.stream.processing.retry.delay.milliseconds", defaultValue = "10")
     private String retryDelayMilliseconds;
 
     @Inject

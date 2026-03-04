@@ -18,6 +18,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 - Merge StreamRetryConfiguration into StreamProcessingConfig
 - Add Rest endpoints for event discovery and getting next event from event-store (for mireportdata)
 - Switch between transaction and REST implementation for EventDiscoverer and NextEventReader based on JNDI value `pull.mechanism.access.event.store.via.rest` 
+### Changed
+- Replace full transaction rollback with JDBC savepoint rollback in pull-based stream processing to eliminate race condition in error path
+- Add StreamErrorRepository.saveStreamError() to skip redundant row lock when caller already holds FOR NO KEY UPDATE lock
 
 # [17.105.0-M8] - 2026-02-17
 ### Changed

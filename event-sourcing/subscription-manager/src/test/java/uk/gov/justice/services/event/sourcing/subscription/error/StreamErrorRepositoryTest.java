@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -151,6 +152,96 @@ public class StreamErrorRepositoryTest {
         final StreamErrorHandlingException streamErrorHandlingException = assertThrows(
                 StreamErrorHandlingException.class,
                 () -> streamErrorRepository.markStreamAsErrored(streamError, 0L));
+
+        assertThat(streamErrorHandlingException.getCause(), is(sqlException));
+        assertThat(streamErrorHandlingException.getMessage(), is("Failed to get connection to view-store"));
+    }
+
+    @Test
+    public void shouldSaveStreamErrorAndMarkStreamAsErrored() throws Exception {
+
+        final UUID streamErrorId = randomUUID();
+        final UUID streamId = randomUUID();
+        final Long positionInStream = 98239847L;
+        final String componentName = "SOME_COMPONENT";
+        final String source = "some-source";
+        final StreamError streamError = mock(StreamError.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+
+        when(streamErrorPersistence.save(streamError, connection)).thenReturn(true);
+
+        when(streamError.streamErrorOccurrence()).thenReturn(streamErrorOccurrence);
+        when(streamErrorOccurrence.id()).thenReturn(streamErrorId);
+        when(streamErrorOccurrence.streamId()).thenReturn(streamId);
+        when(streamErrorOccurrence.positionInStream()).thenReturn(positionInStream);
+        when(streamErrorOccurrence.componentName()).thenReturn(componentName);
+        when(streamErrorOccurrence.source()).thenReturn(source);
+
+        streamErrorRepository.saveStreamError(streamError);
+
+        final InOrder inOrder = inOrder(streamStatusErrorPersistence, streamErrorPersistence, connection);
+        inOrder.verify(streamErrorPersistence).save(streamError, connection);
+        inOrder.verify(streamStatusErrorPersistence).markStreamAsErrored(
+                streamId,
+                streamErrorId,
+                positionInStream,
+                componentName,
+                source,
+                connection);
+        inOrder.verify(connection).close();
+    }
+
+    @Test
+    public void shouldNotUpdateStreamStatusIfSaveReturnsFalseInSaveStreamError() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final String componentName = "SOME_COMPONENT";
+        final String source = "some-source";
+        final StreamError streamError = mock(StreamError.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+        final Connection connection = mock(Connection.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenReturn(connection);
+
+        when(streamError.streamErrorOccurrence()).thenReturn(streamErrorOccurrence);
+        when(streamErrorOccurrence.streamId()).thenReturn(streamId);
+        when(streamErrorOccurrence.componentName()).thenReturn(componentName);
+        when(streamErrorOccurrence.source()).thenReturn(source);
+
+        when(streamErrorPersistence.save(streamError, connection)).thenReturn(false);
+
+        streamErrorRepository.saveStreamError(streamError);
+
+        final InOrder inOrder = inOrder(streamErrorPersistence, connection);
+        inOrder.verify(streamErrorPersistence).save(streamError, connection);
+        inOrder.verify(connection).close();
+
+        verifyNoMoreInteractions(streamErrorPersistence);
+    }
+
+    @Test
+    public void shouldThrowStreamErrorHandlingExceptionIfConnectionFailsInSaveStreamError() throws Exception {
+
+        final StreamError streamError = mock(StreamError.class);
+        final SQLException sqlException = new SQLException("Oops");
+
+        final DataSource viewStoreDataSource = mock(DataSource.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+        when(viewStoreDataSource.getConnection()).thenThrow(sqlException);
+
+        final StreamErrorHandlingException streamErrorHandlingException = assertThrows(
+                StreamErrorHandlingException.class,
+                () -> streamErrorRepository.saveStreamError(streamError));
 
         assertThat(streamErrorHandlingException.getCause(), is(sqlException));
         assertThat(streamErrorHandlingException.getMessage(), is("Failed to get connection to view-store"));

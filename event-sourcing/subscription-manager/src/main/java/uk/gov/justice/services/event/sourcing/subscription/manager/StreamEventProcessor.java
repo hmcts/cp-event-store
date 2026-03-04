@@ -1,25 +1,28 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
-import java.util.Optional;
-import java.util.UUID;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
-import javax.transaction.UserTransaction;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
-import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
-import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamRetryStatusManager;
-import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
-import uk.gov.justice.services.messaging.JsonEnvelope;
-import uk.gov.justice.services.messaging.Metadata;
-import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
-
 import static java.lang.String.format;
 import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
 import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_FOUND;
 import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_NOT_FOUND;
+
+import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
+import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
+import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
+import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
+import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
+import uk.gov.justice.services.event.sourcing.subscription.manager.TransactionHandler.SavepointContext;
+import uk.gov.justice.services.messaging.JsonEnvelope;
+import uk.gov.justice.services.messaging.Metadata;
+import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
+
+import java.sql.SQLException;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+
+import org.slf4j.Logger;
 
 public class StreamEventProcessor {
 
@@ -30,16 +33,13 @@ public class StreamEventProcessor {
     private StreamErrorStatusHandler streamErrorStatusHandler;
 
     @Inject
-    private StreamSelectorManager streamSelectorManager;
+    private OldestStreamSelector oldestStreamSelector;
 
     @Inject
     private NextEventSelector nextEventSelector;
 
     @Inject
     private NewStreamStatusRepository newStreamStatusRepository;
-
-    @Inject
-    private UserTransaction userTransaction;
 
     @Inject
     private TransactionHandler transactionHandler;
@@ -54,72 +54,88 @@ public class StreamEventProcessor {
     private StreamEventValidator streamEventValidator;
 
     @Inject
-    private StreamRetryStatusManager streamRetryStatusManager;
-
-    @Inject
-    private StreamErrorRepository streamErrorRepository;
+    private Logger logger;
 
     @Transactional(value = NOT_SUPPORTED)
     public EventProcessingStatus processSingleEvent(final String source, final String component) {
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
 
-        transactionHandler.begin(userTransaction);
+        transactionHandler.begin();
 
-        final Optional<LockedStreamStatus> lockedStreamStatusOpt = streamSelectorManager.selectStreamToProcess(source, component);
-        final Optional<PulledEvent> pulledEvent = nextEventSelector.selectNextEvent(source, component, lockedStreamStatusOpt);
+        final Optional<LockedStreamStatus> lockedStreamStatusOpt;
+        final Optional<PulledEvent> pulledEvent;
+
+        try {
+            lockedStreamStatusOpt = oldestStreamSelector.findStreamToProcess(source, component);
+            pulledEvent = nextEventSelector.selectNextEvent(source, component, lockedStreamStatusOpt);
+        } catch (final Exception e) {
+            transactionHandler.rollback();
+            throw e;
+        }
 
         if (pulledEvent.isPresent()) {
-            final JsonEnvelope eventJsonEnvelope = pulledEvent.get().jsonEnvelope();
-            final LockedStreamStatus lockedStreamStatus = pulledEvent.get().lockedStreamStatus();
-            final UUID streamId = lockedStreamStatus.streamId();
-            final long latestKnownPosition = lockedStreamStatus.latestKnownPosition();
-            final long streamCurrentPosition = lockedStreamStatus.position();
-            final Metadata metadata = eventJsonEnvelope.metadata();
-
-            try {
-                streamEventLoggerMetadataAdder.addRequestDataToMdc(eventJsonEnvelope, component);
-                final long eventPositionInStream = metadata.position().orElseThrow(() -> new MissingPositionInStreamException(format("No position found in event: name '%s', eventId '%s'", metadata.name(), metadata.id())));
-
-                streamEventValidator.validate(eventJsonEnvelope, source, component);
-
-                componentEventProcessor.process(eventJsonEnvelope, component);
-
-                newStreamStatusRepository.updateCurrentPosition(streamId, source, component, eventPositionInStream);
-
-                if (latestKnownPosition == eventPositionInStream) {
-                    newStreamStatusRepository.setUpToDate(true, streamId, source, component);
-                }
-
-                streamRetryStatusManager.removeStreamRetryStatus(streamId, source, component);
-
-                lockedStreamStatus.streamErrorId().ifPresent(
-                        streamErrorId ->
-                                streamErrorRepository.markStreamAsFixed(streamErrorId, streamId, source, component));
-
-                micrometerMetricsCounters.incrementEventsSucceededCount(source, component);
-                transactionHandler.commit(userTransaction);
-
-                return EVENT_FOUND;
-
-            } catch (final Exception e) {
-                transactionHandler.rollback(userTransaction);
-                micrometerMetricsCounters.incrementEventsFailedCount(source, component);
-                streamErrorStatusHandler.onStreamProcessingFailure(eventJsonEnvelope, e, component, streamCurrentPosition, lockedStreamStatus.streamErrorId());
-                return EVENT_FOUND;
-            } finally {
-                streamEventLoggerMetadataAdder.clearMdc();
-            }
+            processEvent(pulledEvent.get(), source, component);
+            return EVENT_FOUND;
         } else {
-            commitWithFallBackToRollback();
+            transactionHandler.commitWithFallbackToRollback();
             return EVENT_NOT_FOUND;
         }
     }
 
-    private void commitWithFallBackToRollback() {
+    private void processEvent(final PulledEvent pulledEvent, final String source, final String component) {
+        final JsonEnvelope eventJsonEnvelope = pulledEvent.jsonEnvelope();
+        final LockedStreamStatus lockedStreamStatus = pulledEvent.lockedStreamStatus();
+        final UUID streamId = lockedStreamStatus.streamId();
+        final long latestKnownPosition = lockedStreamStatus.latestKnownPosition();
+        final long streamCurrentPosition = lockedStreamStatus.position();
+        final Metadata metadata = eventJsonEnvelope.metadata();
+
+        final SavepointContext ctx;
         try {
-            transactionHandler.commit(userTransaction);
+            ctx = transactionHandler.createSavepointContext();
+        } catch (final SQLException e) {
+            logger.error("Failed to create savepoint context for streamId '{}': {}", streamId, e.getMessage(), e);
+            transactionHandler.rollback();
+            return;
+        }
+
+        try {
+            streamEventLoggerMetadataAdder.addRequestDataToMdc(eventJsonEnvelope, component);
+            final long eventPositionInStream = metadata.position().orElseThrow(
+                    () -> new MissingPositionInStreamException(format("No position found in event: name '%s', eventId '%s'", metadata.name(), metadata.id())));
+
+            streamEventValidator.validate(eventJsonEnvelope, source, component);
+
+            componentEventProcessor.process(eventJsonEnvelope, component);
+
+            newStreamStatusRepository.updateCurrentPosition(streamId, source, component, eventPositionInStream);
+            if (latestKnownPosition == eventPositionInStream) {
+                newStreamStatusRepository.setUpToDate(true, streamId, source, component);
+            }
+
+            lockedStreamStatus.streamErrorId().ifPresent(streamErrorId -> streamErrorStatusHandler.markStreamAsFixed(streamErrorId, streamId, source, component));
+
+            transactionHandler.releaseSavepointAndCommit(ctx);
+            micrometerMetricsCounters.incrementEventsSucceededCount(source, component);
+
         } catch (final Exception e) {
-            transactionHandler.rollback(userTransaction);
+            micrometerMetricsCounters.incrementEventsFailedCount(source, component);
+            try {
+                transactionHandler.checkTaintedAndRollbackToSavepoint(ctx);
+                streamErrorStatusHandler.recordStreamError(eventJsonEnvelope, e, component, lockedStreamStatus.streamErrorId());
+                transactionHandler.commit();
+            } catch (final TransactionTaintedException tte) {
+                logger.error("Skipping error recording for streamId '{}' — row lock lost. " +
+                        "Event '{}' will be retried on the next timer tick. Cause: {}",
+                        streamId, metadata.name(), tte.getMessage());
+            } catch (final Exception errorException) {
+                logger.error("Failed to record stream error for streamId '{}': {}", streamId, errorException.getMessage(), errorException);
+                transactionHandler.rollback();
+            }
+
+        } finally {
+            streamEventLoggerMetadataAdder.clearMdc();
+            transactionHandler.closeSavepointContext(ctx);
         }
     }
 }

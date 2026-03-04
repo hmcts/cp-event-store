@@ -21,7 +21,6 @@ import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCoun
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.transaction.UserTransaction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,9 +39,6 @@ public class NextEventSelectorTest {
 
     @Mock
     private TransactionHandler transactionHandler;
-
-    @Mock
-    private UserTransaction userTransaction;
 
     @InjectMocks
     private NextEventSelector nextEventSelector;
@@ -98,7 +94,7 @@ public class NextEventSelectorTest {
 
         assertThat(exception.getMessage(), is("Unable to find next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition)));
         verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        verify(transactionHandler).rollback(userTransaction);
+        verify(transactionHandler).rollback();
     }
 
     @Test
@@ -120,6 +116,6 @@ public class NextEventSelectorTest {
 
         assertThat(exception.getMessage(), is("Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition)));
         verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        verify(transactionHandler).rollback(userTransaction);
+        verify(transactionHandler).rollback();
     }
 }

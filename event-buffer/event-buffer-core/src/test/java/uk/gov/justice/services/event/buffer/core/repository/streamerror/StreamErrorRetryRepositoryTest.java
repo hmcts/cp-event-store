@@ -461,6 +461,86 @@ public class StreamErrorRetryRepositoryTest {
     }
 
     @Test
+    public void shouldGetRetryCountUsingProvidedConnection() throws Exception {
+
+        final long retryCount = 23L;
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
+
+        when(connection.prepareStatement(GET_RETRY_COUNT_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(true);
+        when(resultSet.getObject("retry_count", Long.class)).thenReturn(retryCount);
+
+        assertThat(streamErrorRetryRepository.getRetryCount(streamId, source, component, connection), is(retryCount));
+
+        final InOrder inOrder = inOrder(preparedStatement, resultSet);
+
+        inOrder.verify(preparedStatement).setObject(1, streamId);
+        inOrder.verify(preparedStatement).setString(2, source);
+        inOrder.verify(preparedStatement).setString(3, component);
+        inOrder.verify(preparedStatement).executeQuery();
+        inOrder.verify(resultSet).close();
+        inOrder.verify(preparedStatement).close();
+    }
+
+    @Test
+    public void shouldReturnRetryCountOfZeroIfNoStreamRetryFoundUsingProvidedConnection() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
+
+        when(connection.prepareStatement(GET_RETRY_COUNT_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(false);
+
+        assertThat(streamErrorRetryRepository.getRetryCount(streamId, source, component, connection), is(0L));
+
+        verify(resultSet).close();
+        verify(preparedStatement).close();
+    }
+
+    @Test
+    public void shouldUpsertStreamErrorRetryUsingProvidedConnection() throws Exception {
+
+        final StreamErrorRetry streamErrorRetry = new StreamErrorRetry(
+                randomUUID(),
+                "some-source",
+                "some-component",
+                677L,
+                new UtcClock().now().plusMinutes(2)
+        );
+
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+
+        when(connection.prepareStatement(UPSERT_SQL)).thenReturn(preparedStatement);
+
+        streamErrorRetryRepository.upsert(streamErrorRetry, connection);
+
+        final InOrder inOrder = inOrder(preparedStatement);
+
+        inOrder.verify(preparedStatement).setObject(1, streamErrorRetry.streamId());
+        inOrder.verify(preparedStatement).setString(2, streamErrorRetry.source());
+        inOrder.verify(preparedStatement).setString(3, streamErrorRetry.component());
+        inOrder.verify(preparedStatement).setLong(4, streamErrorRetry.retryCount());
+        inOrder.verify(preparedStatement).setTimestamp(5, toSqlTimestamp(streamErrorRetry.nextRetryTime()));
+        inOrder.verify(preparedStatement).executeUpdate();
+        inOrder.verify(preparedStatement).close();
+    }
+
+    @Test
     public void shouldSetRetriesToZero() throws Exception {
 
         final UUID streamId = randomUUID();

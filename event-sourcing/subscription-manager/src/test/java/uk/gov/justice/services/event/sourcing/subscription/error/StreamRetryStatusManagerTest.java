@@ -6,6 +6,8 @@ import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentCaptor.forClass;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +16,7 @@ import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamEr
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -67,6 +70,37 @@ public class StreamRetryStatusManagerTest {
         final StreamErrorRetry streamErrorRetry = streamErrorRetryCaptor.getValue();
 
         final long expectedDelay = (retryCount + 1) * retryDelay * retryDelayMultiplier.longValue();
+
+        assertThat(streamErrorRetry.streamId(), is(streamId));
+        assertThat(streamErrorRetry.source(), is(source));
+        assertThat(streamErrorRetry.component(), is(component));
+        assertThat(streamErrorRetry.retryCount(), is(retryCount + 1));
+        assertThat(streamErrorRetry.nextRetryTime(), is(nextRetryTime));
+    }
+
+    @Test
+    public void shouldCalculateNumberOfRetriesAndNextRetryTimeUsingProvidedConnection() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final long retryCount = 5L;
+
+        final Connection connection = mock(Connection.class);
+        final ZonedDateTime now = ZonedDateTime.of(2026, 2, 20, 12, 0, 0, 0, UTC);
+        final ZonedDateTime nextRetryTime = now.plusMinutes(1);
+
+        when(streamErrorRetryRepository.getRetryCount(streamId, source, component, connection)).thenReturn(retryCount);
+        when(clock.now()).thenReturn(now);
+        when(retryTimeCalculator.calculateNextRetryTime(retryCount + 1, now)).thenReturn(nextRetryTime);
+
+        streamRetryStatusManager.updateStreamRetryCountAndNextRetryTime(streamId, source, component, connection);
+
+        final ArgumentCaptor<StreamErrorRetry> streamErrorRetryCaptor = forClass(StreamErrorRetry.class);
+
+        verify(streamErrorRetryRepository).upsert(streamErrorRetryCaptor.capture(), eq(connection));
+
+        final StreamErrorRetry streamErrorRetry = streamErrorRetryCaptor.getValue();
 
         assertThat(streamErrorRetry.streamId(), is(streamId));
         assertThat(streamErrorRetry.source(), is(source));

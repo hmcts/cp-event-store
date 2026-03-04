@@ -6,6 +6,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 ### [Unreleased]
 ### Changed
 - Extract session-level advisory lock handling into StreamSessionLockManager
+- Optimise StreamEventProcessor to use single ViewStore connection per event processing cycle via IronJacamar handle preservation (advisory lock runs on unwrapped physical PGConnection within the same JTA-enlisted connection)
+- Refactor StreamErrorStatusHandler to record errors on the preserved physical connection (bypasses separate JTA transaction for error recording on the pull-based path)
+- Add connection-accepting overloads to StreamErrorRetryRepository and StreamRetryStatusManager for direct JDBC error recording
 
 # [17.105.0-M8] - 2026-03-02
 ### Added

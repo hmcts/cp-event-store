@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import org.postgresql.PGConnection;
 import org.slf4j.Logger;
 
 public class StreamSessionLockManager {
@@ -25,20 +26,42 @@ public class StreamSessionLockManager {
     @Inject
     private Logger logger;
 
-    public Connection openLockConnection() {
+    public Connection getJtaConnection() {
         try {
             final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
-            connection.setAutoCommit(true);
+            logger.trace("CONN-TRACE [getJtaConnection] acquired handle={}, PID={}", System.identityHashCode(connection), getBackendPid(connection));
             return connection;
         } catch (final SQLException e) {
-            throw new StreamSessionLockException("Failed to open advisory lock connection", e);
+            throw new StreamSessionLockException("Failed to get JTA connection for advisory lock", e);
         }
     }
 
-    public boolean tryLockStream(final Connection connection, final UUID streamId) {
-        final long lockKey = streamId.getLeastSignificantBits();
+    private int getBackendPid(final Connection connection) {
+        try (final PreparedStatement ps = connection.prepareStatement("SELECT pg_backend_pid()");
+             final ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getInt(1) : -1;
+        } catch (final SQLException e) {
+            return -1;
+        }
+    }
 
-        try (final PreparedStatement preparedStatement = connection.prepareStatement(TRY_SESSION_ADVISORY_LOCK_SQL)) {
+    /**
+     * Unwraps the physical PostgreSQL connection from the IronJacamar WrappedConnection.
+     * The returned Connection is the raw PgConnection (which implements both Connection
+     * and PGConnection), bypassing IronJacamar's JTA restrictions for advisory lock operations.
+     */
+    public Connection unwrapPhysicalConnection(final Connection wrappedConnection) {
+        try {
+            return (Connection) wrappedConnection.unwrap(PGConnection.class);
+        } catch (final SQLException e) {
+            throw new StreamSessionLockException("Failed to unwrap physical connection from JTA connection", e);
+        }
+    }
+
+    public boolean tryLockStream(final Connection physicalConnection, final UUID streamId) {
+        final long lockKey = toLockKey(streamId);
+
+        try (final PreparedStatement preparedStatement = physicalConnection.prepareStatement(TRY_SESSION_ADVISORY_LOCK_SQL)) {
             preparedStatement.setLong(1, lockKey);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -52,23 +75,64 @@ public class StreamSessionLockManager {
         }
     }
 
-    public void unlockStream(final Connection connection, final UUID streamId) {
-        final long lockKey = streamId.getLeastSignificantBits();
+    public void unlockStream(final Connection physicalConnection, final UUID streamId) {
+        final long lockKey = toLockKey(streamId);
 
-        try (final PreparedStatement preparedStatement = connection.prepareStatement(SESSION_ADVISORY_UNLOCK_SQL)) {
+        try (final PreparedStatement preparedStatement = physicalConnection.prepareStatement(SESSION_ADVISORY_UNLOCK_SQL)) {
             preparedStatement.setLong(1, lockKey);
-            preparedStatement.execute();
+
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next() && !resultSet.getBoolean(1)) {
+                    logger.warn("Advisory lock for stream '{}' was not held when unlock was attempted", streamId);
+                }
+            }
         } catch (final SQLException e) {
             logger.warn("Failed to release advisory lock for stream '{}': {}", streamId, e.getMessage());
         }
     }
 
-    public void closeQuietly(final Connection connection) {
+    private long toLockKey(final UUID streamId) {
+        return streamId.getLeastSignificantBits();
+    }
+
+    public void beginDirectTransaction(final Connection connection) {
+        try {
+            connection.setAutoCommit(false);
+        } catch (final SQLException e) {
+            throw new StreamSessionLockException("Failed to begin direct transaction on physical connection", e);
+        }
+    }
+
+    public void commitDirectTransaction(final Connection connection) {
+        try {
+            connection.commit();
+        } catch (final SQLException e) {
+            throw new StreamSessionLockException("Failed to commit direct transaction on physical connection", e);
+        }
+    }
+
+    public void rollbackDirectTransaction(final Connection connection) {
+        try {
+            connection.rollback();
+        } catch (final SQLException e) {
+            logger.warn("Failed to rollback direct transaction: {}", e.getMessage());
+        }
+    }
+
+    public void restoreAutoCommit(final Connection connection) {
+        try {
+            connection.setAutoCommit(true);
+        } catch (final SQLException e) {
+            logger.warn("Failed to restore autoCommit on connection: {}", e.getMessage());
+        }
+    }
+
+    public void closeHandle(final Connection connection) {
         if (connection != null) {
             try {
                 connection.close();
             } catch (final SQLException e) {
-                logger.warn("Failed to close advisory lock connection: {}", e.getMessage());
+                logger.warn("Failed to close connection handle: {}", e.getMessage());
             }
         }
     }

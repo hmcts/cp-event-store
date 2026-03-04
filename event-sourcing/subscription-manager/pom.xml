@@ -91,6 +91,11 @@
             <groupId>uk.gov.justice.metrics</groupId>
             <artifactId>metrics-micrometer-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <!--Test Dependencies-->
         <dependency>

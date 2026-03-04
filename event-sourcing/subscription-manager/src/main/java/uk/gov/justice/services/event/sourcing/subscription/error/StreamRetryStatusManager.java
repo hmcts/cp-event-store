@@ -4,6 +4,7 @@ import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetry;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorRetryRepository;
 
+import java.sql.Connection;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -26,23 +27,39 @@ public class StreamRetryStatusManager {
             final String component) {
 
         final Long retryCount = streamErrorRetryRepository.getRetryCount(streamId, source, component);
-        final long incrementedRetryCount = retryCount + 1;
+        final StreamErrorRetry streamErrorRetry = buildIncrementedRetry(streamId, source, component, retryCount);
+        streamErrorRetryRepository.upsert(streamErrorRetry);
+    }
 
+    public void updateStreamRetryCountAndNextRetryTime(
+            final UUID streamId,
+            final String source,
+            final String component,
+            final Connection connection) {
+
+        final Long retryCount = streamErrorRetryRepository.getRetryCount(streamId, source, component, connection);
+        final StreamErrorRetry streamErrorRetry = buildIncrementedRetry(streamId, source, component, retryCount);
+        streamErrorRetryRepository.upsert(streamErrorRetry, connection);
+    }
+
+    private StreamErrorRetry buildIncrementedRetry(
+            final UUID streamId,
+            final String source,
+            final String component,
+            final long currentRetryCount) {
+
+        final long incrementedRetryCount = currentRetryCount + 1;
         final ZonedDateTime now = clock.now();
         final ZonedDateTime nextRetryTime = retryTimeCalculator.calculateNextRetryTime(incrementedRetryCount, now);
 
-        final StreamErrorRetry streamErrorRetry = new StreamErrorRetry(
+        return new StreamErrorRetry(
                 streamId,
                 source,
                 component,
                 incrementedRetryCount,
                 nextRetryTime
         );
-
-        streamErrorRetryRepository.upsert(streamErrorRetry);
     }
-
-
 
     public void removeStreamRetryStatus(final UUID streamId, final String source, final String component) {
 

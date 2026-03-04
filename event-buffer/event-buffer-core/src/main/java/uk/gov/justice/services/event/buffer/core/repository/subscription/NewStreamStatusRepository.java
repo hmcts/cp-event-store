@@ -23,9 +23,13 @@ import static java.util.Optional.ofNullable;
 import static javax.transaction.Transactional.TxType.MANDATORY;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @SuppressWarnings("java:S1192")
 public class NewStreamStatusRepository {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(NewStreamStatusRepository.class);
     private static final long INITIAL_POSITION_IN_STREAM = 0L;
 
     private static final String INSERT_OR_DO_NOTHING_SQL = """
@@ -211,6 +215,8 @@ public class NewStreamStatusRepository {
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_OLDEST_HEALTHY_STREAM_SQL)) {
 
+            LOGGER.trace("CONN-TRACE [selectStream] acquired VS connection PID={}, handle={}", getBackendPid(connection), System.identityHashCode(connection));
+
             preparedStatement.setString(1, source);
             preparedStatement.setString(2, component);
             preparedStatement.setInt(3, maxRetries);
@@ -222,6 +228,7 @@ public class NewStreamStatusRepository {
                     final Long position = resultSet.getLong("position");
                     final Long latestKnownPosition = resultSet.getLong("latest_known_position");
                     final UUID streamErrorId = resultSet.getObject("stream_error_id", UUID.class);
+                    LOGGER.trace("CONN-TRACE [selectStream] closing VS connection PID={}, handle={}", getBackendPid(connection), System.identityHashCode(connection));
                     return of(new LockedStreamStatus(streamId, position, latestKnownPosition, ofNullable(streamErrorId)));
                 }
             }
@@ -313,6 +320,8 @@ public class NewStreamStatusRepository {
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_CURRENT_POSITION_IN_STREAM)) {
 
+            LOGGER.trace("CONN-TRACE [updatePosition] acquired VS connection PID={}, handle={}", getBackendPid(connection), System.identityHashCode(connection));
+
             preparedStatement.setLong(1, currentStreamPosition);
             preparedStatement.setObject(2, streamId);
             preparedStatement.setString(3, source);
@@ -388,6 +397,8 @@ public class NewStreamStatusRepository {
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(SET_IS_UP_TO_DATE_SQL)) {
 
+            LOGGER.trace("CONN-TRACE [setUpToDate] acquired VS connection PID={}, handle={}", getBackendPid(connection), System.identityHashCode(connection));
+
             preparedStatement.setBoolean(1, upToDate);
             preparedStatement.setObject(2, streamId);
             preparedStatement.setString(3, source);
@@ -401,6 +412,15 @@ public class NewStreamStatusRepository {
                     source,
                     componentName),
                     e);
+        }
+    }
+
+    private int getBackendPid(final Connection connection) {
+        try (final PreparedStatement ps = connection.prepareStatement("SELECT pg_backend_pid()");
+             final ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getInt(1) : -1;
+        } catch (final SQLException e) {
+            return -1;
         }
     }
 

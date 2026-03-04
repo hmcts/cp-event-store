@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- Demand-driven worker scaling: StreamProcessingCoordinator spawns workers based on stream_status demand
 
 # [17.105.0-M10] - 2026-03-03
 ### Fixed

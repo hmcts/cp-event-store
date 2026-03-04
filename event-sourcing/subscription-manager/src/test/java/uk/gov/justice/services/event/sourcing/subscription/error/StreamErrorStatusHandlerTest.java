@@ -2,6 +2,7 @@ package uk.gov.justice.services.event.sourcing.subscription.error;
 
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -13,11 +14,15 @@ import static org.mockito.Mockito.when;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorHandlingException;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorPersistence;
+import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamStatusErrorPersistence;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamUpdateContext;
+import uk.gov.justice.services.event.sourcing.subscription.manager.StreamSessionLockManager;
 import uk.gov.justice.services.event.sourcing.subscription.manager.TransactionHandler;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
+import java.sql.Connection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -56,7 +61,16 @@ public class StreamErrorStatusHandlerTest {
     private MicrometerMetricsCounters micrometerMetricsCounters;
 
     @Mock
+    private StreamStatusErrorPersistence streamStatusErrorPersistence;
+
+    @Mock
+    private StreamErrorPersistence streamErrorPersistence;
+
+    @Mock
     private Logger logger;
+
+    @Mock
+    private StreamSessionLockManager streamSessionLockManager;
 
     @Mock
     private StreamUpdateContext streamUpdateContext;
@@ -382,5 +396,151 @@ public class StreamErrorStatusHandlerTest {
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(streamErrorRepository, never()).markSameErrorHappened(existingErrorId, streamId, source, component);
         verifyNoInteractions(micrometerMetricsCounters);
+    }
+
+    @Test
+    public void shouldRecordStreamProcessingErrorDirectlyOnConnection() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final UUID streamErrorId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+        final long currentPosition = 456L;
+
+        final NullPointerException nullPointerException = new NullPointerException();
+        final Connection connection = mock(Connection.class);
+        final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
+        final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
+        final StreamError streamError = mock(StreamError.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
+
+        when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
+        when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(streamError);
+        when(streamError.streamErrorOccurrence()).thenReturn(streamErrorOccurrence);
+        when(streamErrorOccurrence.streamId()).thenReturn(streamId);
+        when(streamErrorOccurrence.source()).thenReturn(source);
+        when(streamErrorOccurrence.id()).thenReturn(streamErrorId);
+        when(streamErrorOccurrence.positionInStream()).thenReturn(currentPosition);
+        when(streamErrorPersistence.save(streamError, connection)).thenReturn(true);
+
+        streamErrorStatusHandler.recordStreamProcessingError(connection, jsonEnvelope, nullPointerException, component, Optional.empty());
+
+        final InOrder inOrder = inOrder(streamSessionLockManager, streamErrorPersistence, streamStatusErrorPersistence, streamRetryStatusManager);
+
+        inOrder.verify(streamSessionLockManager).beginDirectTransaction(connection);
+        inOrder.verify(streamErrorPersistence).save(streamError, connection);
+        inOrder.verify(streamStatusErrorPersistence).markStreamAsErrored(streamId, streamErrorId, currentPosition, component, source, connection);
+        inOrder.verify(streamRetryStatusManager).updateStreamRetryCountAndNextRetryTime(streamId, source, component, connection);
+        inOrder.verify(streamSessionLockManager).commitDirectTransaction(connection);
+
+        verify(streamSessionLockManager).restoreAutoCommit(connection);
+        verify(streamSessionLockManager, never()).rollbackDirectTransaction(connection);
+        verifyNoInteractions(transactionHandler);
+    }
+
+    @Test
+    public void shouldRecordSameErrorDirectlyOnConnectionWhenErrorHashMatches() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final UUID existingErrorId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+        final String errorHash = "same-error-hash";
+        final long currentPosition = 456L;
+
+        final NullPointerException nullPointerException = new NullPointerException();
+        final Connection connection = mock(Connection.class);
+        final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
+        final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
+        final StreamError newStreamError = mock(StreamError.class);
+        final StreamErrorOccurrence newStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
+        final StreamError existingStreamError = mock(StreamError.class);
+        final StreamErrorOccurrence existingStreamErrorOccurrence = mock(StreamErrorOccurrence.class);
+
+        when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
+        when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(newStreamError);
+        when(newStreamError.streamErrorOccurrence()).thenReturn(newStreamErrorOccurrence);
+        when(newStreamErrorOccurrence.streamId()).thenReturn(streamId);
+        when(newStreamErrorOccurrence.source()).thenReturn(source);
+        when(newStreamErrorOccurrence.hash()).thenReturn(errorHash);
+        when(streamErrorPersistence.findByErrorId(existingErrorId, connection)).thenReturn(Optional.of(existingStreamError));
+        when(existingStreamError.streamErrorOccurrence()).thenReturn(existingStreamErrorOccurrence);
+        when(existingStreamErrorOccurrence.hash()).thenReturn(errorHash);
+
+        streamErrorStatusHandler.recordStreamProcessingError(connection, jsonEnvelope, nullPointerException, component, Optional.of(existingErrorId));
+
+        final InOrder inOrder = inOrder(streamSessionLockManager, streamStatusErrorPersistence, streamRetryStatusManager);
+
+        inOrder.verify(streamSessionLockManager).beginDirectTransaction(connection);
+        inOrder.verify(streamStatusErrorPersistence).updateStreamErrorOccurredAt(existingErrorId, streamId, source, component, connection);
+        inOrder.verify(streamRetryStatusManager).updateStreamRetryCountAndNextRetryTime(streamId, source, component, connection);
+        inOrder.verify(streamSessionLockManager).commitDirectTransaction(connection);
+
+        verify(streamSessionLockManager).restoreAutoCommit(connection);
+        verify(streamSessionLockManager, never()).rollbackDirectTransaction(connection);
+        verifyNoInteractions(transactionHandler);
+    }
+
+    @Test
+    public void shouldRollbackAndLogWhenRecordStreamProcessingErrorFails() throws Exception {
+
+        final UUID streamId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+        final long currentPosition = 456L;
+
+        final NullPointerException nullPointerException = new NullPointerException();
+        final StreamErrorHandlingException persistenceException = new StreamErrorHandlingException("SQL failed");
+        final Connection connection = mock(Connection.class);
+        final JsonEnvelope jsonEnvelope = mock(JsonEnvelope.class);
+        final ExceptionDetails exceptionDetails = mock(ExceptionDetails.class);
+        final StreamError streamError = mock(StreamError.class);
+        final StreamErrorOccurrence streamErrorOccurrence = mock(StreamErrorOccurrence.class);
+
+        when(exceptionDetailsRetriever.getExceptionDetailsFrom(nullPointerException)).thenReturn(exceptionDetails);
+        when(streamErrorConverter.asStreamError(exceptionDetails, jsonEnvelope, component)).thenReturn(streamError);
+        when(streamError.streamErrorOccurrence()).thenReturn(streamErrorOccurrence);
+        when(streamErrorOccurrence.streamId()).thenReturn(streamId);
+        when(streamErrorOccurrence.source()).thenReturn(source);
+        when(streamErrorPersistence.save(streamError, connection)).thenThrow(persistenceException);
+
+        streamErrorStatusHandler.recordStreamProcessingError(connection, jsonEnvelope, nullPointerException, component, Optional.empty());
+
+        final InOrder inOrder = inOrder(streamSessionLockManager, logger);
+
+        inOrder.verify(streamSessionLockManager).beginDirectTransaction(connection);
+        inOrder.verify(streamSessionLockManager).rollbackDirectTransaction(connection);
+        inOrder.verify(logger).error("Failed to record stream processing error: streamId '%s'".formatted(streamId), persistenceException);
+
+        verify(streamSessionLockManager).restoreAutoCommit(connection);
+        verify(streamSessionLockManager, never()).commitDirectTransaction(connection);
+        verifyNoInteractions(transactionHandler);
+    }
+
+    @Test
+    public void shouldRemoveRetryStatusAndMarkStreamAsFixedOnSuccess() {
+
+        final UUID streamId = randomUUID();
+        final UUID streamErrorId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+
+        streamErrorStatusHandler.onStreamProcessingSuccess(streamId, source, component, Optional.of(streamErrorId));
+
+        verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
+        verify(streamErrorRepository).markStreamAsFixed(streamErrorId, streamId, source, component);
+    }
+
+    @Test
+    public void shouldRemoveRetryStatusButNotMarkStreamAsFixedWhenNoExistingErrorId() {
+
+        final UUID streamId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+
+        streamErrorStatusHandler.onStreamProcessingSuccess(streamId, source, component, Optional.empty());
+
+        verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
+        verify(streamErrorRepository, never()).markStreamAsFixed(any(), any(), any(), any());
     }
 }

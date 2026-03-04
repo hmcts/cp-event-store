@@ -1,12 +1,16 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
+import static java.util.UUID.randomUUID;
 import static javax.transaction.Status.STATUS_ACTIVE;
 import static javax.transaction.Status.STATUS_MARKED_ROLLBACK;
 import static javax.transaction.Status.STATUS_NO_TRANSACTION;
 import static javax.transaction.Status.STATUS_ROLLING_BACK;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -15,6 +19,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.TransactionException;
+
+import java.sql.Connection;
+import java.util.UUID;
 
 import javax.transaction.HeuristicMixedException;
 import javax.transaction.HeuristicRollbackException;
@@ -32,6 +39,9 @@ import org.slf4j.Logger;
 
 @ExtendWith(MockitoExtension.class)
 public class TransactionHandlerTest {
+
+    @Mock
+    private StreamSessionLockManager streamSessionLockManager;
 
     @Mock
     private Logger logger;
@@ -206,5 +216,88 @@ public class TransactionHandlerTest {
         transactionHandler.rollback(userTransaction);
 
         verify(logger).error("Failed to rollback transaction, rollback maybe incomplete", illegalStateException);
+    }
+
+    @Test
+    public void shouldAcquireConnectionAndReturnTransactionContext() {
+
+        final Connection jtaHandle = mock(Connection.class);
+        final Connection physicalConnection = mock(Connection.class);
+
+        when(streamSessionLockManager.getJtaConnection()).thenReturn(jtaHandle);
+        when(streamSessionLockManager.unwrapPhysicalConnection(jtaHandle)).thenReturn(physicalConnection);
+
+        final TransactionContext transactionContext = transactionHandler.acquireConnection();
+
+        assertThat(transactionContext, is(notNullValue()));
+        assertThat(transactionContext.physicalConnection(), is(physicalConnection));
+        assertThat(transactionContext.jtaHandle(), is(jtaHandle));
+        assertThat(transactionContext.lockedStreamId(), is(nullValue()));
+    }
+
+    @Test
+    public void shouldSetLockedStreamIdWhenTryLockStreamSucceeds() {
+
+        final UUID streamId = randomUUID();
+        final Connection physicalConnection = mock(Connection.class);
+        final TransactionContext transactionContext = new TransactionContext(mock(Connection.class), physicalConnection);
+
+        when(streamSessionLockManager.tryLockStream(physicalConnection, streamId)).thenReturn(true);
+
+        final boolean locked = transactionHandler.tryLockStream(transactionContext, streamId);
+
+        assertThat(locked, is(true));
+        assertThat(transactionContext.lockedStreamId(), is(streamId));
+    }
+
+    @Test
+    public void shouldNotSetLockedStreamIdWhenTryLockStreamFails() {
+
+        final UUID streamId = randomUUID();
+        final Connection physicalConnection = mock(Connection.class);
+        final TransactionContext transactionContext = new TransactionContext(mock(Connection.class), physicalConnection);
+
+        when(streamSessionLockManager.tryLockStream(physicalConnection, streamId)).thenReturn(false);
+
+        final boolean locked = transactionHandler.tryLockStream(transactionContext, streamId);
+
+        assertThat(locked, is(false));
+        assertThat(transactionContext.lockedStreamId(), is(nullValue()));
+    }
+
+    @Test
+    public void shouldDoNothingWhenReleasingNullContext() {
+
+        transactionHandler.releaseContext(null);
+
+        verifyNoInteractions(streamSessionLockManager);
+    }
+
+    @Test
+    public void shouldUnlockAndCloseHandleWhenReleasingLockedContext() {
+
+        final UUID streamId = randomUUID();
+        final Connection jtaHandle = mock(Connection.class);
+        final Connection physicalConnection = mock(Connection.class);
+        final TransactionContext transactionContext = new TransactionContext(jtaHandle, physicalConnection);
+        transactionContext.setLockedStreamId(streamId);
+
+        transactionHandler.releaseContext(transactionContext);
+
+        verify(streamSessionLockManager).unlockStream(physicalConnection, streamId);
+        verify(streamSessionLockManager).closeHandle(jtaHandle);
+    }
+
+    @Test
+    public void shouldOnlyCloseHandleWhenReleasingUnlockedContext() {
+
+        final Connection jtaHandle = mock(Connection.class);
+        final Connection physicalConnection = mock(Connection.class);
+        final TransactionContext transactionContext = new TransactionContext(jtaHandle, physicalConnection);
+
+        transactionHandler.releaseContext(transactionContext);
+
+        verify(streamSessionLockManager, never()).unlockStream(any(), any());
+        verify(streamSessionLockManager).closeHandle(jtaHandle);
     }
 }

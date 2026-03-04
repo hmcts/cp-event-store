@@ -91,19 +91,8 @@ public class StreamErrorRetryRepository {
 
     @Transactional(REQUIRED)
     public void upsert(final StreamErrorRetry streamErrorRetry) {
-        final DataSource viewStoreDataSource = viewStoreJdbcDataSourceProvider.getDataSource();
-
-        try (final Connection connection = viewStoreDataSource.getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(UPSERT_SQL)) {
-
-            preparedStatement.setObject(1, streamErrorRetry.streamId());
-            preparedStatement.setString(2, streamErrorRetry.source());
-            preparedStatement.setString(3, streamErrorRetry.component());
-            preparedStatement.setLong(4, streamErrorRetry.retryCount());
-            preparedStatement.setTimestamp(5, toSqlTimestamp(streamErrorRetry.nextRetryTime()));
-
-            preparedStatement.executeUpdate();
-
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
+            upsert(streamErrorRetry, connection);
         } catch (final SQLException e) {
             throw new StreamErrorPersistenceException(format("Failed to upsert %s", streamErrorRetry), e);
         }
@@ -151,24 +140,8 @@ public class StreamErrorRetryRepository {
 
     @Transactional(REQUIRED)
     public Long getRetryCount(final UUID streamId, final String source, final String component) {
-
-        final DataSource viewStoreDataSource = viewStoreJdbcDataSourceProvider.getDataSource();
-
-        try (final Connection connection = viewStoreDataSource.getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(GET_RETRY_COUNT_SQL)) {
-
-            preparedStatement.setObject(1, streamId);
-            preparedStatement.setString(2, source);
-            preparedStatement.setString(3, component);
-
-            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getObject("retry_count", Long.class);
-                }
-
-                return ZERO_RETRIES;
-            }
-
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection()) {
+            return getRetryCount(streamId, source, component, connection);
         } catch (final SQLException e) {
             throw new StreamErrorPersistenceException(
                     format("Failed to lookup retryCount for streamId: '%s', source: '%s', component: '%s'",
@@ -230,6 +203,49 @@ public class StreamErrorRetryRepository {
                             source,
                             component),
                     e);
+        }
+    }
+
+    public Long getRetryCount(final UUID streamId, final String source, final String component, final Connection connection) {
+
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(GET_RETRY_COUNT_SQL)) {
+
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setString(2, source);
+            preparedStatement.setString(3, component);
+
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getObject("retry_count", Long.class);
+                }
+
+                return ZERO_RETRIES;
+            }
+
+        } catch (final SQLException e) {
+            throw new StreamErrorPersistenceException(
+                    format("Failed to lookup retryCount for streamId: '%s', source: '%s', component: '%s'",
+                            streamId,
+                            source,
+                            component),
+                    e);
+        }
+    }
+
+    public void upsert(final StreamErrorRetry streamErrorRetry, final Connection connection) {
+
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(UPSERT_SQL)) {
+
+            preparedStatement.setObject(1, streamErrorRetry.streamId());
+            preparedStatement.setString(2, streamErrorRetry.source());
+            preparedStatement.setString(3, streamErrorRetry.component());
+            preparedStatement.setLong(4, streamErrorRetry.retryCount());
+            preparedStatement.setTimestamp(5, toSqlTimestamp(streamErrorRetry.nextRetryTime()));
+
+            preparedStatement.executeUpdate();
+
+        } catch (final SQLException e) {
+            throw new StreamErrorPersistenceException(format("Failed to upsert %s", streamErrorRetry), e);
         }
     }
 

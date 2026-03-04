@@ -21,10 +21,8 @@ import static uk.gov.justice.services.event.sourcing.subscription.manager.EventP
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamRetryStatusManager;
 import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
@@ -75,15 +73,6 @@ public class StreamEventProcessorTest {
     @Mock
     private StreamEventValidator streamEventValidator;
 
-    @Mock
-    private StreamRetryStatusManager streamRetryStatusManager;
-
-    @Mock
-    private StreamErrorRepository streamErrorRepository;
-
-    @Mock
-    private StreamSessionLockManager streamSessionLockManager;
-
     @InjectMocks
     private StreamEventProcessor streamEventProcessor;
 
@@ -97,16 +86,16 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 6L;
         final long eventPositionInStream = 6L;
 
-        final Connection advisoryConnection = mock(Connection.class);
+        final TransactionContext transactionContext = mock(TransactionContext.class);
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
-        when(streamSessionLockManager.tryLockStream(advisoryConnection, streamId)).thenReturn(true);
+        when(transactionHandler.acquireConnection()).thenReturn(transactionContext);
+        when(transactionHandler.tryLockStream(transactionContext, streamId)).thenReturn(true);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
 
@@ -114,7 +103,6 @@ public class StreamEventProcessorTest {
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
-                streamSessionLockManager,
                 transactionHandler,
                 streamSelectorManager,
                 nextEventSelector,
@@ -122,30 +110,27 @@ public class StreamEventProcessorTest {
                 streamEventValidator,
                 componentEventProcessor,
                 newStreamStatusRepository,
-                micrometerMetricsCounters,
-                transactionHandler,
-                streamRetryStatusManager);
+                streamErrorStatusHandler);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(streamSessionLockManager).openLockConnection();
         inOrder.verify(transactionHandler).begin(userTransaction);
         inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
         inOrder.verify(nextEventSelector).selectNextEvent(source, component, of(lockedStreamStatus));
-        inOrder.verify(streamSessionLockManager).tryLockStream(advisoryConnection, streamId);
+        inOrder.verify(transactionHandler).acquireConnection();
+        inOrder.verify(transactionHandler).tryLockStream(transactionContext, streamId);
         inOrder.verify(streamEventLoggerMetadataAdder).addRequestDataToMdc(eventJsonEnvelope, component);
         inOrder.verify(streamEventValidator).validate(eventJsonEnvelope, source, component);
         inOrder.verify(componentEventProcessor).process(eventJsonEnvelope, component);
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
-        inOrder.verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
-        inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(streamErrorStatusHandler).onStreamProcessingSuccess(streamId, source, component, empty());
 
-        verify(streamSessionLockManager).unlockStream(advisoryConnection, streamId);
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
+        verify(transactionHandler).commit(userTransaction);
+        verify(transactionHandler).releaseContext(transactionContext);
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
-        verifyNoInteractions(streamErrorStatusHandler);
+        verify(streamErrorStatusHandler, never()).recordStreamProcessingError(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -158,16 +143,16 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 10L;
         final long eventPositionInStream = 6L;
 
-        final Connection advisoryConnection = mock(Connection.class);
+        final TransactionContext transactionContext = mock(TransactionContext.class);
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
-        when(streamSessionLockManager.tryLockStream(advisoryConnection, streamId)).thenReturn(true);
+        when(transactionHandler.acquireConnection()).thenReturn(transactionContext);
+        when(transactionHandler.tryLockStream(transactionContext, streamId)).thenReturn(true);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
 
@@ -177,9 +162,9 @@ public class StreamEventProcessorTest {
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
-        verifyNoInteractions(streamErrorStatusHandler);
-        verify(streamSessionLockManager).unlockStream(advisoryConnection, streamId);
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(streamErrorStatusHandler).onStreamProcessingSuccess(streamId, source, component, empty());
+        verify(streamErrorStatusHandler, never()).recordStreamProcessingError(any(), any(), any(), any(), any());
+        verify(transactionHandler).releaseContext(transactionContext);
     }
 
     @Test
@@ -187,9 +172,7 @@ public class StreamEventProcessorTest {
 
         final String source = "some-source";
         final String component = "some-component";
-        final Connection advisoryConnection = mock(Connection.class);
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(empty());
         when(nextEventSelector.selectNextEvent(source, component, empty())).thenReturn(empty());
 
@@ -197,14 +180,12 @@ public class StreamEventProcessorTest {
 
         final InOrder inOrder = inOrder(
                 micrometerMetricsCounters,
-                streamSessionLockManager,
                 transactionHandler,
                 streamSelectorManager,
                 nextEventSelector,
                 transactionHandler);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
-        inOrder.verify(streamSessionLockManager).openLockConnection();
         inOrder.verify(transactionHandler).begin(userTransaction);
         inOrder.verify(streamSelectorManager).selectStreamToProcess(source, component);
         inOrder.verify(nextEventSelector).selectNextEvent(source, component, empty());
@@ -214,8 +195,8 @@ public class StreamEventProcessorTest {
         verify(newStreamStatusRepository, never()).updateCurrentPosition(any(), any(), any(), anyLong());
         verify(micrometerMetricsCounters, never()).incrementEventsSucceededCount(source, component);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
-        verify(streamSessionLockManager, never()).unlockStream(any(), any());
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(transactionHandler).releaseContext(null);
+        verify(transactionHandler, never()).acquireConnection();
     }
 
     @Test
@@ -223,10 +204,8 @@ public class StreamEventProcessorTest {
 
         final String source = "some-source";
         final String component = "some-component";
-        final Connection advisoryConnection = mock(Connection.class);
         final RuntimeException commitException = new RuntimeException("Commit failed");
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(empty());
         when(nextEventSelector.selectNextEvent(source, component, empty())).thenReturn(empty());
         doThrow(commitException).when(transactionHandler).commit(userTransaction);
@@ -247,7 +226,8 @@ public class StreamEventProcessorTest {
         inOrder.verify(transactionHandler).commit(userTransaction);
         inOrder.verify(transactionHandler).rollback(userTransaction);
 
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(transactionHandler).releaseContext(null);
+        verify(transactionHandler, never()).acquireConnection();
     }
 
     @Test
@@ -255,12 +235,10 @@ public class StreamEventProcessorTest {
 
         final String source = "some-source";
         final String component = "some-component";
-        final Connection advisoryConnection = mock(Connection.class);
         final RuntimeException selectionException = new RuntimeException("Selection failed");
         final StreamProcessingException streamProcessingException = new StreamProcessingException(
                 "Failed to find stream to process, source: 'some-source', component: 'some-component'", selectionException);
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenThrow(streamProcessingException);
 
         final StreamProcessingException thrown = org.junit.jupiter.api.Assertions.assertThrows(
@@ -271,8 +249,9 @@ public class StreamEventProcessorTest {
         assertThat(thrown.getMessage(), is("Failed to find stream to process, source: 'some-source', component: 'some-component'"));
 
         verify(transactionHandler).rollback(userTransaction);
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
         verifyNoInteractions(nextEventSelector);
+        verify(transactionHandler).releaseContext(null);
+        verify(transactionHandler, never()).acquireConnection();
     }
 
     @Test
@@ -283,13 +262,11 @@ public class StreamEventProcessorTest {
         final String component = "some-component";
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
-        final Connection advisoryConnection = mock(Connection.class);
 
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final StreamProcessingException streamProcessingException = new StreamProcessingException(
                 "Unable to find next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition));
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenThrow(streamProcessingException);
 
@@ -300,7 +277,8 @@ public class StreamEventProcessorTest {
         assertThat(thrown.getMessage(), is("Unable to find next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition)));
 
         verify(transactionHandler).rollback(userTransaction);
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(transactionHandler).releaseContext(null);
+        verify(transactionHandler, never()).acquireConnection();
     }
 
     @Test
@@ -316,16 +294,18 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 10L;
         final long eventPositionInStream = 6L;
 
-        final Connection advisoryConnection = mock(Connection.class);
+        final Connection physicalConnection = mock(Connection.class);
+        final TransactionContext transactionContext = mock(TransactionContext.class);
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, of(streamErrorId));
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
-        when(streamSessionLockManager.tryLockStream(advisoryConnection, streamId)).thenReturn(true);
+        when(transactionHandler.acquireConnection()).thenReturn(transactionContext);
+        when(transactionHandler.tryLockStream(transactionContext, streamId)).thenReturn(true);
+        when(transactionContext.physicalConnection()).thenReturn(physicalConnection);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
         doThrow(nullPointerException).when(componentEventProcessor).process(eventJsonEnvelope, component);
@@ -335,15 +315,13 @@ public class StreamEventProcessorTest {
         final InOrder inOrder = inOrder(
                 transactionHandler,
                 micrometerMetricsCounters,
-                streamErrorStatusHandler,
-                streamSessionLockManager);
+                streamErrorStatusHandler);
 
         inOrder.verify(transactionHandler).rollback(userTransaction);
         inOrder.verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        inOrder.verify(streamErrorStatusHandler).onStreamProcessingFailure(eventJsonEnvelope, nullPointerException, component, currentPosition, of(streamErrorId));
+        inOrder.verify(streamErrorStatusHandler).recordStreamProcessingError(physicalConnection, eventJsonEnvelope, nullPointerException, component, of(streamErrorId));
 
-        verify(streamSessionLockManager).unlockStream(advisoryConnection, streamId);
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(transactionHandler).releaseContext(transactionContext);
         verify(newStreamStatusRepository, never()).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(transactionHandler, never()).commit(userTransaction);
     }
@@ -357,16 +335,18 @@ public class StreamEventProcessorTest {
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
 
-        final Connection advisoryConnection = mock(Connection.class);
+        final Connection physicalConnection = mock(Connection.class);
+        final TransactionContext transactionContext = mock(TransactionContext.class);
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
-        when(streamSessionLockManager.tryLockStream(advisoryConnection, streamId)).thenReturn(true);
+        when(transactionHandler.acquireConnection()).thenReturn(transactionContext);
+        when(transactionHandler.tryLockStream(transactionContext, streamId)).thenReturn(true);
+        when(transactionContext.physicalConnection()).thenReturn(physicalConnection);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(empty());
 
@@ -374,9 +354,8 @@ public class StreamEventProcessorTest {
 
         verify(transactionHandler).rollback(userTransaction);
         verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        verify(streamErrorStatusHandler).onStreamProcessingFailure(eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(currentPosition), eq(empty()));
-        verify(streamSessionLockManager).unlockStream(advisoryConnection, streamId);
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(streamErrorStatusHandler).recordStreamProcessingError(eq(physicalConnection), eq(eventJsonEnvelope), any(MissingPositionInStreamException.class), eq(component), eq(empty()));
+        verify(transactionHandler).releaseContext(transactionContext);
         verifyNoInteractions(componentEventProcessor);
     }
 
@@ -388,13 +367,11 @@ public class StreamEventProcessorTest {
         final String component = "some-component";
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
-        final Connection advisoryConnection = mock(Connection.class);
 
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final StreamProcessingException streamProcessingException = new StreamProcessingException(
                 "Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition));
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenThrow(streamProcessingException);
 
@@ -405,7 +382,8 @@ public class StreamEventProcessorTest {
         assertThat(thrown.getMessage(), is("Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition)));
 
         verify(transactionHandler).rollback(userTransaction);
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(transactionHandler).releaseContext(null);
+        verify(transactionHandler, never()).acquireConnection();
     }
 
     @Test
@@ -417,21 +395,20 @@ public class StreamEventProcessorTest {
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
 
-        final Connection advisoryConnection = mock(Connection.class);
+        final TransactionContext transactionContext = mock(TransactionContext.class);
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
-        when(streamSessionLockManager.tryLockStream(advisoryConnection, streamId)).thenReturn(false);
+        when(transactionHandler.acquireConnection()).thenReturn(transactionContext);
+        when(transactionHandler.tryLockStream(transactionContext, streamId)).thenReturn(false);
 
         assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_NOT_FOUND));
 
         verifyNoInteractions(componentEventProcessor);
-        verify(streamSessionLockManager).unlockStream(advisoryConnection, streamId);
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(transactionHandler).releaseContext(transactionContext);
     }
 
     @Test
@@ -445,25 +422,24 @@ public class StreamEventProcessorTest {
         final long latestKnownPosition = 6L;
         final long eventPositionInStream = 6L;
 
-        final Connection advisoryConnection = mock(Connection.class);
+        final TransactionContext transactionContext = mock(TransactionContext.class);
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, of(streamErrorId));
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
         final Metadata metadata = mock(Metadata.class);
         final PulledEvent pulledEvent = new PulledEvent(eventJsonEnvelope, lockedStreamStatus);
 
-        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
         when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
         when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenReturn(of(pulledEvent));
-        when(streamSessionLockManager.tryLockStream(advisoryConnection, streamId)).thenReturn(true);
+        when(transactionHandler.acquireConnection()).thenReturn(transactionContext);
+        when(transactionHandler.tryLockStream(transactionContext, streamId)).thenReturn(true);
         when(eventJsonEnvelope.metadata()).thenReturn(metadata);
         when(metadata.position()).thenReturn(of(eventPositionInStream));
 
         assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
-        verify(streamErrorRepository).markStreamAsFixed(streamErrorId, streamId, source, component);
-        verify(streamSessionLockManager).unlockStream(advisoryConnection, streamId);
-        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verify(streamErrorStatusHandler).onStreamProcessingSuccess(streamId, source, component, of(streamErrorId));
+        verify(streamErrorStatusHandler, never()).recordStreamProcessingError(any(), any(), any(), any(), any());
+        verify(transactionHandler).releaseContext(transactionContext);
         verify(transactionHandler, never()).rollback(userTransaction);
-        verifyNoInteractions(streamErrorStatusHandler);
     }
 }

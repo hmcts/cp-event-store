@@ -5,9 +5,14 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 ### Changed
+- Demand-driven worker scaling: StreamProcessingCoordinator spawns workers based on stream_status demand
 - Extract session-level advisory lock handling into StreamSessionLockManager
 
-# [17.105.0-M8] - 2026-03-02
+# [17.105.0-M10] - 2026-03-03
+### Fixed
+- Fix response deserialisation issue of EventResource REST API
+
+# [17.105.0-M9] - 2026-03-02
 ### Added
 - New rest endpoint `ResetStreamRetryCountResource` for resetting retry count for a (stuck) stream  `/internal/reset-stream-retry-count`
 ### Fixed

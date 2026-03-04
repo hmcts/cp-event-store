@@ -21,10 +21,8 @@ import static uk.gov.justice.services.event.sourcing.subscription.manager.EventP
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
-import uk.gov.justice.services.event.sourcing.subscription.error.StreamRetryStatusManager;
 import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
@@ -76,12 +74,6 @@ public class StreamEventProcessorTest {
     private StreamEventValidator streamEventValidator;
 
     @Mock
-    private StreamRetryStatusManager streamRetryStatusManager;
-
-    @Mock
-    private StreamErrorRepository streamErrorRepository;
-
-    @Mock
     private StreamSessionLockManager streamSessionLockManager;
 
     @InjectMocks
@@ -122,9 +114,9 @@ public class StreamEventProcessorTest {
                 streamEventValidator,
                 componentEventProcessor,
                 newStreamStatusRepository,
+                streamErrorStatusHandler,
                 micrometerMetricsCounters,
-                transactionHandler,
-                streamRetryStatusManager);
+                transactionHandler);
 
         inOrder.verify(micrometerMetricsCounters).incrementEventsProcessedCount(source, component);
         inOrder.verify(streamSessionLockManager).openLockConnection();
@@ -137,7 +129,7 @@ public class StreamEventProcessorTest {
         inOrder.verify(componentEventProcessor).process(eventJsonEnvelope, component);
         inOrder.verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         inOrder.verify(newStreamStatusRepository).setUpToDate(true, streamId, source, component);
-        inOrder.verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
+        inOrder.verify(streamErrorStatusHandler).onStreamProcessingSuccess(streamId, source, component, empty());
         inOrder.verify(micrometerMetricsCounters).incrementEventsSucceededCount(source, component);
         inOrder.verify(transactionHandler).commit(userTransaction);
 
@@ -145,7 +137,6 @@ public class StreamEventProcessorTest {
         verify(streamSessionLockManager).closeQuietly(advisoryConnection);
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
-        verifyNoInteractions(streamErrorStatusHandler);
     }
 
     @Test
@@ -175,9 +166,9 @@ public class StreamEventProcessorTest {
 
         verify(newStreamStatusRepository).updateCurrentPosition(streamId, source, component, eventPositionInStream);
         verify(newStreamStatusRepository, never()).setUpToDate(true, streamId, source, component);
+        verify(streamErrorStatusHandler).onStreamProcessingSuccess(streamId, source, component, empty());
         verify(transactionHandler, never()).rollback(userTransaction);
         verify(micrometerMetricsCounters, never()).incrementEventsFailedCount(source, component);
-        verifyNoInteractions(streamErrorStatusHandler);
         verify(streamSessionLockManager).unlockStream(advisoryConnection, streamId);
         verify(streamSessionLockManager).closeQuietly(advisoryConnection);
     }
@@ -435,7 +426,7 @@ public class StreamEventProcessorTest {
     }
 
     @Test
-    public void shouldMarkStreamAsFixedWhenStreamErrorIdPresentAndProcessingSucceeds() throws Exception {
+    public void shouldCallOnStreamProcessingSuccessWithStreamErrorIdWhenProcessingSucceeds() throws Exception {
 
         final UUID streamId = randomUUID();
         final UUID streamErrorId = randomUUID();
@@ -460,10 +451,9 @@ public class StreamEventProcessorTest {
 
         assertThat(streamEventProcessor.processSingleEvent(source, component), is(EVENT_FOUND));
 
-        verify(streamErrorRepository).markStreamAsFixed(streamErrorId, streamId, source, component);
+        verify(streamErrorStatusHandler).onStreamProcessingSuccess(streamId, source, component, of(streamErrorId));
         verify(streamSessionLockManager).unlockStream(advisoryConnection, streamId);
         verify(streamSessionLockManager).closeQuietly(advisoryConnection);
         verify(transactionHandler, never()).rollback(userTransaction);
-        verifyNoInteractions(streamErrorStatusHandler);
     }
 }

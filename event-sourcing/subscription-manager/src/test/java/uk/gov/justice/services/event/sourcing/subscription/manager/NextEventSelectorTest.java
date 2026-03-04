@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
+import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
@@ -57,7 +58,7 @@ public class NextEventSelectorTest {
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
         final JsonEnvelope eventJsonEnvelope = mock(JsonEnvelope.class);
 
-        when(nextEventReader.read(streamId, currentPosition)).thenReturn(of(eventJsonEnvelope));
+        when(nextEventReader.read(streamId, currentPosition, source)).thenReturn(of(eventJsonEnvelope));
 
         final Optional<PulledEvent> result = nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus));
 
@@ -89,7 +90,7 @@ public class NextEventSelectorTest {
 
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
 
-        when(nextEventReader.read(streamId, currentPosition)).thenReturn(empty());
+        when(nextEventReader.read(streamId, currentPosition, source)).thenReturn(empty());
 
         final StreamProcessingException exception = assertThrows(
                 StreamProcessingException.class,
@@ -111,7 +112,7 @@ public class NextEventSelectorTest {
 
         final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
 
-        when(nextEventReader.read(streamId, currentPosition)).thenThrow(eventFindingException);
+        when(nextEventReader.read(streamId, currentPosition, source)).thenThrow(eventFindingException);
 
         final StreamProcessingException exception = assertThrows(
                 StreamProcessingException.class,

@@ -3,6 +3,7 @@ package uk.gov.justice.services.event.sourcing.subscription.manager;
 import static java.lang.String.format;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
+import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventReader;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
@@ -51,7 +52,7 @@ public class NextEventSelector {
         final Long latestKnownPosition = lockedStreamStatus.latestKnownPosition();
 
         try {
-            eventJsonEnvelope = nextEventReader.read(streamId, position);
+            eventJsonEnvelope = nextEventReader.read(streamId, position, source);
         } catch (Exception e) {
             micrometerMetricsCounters.incrementEventsFailedCount(source, component);
             transactionHandler.rollback(userTransaction);

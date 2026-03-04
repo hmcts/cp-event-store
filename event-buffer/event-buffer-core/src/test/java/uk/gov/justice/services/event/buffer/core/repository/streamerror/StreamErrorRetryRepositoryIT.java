@@ -13,6 +13,7 @@ import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.TestJdbcDataSourceProvider;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -215,5 +216,57 @@ public class StreamErrorRetryRepositoryIT {
 
         assertThat(streamErrorRetries.size(), is(2));
         assertThat(streamErrorRetries, hasItems(streamErrorRetry_1, streamErrorRetry_3));
+    }
+
+    @Test
+    public void shouldSetRetriesToZero() throws Exception {
+
+        final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(CONTEXT_NAME);
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+        assertThat(streamErrorRetryRepository.findAll(), is(emptyList()));
+
+        final long retryCount = 23L;
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final ZonedDateTime now = new UtcClock().now();
+
+        streamErrorRetryRepository.upsert(new StreamErrorRetry(
+                streamId,
+                source,
+                component,
+                retryCount,
+                new UtcClock().now().plusMinutes(20)));
+
+        assertThat(streamErrorRetryRepository.getRetryCount(
+                streamId,
+                source,
+                component), is(retryCount));
+
+        assertThat(streamErrorRetryRepository.resetRetriesToZero(streamId, source, component, now), is(true));
+
+        final List<StreamErrorRetry> streamErrorRetries = streamErrorRetryRepository.findAll();
+
+        assertThat(streamErrorRetries.size(), is(1));
+        assertThat(streamErrorRetries.get(0).retryCount(), is(0L));
+        assertThat(streamErrorRetries.get(0).nextRetryTime(), is(now));
+    }
+
+    @Test
+    public void shouldDoNothingWhenResettingRetriesIfRowDoesNotExistInTable() throws Exception {
+
+        final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(CONTEXT_NAME);
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+        assertThat(streamErrorRetryRepository.findAll(), is(emptyList()));
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final ZonedDateTime now = new UtcClock().now();
+
+        assertThat(streamErrorRetryRepository.resetRetriesToZero(streamId, source, component, now), is(false));
     }
 }

@@ -5,5 +5,5 @@ import java.util.UUID;
 
 public interface EventSubscriptionDiscoverer {
 
-    DiscoveryResult discoverNewEvents(Optional<UUID> latestKnownEventId, int batchSize);
+    DiscoveryResult discoverNewEvents(Optional<UUID> latestKnownEventId, int batchSize, String source);
 }

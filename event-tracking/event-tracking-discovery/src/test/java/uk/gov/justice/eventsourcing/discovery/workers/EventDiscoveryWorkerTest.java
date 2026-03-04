@@ -81,7 +81,7 @@ public class EventDiscoveryWorkerTest {
         when(eventSubscriptionStatusRepository.findBy( source, component)).thenReturn(of(eventSubscriptionStatus));
         when(eventSubscriptionStatus.latestEventId()).thenReturn(of(latestKnownEventId));
         when(eventDiscoveryConfig.getBatchSize()).thenReturn(batchSize);
-        when(eventSubscriptionDiscoverer.discoverNewEvents(of(latestKnownEventId), batchSize)).thenReturn(new DiscoveryResult(asList(streamPosition_1, streamPosition_2), of(newLatestEventId)));
+        when(eventSubscriptionDiscoverer.discoverNewEvents(of(latestKnownEventId), batchSize, source)).thenReturn(new DiscoveryResult(asList(streamPosition_1, streamPosition_2), of(newLatestEventId)));
 
         when(streamPosition_1.streamId()).thenReturn(streamId_1);
         when(streamPosition_1.positionInStream()).thenReturn(positionInStream_1);

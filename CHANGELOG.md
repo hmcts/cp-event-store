@@ -4,14 +4,22 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
-
 ### Changed
 - Demand-driven worker scaling: StreamProcessingCoordinator spawns workers based on stream_status demand
 
+# [17.105.0-M10] - 2026-03-03
+### Fixed
+- Fix response deserialisation issue of EventResource REST API
+
+# [17.105.0-M9] - 2026-03-02
+### Added
+- New rest endpoint `ResetStreamRetryCountResource` for resetting retry count for a (stuck) stream  `/internal/reset-stream-retry-count`
 ### Fixed
 - Fix @Transactional ignored on EventSubscriptionDiscoveryBean (EJB requires @TransactionAttribute)
 - Fix @Transactional ignored on DefaultLinkedEventSource (non-CDI bean); extract TransactionalEventReader
 - Merge StreamRetryConfiguration into StreamProcessingConfig
+- Add Rest endpoints for event discovery and getting next event from event-store (for mireportdata)
+- Switch between transaction and REST implementation for EventDiscoverer and NextEventReader based on JNDI value `pull.mechanism.access.event.store.via.rest` 
 
 # [17.105.0-M8] - 2026-02-17
 ### Changed

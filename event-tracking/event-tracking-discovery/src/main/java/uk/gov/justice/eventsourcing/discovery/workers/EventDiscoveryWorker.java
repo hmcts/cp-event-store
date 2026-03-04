@@ -57,7 +57,7 @@ public class EventDiscoveryWorker {
             final Optional<UUID> latestKnownEventId = eventSubscriptionStatus.latestEventId();
             final int batchSize = eventDiscoveryConfig.getBatchSize();
 
-            final DiscoveryResult discoveryResult = eventSubscriptionDiscoverer.discoverNewEvents(latestKnownEventId, batchSize);
+            final DiscoveryResult discoveryResult = eventSubscriptionDiscoverer.discoverNewEvents(latestKnownEventId, batchSize, source);
 
             discoveryResult.streamPositions()
                     .forEach(streamPosition -> runDiscoveryFor(streamPosition, source, component));

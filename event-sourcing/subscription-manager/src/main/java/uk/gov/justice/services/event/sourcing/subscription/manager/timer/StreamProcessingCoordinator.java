@@ -87,14 +87,13 @@ public class StreamProcessingCoordinator {
         final SourceComponentPair pair = (SourceComponentPair) timer.getInfo();
 
         try {
-            final int demand = newStreamStatusRepository.countStreamsBehind(
+            final int demand = newStreamStatusRepository.countStreamsHavingEventsToProcess(
                     pair.source(),
                     pair.component(),
                     streamProcessingConfig.getMaxRetries(),
                     streamProcessingConfig.getMaxWorkers());
             final int active = workerActivityTracker.getActiveCount(pair);
-            final int target = Math.min(demand, streamProcessingConfig.getMaxWorkers());
-            final int deficit = target - active;
+            final int deficit = Math.min(demand, streamProcessingConfig.getMaxWorkers()) - active;
 
             if (deficit > 0) {
                 spawnWorkers(pair, deficit);

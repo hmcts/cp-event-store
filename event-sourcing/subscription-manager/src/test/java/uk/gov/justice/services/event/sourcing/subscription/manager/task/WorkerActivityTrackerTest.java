@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 public class WorkerActivityTrackerTest {
 
-    private final WorkerActivityTracker workerActivityTracker = new WorkerActivityTracker();
+    private final mnvnWorkerActivityTracker workerActivityTracker = new WorkerActivityTracker();
 
     @Test
     public void shouldReturnZeroActiveCountForNewPair() {
@@ -28,6 +28,15 @@ public class WorkerActivityTrackerTest {
 
         assertThat(workerActivityTracker.decrementActiveCount(pair), is(1));
         assertThat(workerActivityTracker.getActiveCount(pair), is(1));
+    }
+
+    @Test
+    public void shouldNotDecrementBelowZero() {
+        final SourceComponentPair pair = new SourceComponentPair("source", "component");
+
+        assertThat(workerActivityTracker.decrementActiveCount(pair), is(0));
+        assertThat(workerActivityTracker.decrementActiveCount(pair), is(0));
+        assertThat(workerActivityTracker.getActiveCount(pair), is(0));
     }
 
     @Test

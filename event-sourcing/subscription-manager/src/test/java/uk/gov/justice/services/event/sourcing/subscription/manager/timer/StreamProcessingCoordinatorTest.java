@@ -117,7 +117,7 @@ public class StreamProcessingCoordinatorTest {
         when(timer.getInfo()).thenReturn(pair);
         when(streamProcessingConfig.getMaxRetries()).thenReturn(5);
         when(streamProcessingConfig.getMaxWorkers()).thenReturn(15);
-        when(newStreamStatusRepository.countStreamsBehind("source", "component", 5, 15)).thenReturn(5);
+        when(newStreamStatusRepository.countStreamsHavingEventsToProcess("source", "component", 5, 15)).thenReturn(5);
         when(workerActivityTracker.getActiveCount(pair)).thenReturn(0);
         when(streamProcessingWorkerFactory.createWorkerTask(pair)).thenReturn(task);
 
@@ -135,7 +135,7 @@ public class StreamProcessingCoordinatorTest {
         when(timer.getInfo()).thenReturn(pair);
         when(streamProcessingConfig.getMaxRetries()).thenReturn(5);
         when(streamProcessingConfig.getMaxWorkers()).thenReturn(15);
-        when(newStreamStatusRepository.countStreamsBehind("source", "component", 5, 15)).thenReturn(10);
+        when(newStreamStatusRepository.countStreamsHavingEventsToProcess("source", "component", 5, 15)).thenReturn(10);
         when(workerActivityTracker.getActiveCount(pair)).thenReturn(3);
         when(streamProcessingWorkerFactory.createWorkerTask(pair)).thenReturn(task);
 
@@ -153,7 +153,7 @@ public class StreamProcessingCoordinatorTest {
         when(timer.getInfo()).thenReturn(pair);
         when(streamProcessingConfig.getMaxRetries()).thenReturn(5);
         when(streamProcessingConfig.getMaxWorkers()).thenReturn(15);
-        when(newStreamStatusRepository.countStreamsBehind("source", "component", 5, 15)).thenReturn(100);
+        when(newStreamStatusRepository.countStreamsHavingEventsToProcess("source", "component", 5, 15)).thenReturn(100);
         when(workerActivityTracker.getActiveCount(pair)).thenReturn(0);
         when(streamProcessingWorkerFactory.createWorkerTask(pair)).thenReturn(task);
 
@@ -170,7 +170,7 @@ public class StreamProcessingCoordinatorTest {
         when(timer.getInfo()).thenReturn(pair);
         when(streamProcessingConfig.getMaxRetries()).thenReturn(5);
         when(streamProcessingConfig.getMaxWorkers()).thenReturn(15);
-        when(newStreamStatusRepository.countStreamsBehind("source", "component", 5, 15)).thenReturn(0);
+        when(newStreamStatusRepository.countStreamsHavingEventsToProcess("source", "component", 5, 15)).thenReturn(0);
         when(workerActivityTracker.getActiveCount(pair)).thenReturn(0);
 
         streamProcessingCoordinator.coordinateWorkers(timer);
@@ -186,7 +186,7 @@ public class StreamProcessingCoordinatorTest {
         when(timer.getInfo()).thenReturn(pair);
         when(streamProcessingConfig.getMaxRetries()).thenReturn(5);
         when(streamProcessingConfig.getMaxWorkers()).thenReturn(15);
-        when(newStreamStatusRepository.countStreamsBehind("source", "component", 5, 15)).thenReturn(5);
+        when(newStreamStatusRepository.countStreamsHavingEventsToProcess("source", "component", 5, 15)).thenReturn(5);
         when(workerActivityTracker.getActiveCount(pair)).thenReturn(5);
 
         streamProcessingCoordinator.coordinateWorkers(timer);
@@ -202,7 +202,7 @@ public class StreamProcessingCoordinatorTest {
         when(timer.getInfo()).thenReturn(pair);
         when(streamProcessingConfig.getMaxRetries()).thenReturn(5);
         when(streamProcessingConfig.getMaxWorkers()).thenReturn(15);
-        when(newStreamStatusRepository.countStreamsBehind("source", "component", 5, 15)).thenReturn(3);
+        when(newStreamStatusRepository.countStreamsHavingEventsToProcess("source", "component", 5, 15)).thenReturn(3);
         when(workerActivityTracker.getActiveCount(pair)).thenReturn(5);
 
         streamProcessingCoordinator.coordinateWorkers(timer);
@@ -219,7 +219,7 @@ public class StreamProcessingCoordinatorTest {
         when(timer.getInfo()).thenReturn(pair);
         when(streamProcessingConfig.getMaxRetries()).thenReturn(5);
         when(streamProcessingConfig.getMaxWorkers()).thenReturn(15);
-        when(newStreamStatusRepository.countStreamsBehind("source", "component", 5, 15)).thenThrow(exception);
+        when(newStreamStatusRepository.countStreamsHavingEventsToProcess("source", "component", 5, 15)).thenThrow(exception);
 
         streamProcessingCoordinator.coordinateWorkers(timer);
 

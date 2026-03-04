@@ -21,6 +21,9 @@ public class WorkerActivityTracker {
     }
 
     public int decrementActiveCount(final SourceComponentPair pair) {
-        return activeCountMap.computeIfAbsent(pair, k -> new AtomicInteger(0)).decrementAndGet();
+        return activeCountMap.compute(pair, (k, current) -> {
+            final int currentValue = (current == null) ? 0 : current.get();
+            return new AtomicInteger(Math.max(0, currentValue - 1));
+        }).get();
     }
 }

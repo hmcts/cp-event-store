@@ -144,7 +144,7 @@ public class NewStreamStatusRepository {
             AND source = ?
             AND component = ?
             """;
-    private static final String COUNT_STREAMS_BEHIND_SQL = """
+    private static final String COUNT_STREAMS_HAVING_EVENTS_TO_PROCESS_SQL = """
             SELECT COUNT(*) FROM (
                 SELECT 1
                 FROM stream_status ss
@@ -422,10 +422,10 @@ public class NewStreamStatusRepository {
         }
     }
 
-    public int countStreamsBehind(final String source, final String component, final int maxRetries, final int maxWorkers) {
+    public int countStreamsHavingEventsToProcess(final String source, final String component, final int maxRetries, final int maxWorkers) {
 
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(COUNT_STREAMS_BEHIND_SQL)) {
+             final PreparedStatement preparedStatement = connection.prepareStatement(COUNT_STREAMS_HAVING_EVENTS_TO_PROCESS_SQL)) {
 
             preparedStatement.setString(1, source);
             preparedStatement.setString(2, component);

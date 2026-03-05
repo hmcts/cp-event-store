@@ -145,7 +145,7 @@ public class StreamProcessingCoordinatorTest {
     }
 
     @Test
-    public void shouldCapAtMaxWorkers() {
+    public void shouldSpawnUpToMaxWorkersWhenDemandIsAtLimit() {
         final SourceComponentPair pair = new SourceComponentPair("source", "component");
         final Timer timer = mock(Timer.class);
         final StreamProcessingWorkerTask task = mock(StreamProcessingWorkerTask.class);
@@ -153,7 +153,7 @@ public class StreamProcessingCoordinatorTest {
         when(timer.getInfo()).thenReturn(pair);
         when(streamProcessingConfig.getMaxRetries()).thenReturn(5);
         when(streamProcessingConfig.getMaxWorkers()).thenReturn(15);
-        when(newStreamStatusRepository.countStreamsHavingEventsToProcess("source", "component", 5, 15)).thenReturn(100);
+        when(newStreamStatusRepository.countStreamsHavingEventsToProcess("source", "component", 5, 15)).thenReturn(15);
         when(workerActivityTracker.getActiveCount(pair)).thenReturn(0);
         when(streamProcessingWorkerFactory.createWorkerTask(pair)).thenReturn(task);
 

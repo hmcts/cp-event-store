@@ -93,7 +93,7 @@ public class StreamProcessingCoordinator {
                     streamProcessingConfig.getMaxRetries(),
                     streamProcessingConfig.getMaxWorkers());
             final int active = workerActivityTracker.getActiveCount(pair);
-            final int deficit = Math.min(demand, streamProcessingConfig.getMaxWorkers()) - active;
+            final int deficit = demand - active;
 
             if (deficit > 0) {
                 spawnWorkers(pair, deficit);

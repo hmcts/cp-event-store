@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.105.0-M11] - 2026-03-05
 ### Changed
 - Demand-driven worker scaling: StreamProcessingCoordinator spawns workers based on stream_status demand
 - Extract session-level advisory lock handling into StreamSessionLockManager, see [stream-processing-advisory-locks-summary](doc/stream-processing-advisory-locks-summary.md) for more details

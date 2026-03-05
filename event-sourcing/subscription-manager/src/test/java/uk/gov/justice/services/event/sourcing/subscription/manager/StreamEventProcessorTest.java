@@ -400,6 +400,58 @@ public class StreamEventProcessorTest {
     }
 
     @Test
+    public void shouldWrapGenericExceptionInStreamProcessingExceptionWhenSelectEventFails() {
+
+        final String source = "some-source";
+        final String component = "some-component";
+        final Connection advisoryConnection = mock(Connection.class);
+        final RuntimeException genericException = new RuntimeException("Database connection lost");
+
+        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
+        when(streamSelectorManager.selectStreamToProcess(source, component)).thenThrow(genericException);
+
+        final StreamProcessingException thrown = org.junit.jupiter.api.Assertions.assertThrows(
+                StreamProcessingException.class,
+                () -> streamEventProcessor.processSingleEvent(source, component));
+
+        assertThat(thrown.getMessage(), is("Failed to select event for processing: source 'some-source', component 'some-component'"));
+        assertThat(thrown.getCause(), is(genericException));
+
+        verify(transactionHandler).rollback(userTransaction);
+        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verifyNoInteractions(componentEventProcessor);
+    }
+
+    @Test
+    public void shouldWrapGenericExceptionFromNextEventSelectorInStreamProcessingException() {
+
+        final UUID streamId = randomUUID();
+        final String source = "some-source";
+        final String component = "some-component";
+        final long currentPosition = 5L;
+        final long latestKnownPosition = 10L;
+        final Connection advisoryConnection = mock(Connection.class);
+
+        final LockedStreamStatus lockedStreamStatus = new LockedStreamStatus(streamId, currentPosition, latestKnownPosition, empty());
+        final IllegalStateException genericException = new IllegalStateException("Unexpected state");
+
+        when(streamSessionLockManager.openLockConnection()).thenReturn(advisoryConnection);
+        when(streamSelectorManager.selectStreamToProcess(source, component)).thenReturn(of(lockedStreamStatus));
+        when(nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus))).thenThrow(genericException);
+
+        final StreamProcessingException thrown = org.junit.jupiter.api.Assertions.assertThrows(
+                StreamProcessingException.class,
+                () -> streamEventProcessor.processSingleEvent(source, component));
+
+        assertThat(thrown.getMessage(), is("Failed to select event for processing: source 'some-source', component 'some-component'"));
+        assertThat(thrown.getCause(), is(genericException));
+
+        verify(transactionHandler).rollback(userTransaction);
+        verify(streamSessionLockManager).closeQuietly(advisoryConnection);
+        verifyNoInteractions(componentEventProcessor);
+    }
+
+    @Test
     public void shouldReturnEventNotFoundWhenAdvisoryLockCannotBeAcquired() throws Exception {
 
         final UUID streamId = randomUUID();

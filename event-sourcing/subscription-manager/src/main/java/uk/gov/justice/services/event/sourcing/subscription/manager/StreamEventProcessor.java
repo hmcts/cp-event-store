@@ -9,6 +9,7 @@ import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedS
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.event.sourcing.subscription.error.MissingPositionInStreamException;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
+import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
@@ -96,9 +97,13 @@ public class StreamEventProcessor {
         try {
             final Optional<LockedStreamStatus> lockedStreamStatusOpt = streamSelectorManager.selectStreamToProcess(source, component);
             return nextEventSelector.selectNextEvent(source, component, lockedStreamStatusOpt);
-        } catch (final Exception e) {
+        } catch (final StreamProcessingException e) {
             transactionHandler.rollback(userTransaction);
             throw e;
+        } catch (final Exception e) {
+            transactionHandler.rollback(userTransaction);
+            throw new StreamProcessingException(
+                    format("Failed to select event for processing: source '%s', component '%s'", source, component), e);
         }
     }
 

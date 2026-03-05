@@ -383,4 +383,33 @@ public class StreamErrorStatusHandlerTest {
         verify(streamErrorRepository, never()).markSameErrorHappened(existingErrorId, streamId, source, component);
         verifyNoInteractions(micrometerMetricsCounters);
     }
+
+    @Test
+    public void shouldRemoveRetryStatusAndMarkStreamAsFixedOnSuccess() {
+
+        final UUID streamId = randomUUID();
+        final UUID streamErrorId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+
+        streamErrorStatusHandler.onStreamProcessingSuccess(streamId, source, component, Optional.of(streamErrorId));
+
+        final InOrder inOrder = inOrder(streamRetryStatusManager, streamErrorRepository);
+
+        inOrder.verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
+        inOrder.verify(streamErrorRepository).markStreamAsFixed(streamErrorId, streamId, source, component);
+    }
+
+    @Test
+    public void shouldRemoveRetryStatusButNotMarkFixedWhenNoStreamErrorId() {
+
+        final UUID streamId = randomUUID();
+        final String source = "SOME_SOURCE";
+        final String component = "SOME_COMPONENT";
+
+        streamErrorStatusHandler.onStreamProcessingSuccess(streamId, source, component, Optional.empty());
+
+        verify(streamRetryStatusManager).removeStreamRetryStatus(streamId, source, component);
+        verifyNoInteractions(streamErrorRepository);
+    }
 }

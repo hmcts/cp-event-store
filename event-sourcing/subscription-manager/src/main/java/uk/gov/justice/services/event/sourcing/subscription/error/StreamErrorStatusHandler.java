@@ -85,6 +85,11 @@ public class StreamErrorStatusHandler {
         }
     }
 
+    public void onStreamProcessingSuccess(final UUID streamId, final String source, final String component, final Optional<UUID> streamErrorId) {
+        streamRetryStatusManager.removeStreamRetryStatus(streamId, source, component);
+        streamErrorId.ifPresent(errorId -> streamErrorRepository.markStreamAsFixed(errorId, streamId, source, component));
+    }
+
     private boolean isErrorSameAsBefore(final StreamError newStreamError, final StreamUpdateContext streamUpdateContext) {
         return Optional.of(streamUpdateContext)
                 .flatMap(StreamUpdateContext::existingStreamErrorDetails)

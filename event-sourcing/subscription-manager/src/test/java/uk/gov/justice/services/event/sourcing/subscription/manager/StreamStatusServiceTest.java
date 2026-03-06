@@ -31,7 +31,6 @@ import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCoun
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-import javax.transaction.UserTransaction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,9 +54,6 @@ public class StreamStatusServiceTest {
 
     @Mock
     private LatestKnownPositionAndIsUpToDateUpdater latestKnownPositionAndIsUpToDateUpdater;
-
-    @Mock
-    private UserTransaction userTransaction;
 
     @Mock
     private TransactionHandler transactionHandler;
@@ -110,7 +106,7 @@ public class StreamStatusServiceTest {
 
         final InOrder inOrder = inOrder(transactionHandler, newStreamStatusRepository, latestKnownPositionAndIsUpToDateUpdater);
 
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).insertIfNotExists(
                 streamId,
                 source,
@@ -127,7 +123,7 @@ public class StreamStatusServiceTest {
                 streamId,
                 source,
                 componentName);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
         verify(newEventBufferManager, never()).addToBuffer(incomingJsonEnvelope, componentName);
         verifyNoInteractions(micrometerMetricsCounters);
@@ -170,7 +166,7 @@ public class StreamStatusServiceTest {
                 latestKnownPositionAndIsUpToDateUpdater,
                 newEventBufferManager);
 
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).insertIfNotExists(
                 streamId,
                 source,
@@ -188,7 +184,7 @@ public class StreamStatusServiceTest {
                 source,
                 componentName);
         inOrder.verify(newEventBufferManager).addToBuffer(incomingJsonEnvelope, componentName);
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
         verifyNoInteractions(micrometerMetricsCounters);
     }
@@ -235,7 +231,7 @@ public class StreamStatusServiceTest {
                 logger,
                 newEventBufferManager);
 
-        inOrder.verify(transactionHandler).begin(userTransaction);
+        inOrder.verify(transactionHandler).begin();
         inOrder.verify(newStreamStatusRepository).insertIfNotExists(
                 streamId,
                 source,
@@ -254,7 +250,7 @@ public class StreamStatusServiceTest {
                 component);
         inOrder.verify(micrometerMetricsCounters).incrementEventsIgnoredCount(source, component);
         inOrder.verify(logger).info("Duplicate incoming event detected. Event already processed; ignoring. eventId: '0fac71b5-3e61-4ec1-b1d5-e8d85b1e0100', streamId: '1bc83024-d11a-4177-8892-1592b3741cc0', incomingEventPositionInStream '23' currentStreamPosition: '99'");
-        inOrder.verify(transactionHandler).commit(userTransaction);
+        inOrder.verify(transactionHandler).commit();
 
         verify(newEventBufferManager, never()).addToBuffer(incomingJsonEnvelope, component);
     }
@@ -296,10 +292,10 @@ public class StreamStatusServiceTest {
 
         final InOrder inOrder = inOrder(transactionHandler);
 
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(transactionHandler).rollback(userTransaction);
+        inOrder.verify(transactionHandler).begin();
+        inOrder.verify(transactionHandler).rollback();
 
-        verify(transactionHandler, never()).commit(userTransaction);
+        verify(transactionHandler, never()).commit();
         verifyNoInteractions(micrometerMetricsCounters);
     }
 
@@ -341,8 +337,8 @@ public class StreamStatusServiceTest {
 
         final InOrder inOrder = inOrder(transactionHandler, newStreamStatusRepository, latestKnownPositionAndIsUpToDateUpdater);
 
-        inOrder.verify(transactionHandler).begin(userTransaction);
-        inOrder.verify(transactionHandler).rollback(userTransaction);
+        inOrder.verify(transactionHandler).begin();
+        inOrder.verify(transactionHandler).rollback();
 
         verifyNoInteractions(micrometerMetricsCounters);
     }

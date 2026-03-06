@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Objects;
 import java.util.UUID;
 
 import javax.inject.Inject;
@@ -16,8 +17,8 @@ import org.slf4j.Logger;
 
 public class StreamSessionLockManager {
 
-    static final String TRY_SESSION_ADVISORY_LOCK_SQL = "SELECT pg_try_advisory_lock(?)";
-    static final String SESSION_ADVISORY_UNLOCK_SQL = "SELECT pg_advisory_unlock(?)";
+    static final String TRY_SESSION_ADVISORY_LOCK_SQL = "SELECT pg_try_advisory_lock(?, ?)";
+    static final String SESSION_ADVISORY_UNLOCK_SQL = "SELECT pg_advisory_unlock(?, ?)";
 
     @Inject
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
@@ -25,50 +26,104 @@ public class StreamSessionLockManager {
     @Inject
     private Logger logger;
 
-    public Connection openLockConnection() {
+    public StreamSessionLock lockStream(final UUID streamId, final String source, final String component) {
+        final Connection connection = getAdvisoryConnection();
+
         try {
-            final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
-            connection.setAutoCommit(true);
-            return connection;
-        } catch (final SQLException e) {
-            throw new StreamSessionLockException("Failed to open advisory lock connection", e);
+            final int sourceComponentKey = Objects.hash(source, component);
+            final int streamKey = (int) streamId.getLeastSignificantBits();
+            final boolean acquired = tryLockStream(connection, sourceComponentKey, streamKey);
+            if (!acquired) {
+                logger.warn("Advisory lock contention detected for stream '{}', source '{}', component '{}'", streamId, source, component);
+            }
+            return new StreamSessionLock(connection, sourceComponentKey, streamKey, streamId, acquired);
+        } catch (final Exception e) {
+            closeQuietly(connection);
+            throw e;
         }
     }
 
-    public boolean tryLockStream(final Connection connection, final UUID streamId) {
-        final long lockKey = streamId.getLeastSignificantBits();
+    private Connection getAdvisoryConnection() {
+        try {
+            return viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
+        } catch (final SQLException e) {
+            throw new StreamSessionLockException("Failed to get advisory lock connection", e);
+        }
+    }
 
+    private boolean tryLockStream(final Connection connection, final int sourceComponentKey, final int streamKey) {
         try (final PreparedStatement preparedStatement = connection.prepareStatement(TRY_SESSION_ADVISORY_LOCK_SQL)) {
-            preparedStatement.setLong(1, lockKey);
+            preparedStatement.setInt(1, sourceComponentKey);
+            preparedStatement.setInt(2, streamKey);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     return resultSet.getBoolean(1);
                 }
-                throw new StreamSessionLockException(format("No result returned when acquiring advisory lock for stream '%s'", streamId));
+                throw new StreamSessionLockException(format("No result returned when acquiring advisory lock for sourceComponentKey %d, streamKey %d", sourceComponentKey, streamKey));
             }
         } catch (final SQLException e) {
-            throw new StreamSessionLockException(format("Failed to acquire advisory lock for stream '%s'", streamId), e);
+            throw new StreamSessionLockException(format("Failed to acquire advisory lock for sourceComponentKey %d, streamKey %d", sourceComponentKey, streamKey), e);
         }
     }
 
-    public void unlockStream(final Connection connection, final UUID streamId) {
-        final long lockKey = streamId.getLeastSignificantBits();
-
+    private void unlockStream(final Connection connection, final int sourceComponentKey, final int streamKey, final UUID streamId) {
         try (final PreparedStatement preparedStatement = connection.prepareStatement(SESSION_ADVISORY_UNLOCK_SQL)) {
-            preparedStatement.setLong(1, lockKey);
-            preparedStatement.execute();
+            preparedStatement.setInt(1, sourceComponentKey);
+            preparedStatement.setInt(2, streamKey);
+
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    if (!resultSet.getBoolean(1)) {
+                        logger.warn("Advisory unlock returned false for stream '{}' — lock was not held", streamId);
+                    }
+                } else {
+                    logger.warn("No result returned when releasing advisory lock for stream '{}'", streamId);
+                }
+            }
         } catch (final SQLException e) {
             logger.warn("Failed to release advisory lock for stream '{}': {}", streamId, e.getMessage());
         }
     }
 
-    public void closeQuietly(final Connection connection) {
+    private void closeQuietly(final Connection connection) {
         if (connection != null) {
             try {
                 connection.close();
             } catch (final SQLException e) {
                 logger.warn("Failed to close advisory lock connection: {}", e.getMessage());
+            }
+        }
+    }
+
+    public class StreamSessionLock implements AutoCloseable {
+
+        private final Connection connection;
+        private final int sourceComponentKey;
+        private final int streamKey;
+        private final UUID streamId;
+        private final boolean acquired;
+
+        StreamSessionLock(final Connection connection, final int sourceComponentKey, final int streamKey, final UUID streamId, final boolean acquired) {
+            this.connection = connection;
+            this.sourceComponentKey = sourceComponentKey;
+            this.streamKey = streamKey;
+            this.streamId = streamId;
+            this.acquired = acquired;
+        }
+
+        public boolean isAcquired() {
+            return acquired;
+        }
+
+        @Override
+        public void close() {
+            try {
+                if (acquired) {
+                    unlockStream(connection, sourceComponentKey, streamKey, streamId);
+                }
+            } finally {
+                closeQuietly(connection);
             }
         }
     }

@@ -1,14 +1,11 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
 import static javax.transaction.Status.STATUS_ACTIVE;
-import static javax.transaction.Status.STATUS_MARKED_ROLLBACK;
 import static javax.transaction.Status.STATUS_NO_TRANSACTION;
-import static javax.transaction.Status.STATUS_ROLLING_BACK;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -34,6 +31,9 @@ import org.slf4j.Logger;
 public class TransactionHandlerTest {
 
     @Mock
+    private UserTransaction userTransaction;
+
+    @Mock
     private Logger logger;
 
     @InjectMocks
@@ -42,9 +42,7 @@ public class TransactionHandlerTest {
     @Test
     public void shouldBeginUserTransaction() throws Exception {
 
-        final UserTransaction userTransaction = mock(UserTransaction.class);
-
-        transactionHandler.begin(userTransaction);
+        transactionHandler.begin();
 
         verify(userTransaction).begin();
     }
@@ -53,13 +51,12 @@ public class TransactionHandlerTest {
     public void shouldThrowTransactionExceptionIfBeginUserTransactionThrowsSystemException() throws Exception {
 
         final SystemException systemException = new SystemException();
-        final UserTransaction userTransaction = mock(UserTransaction.class);
 
         doThrow(systemException).when(userTransaction).begin();
 
         final TransactionException transactionException = assertThrows(
                 TransactionException.class,
-                () -> transactionHandler.begin(userTransaction));
+                () -> transactionHandler.begin());
 
         assertThat(transactionException.getCause(), is(systemException));
         assertThat(transactionException.getMessage(), is("Failed to begin UserTransaction"));
@@ -69,13 +66,12 @@ public class TransactionHandlerTest {
     public void shouldThrowTransactionExceptionIfBeginUserTransactionThrowsNotSupportedException() throws Exception {
 
         final NotSupportedException notSupportedException = new NotSupportedException();
-        final UserTransaction userTransaction = mock(UserTransaction.class);
 
         doThrow(notSupportedException).when(userTransaction).begin();
 
         final TransactionException transactionException = assertThrows(
                 TransactionException.class,
-                () -> transactionHandler.begin(userTransaction));
+                () -> transactionHandler.begin());
 
         assertThat(transactionException.getCause(), is(notSupportedException));
         assertThat(transactionException.getMessage(), is("Failed to begin UserTransaction"));
@@ -84,9 +80,7 @@ public class TransactionHandlerTest {
     @Test
     public void shouldCommitUserTransaction() throws Exception {
 
-        final UserTransaction userTransaction = mock(UserTransaction.class);
-
-        transactionHandler.commit(userTransaction);
+        transactionHandler.commit();
 
         verify(userTransaction).commit();
     }
@@ -95,13 +89,12 @@ public class TransactionHandlerTest {
     public void shouldThrowTransactionExceptionIfCommitUserTransactionThrowsSystemException() throws Exception {
 
         final SystemException systemException = new SystemException();
-        final UserTransaction userTransaction = mock(UserTransaction.class);
 
         doThrow(systemException).when(userTransaction).commit();
 
         final TransactionException transactionException = assertThrows(
                 TransactionException.class,
-                () -> transactionHandler.commit(userTransaction));
+                () -> transactionHandler.commit());
 
         assertThat(transactionException.getCause(), is(systemException));
         assertThat(transactionException.getMessage(), is("Failed to commit UserTransaction"));
@@ -111,13 +104,12 @@ public class TransactionHandlerTest {
     public void shouldThrowTransactionExceptionIfCommitUserTransactionThrowsRollbackException() throws Exception {
 
         final RollbackException rollbackException = new RollbackException();
-        final UserTransaction userTransaction = mock(UserTransaction.class);
 
         doThrow(rollbackException).when(userTransaction).commit();
 
         final TransactionException transactionException = assertThrows(
                 TransactionException.class,
-                () -> transactionHandler.commit(userTransaction));
+                () -> transactionHandler.commit());
 
         assertThat(transactionException.getCause(), is(rollbackException));
         assertThat(transactionException.getMessage(), is("Failed to commit UserTransaction"));
@@ -127,13 +119,12 @@ public class TransactionHandlerTest {
     public void shouldThrowTransactionExceptionIfCommitUserTransactionThrowsHeuristicMixedException() throws Exception {
 
         final HeuristicMixedException heuristicMixedException = new HeuristicMixedException();
-        final UserTransaction userTransaction = mock(UserTransaction.class);
 
         doThrow(heuristicMixedException).when(userTransaction).commit();
 
         final TransactionException transactionException = assertThrows(
                 TransactionException.class,
-                () -> transactionHandler.commit(userTransaction));
+                () -> transactionHandler.commit());
 
         assertThat(transactionException.getCause(), is(heuristicMixedException));
         assertThat(transactionException.getMessage(), is("Failed to commit UserTransaction"));
@@ -143,13 +134,12 @@ public class TransactionHandlerTest {
     public void shouldThrowTransactionExceptionIfCommitUserTransactionThrowsHeuristicRollbackException() throws Exception {
 
         final HeuristicRollbackException heuristicRollbackException = new HeuristicRollbackException();
-        final UserTransaction userTransaction = mock(UserTransaction.class);
 
         doThrow(heuristicRollbackException).when(userTransaction).commit();
 
         final TransactionException transactionException = assertThrows(
                 TransactionException.class,
-                () -> transactionHandler.commit(userTransaction));
+                () -> transactionHandler.commit());
 
         assertThat(transactionException.getCause(), is(heuristicRollbackException));
         assertThat(transactionException.getMessage(), is("Failed to commit UserTransaction"));
@@ -158,11 +148,9 @@ public class TransactionHandlerTest {
     @Test
     public void shouldRollBackUserTransaction() throws Exception {
 
-        final UserTransaction userTransaction = mock(UserTransaction.class);
-
         when(userTransaction.getStatus()).thenReturn(STATUS_ACTIVE);
 
-        transactionHandler.rollback(userTransaction);
+        transactionHandler.rollback();
 
         verify(userTransaction).rollback();
     }
@@ -170,11 +158,9 @@ public class TransactionHandlerTest {
     @Test
     public void shouldNotRollBackTransactionIfNoTransactionActive() throws Exception {
 
-        final UserTransaction userTransaction = mock(UserTransaction.class);
-
         when(userTransaction.getStatus()).thenReturn(STATUS_NO_TRANSACTION);
 
-        transactionHandler.rollback(userTransaction);
+        transactionHandler.rollback();
 
         verify(userTransaction, never()).rollback();
         verifyNoInteractions(logger);
@@ -185,11 +171,9 @@ public class TransactionHandlerTest {
 
         final SystemException systemException = new SystemException();
 
-        final UserTransaction userTransaction = mock(UserTransaction.class);
-
         doThrow(systemException).when(userTransaction).rollback();
 
-        transactionHandler.rollback(userTransaction);
+        transactionHandler.rollback();
 
         verify(logger).error("Failed to rollback transaction, rollback maybe incomplete", systemException);
     }
@@ -199,11 +183,9 @@ public class TransactionHandlerTest {
 
         final IllegalStateException illegalStateException = new IllegalStateException();
 
-        final UserTransaction userTransaction = mock(UserTransaction.class);
-
         doThrow(illegalStateException).when(userTransaction).rollback();
 
-        transactionHandler.rollback(userTransaction);
+        transactionHandler.rollback();
 
         verify(logger).error("Failed to rollback transaction, rollback maybe incomplete", illegalStateException);
     }

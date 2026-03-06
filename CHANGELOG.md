@@ -4,6 +4,12 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Changed
+- StreamEventProcessor: simplified with try-with-resources advisory lock; always returns `EVENT_FOUND` when event selected (including on lock contention)
+- TransactionHandler: inject `UserTransaction` internally instead of receiving as parameter
+- SubscriptionEventProcessor: updated for `TransactionHandler` API change
+### Removed
+- Remove `OldestStreamSelector`, `StreamSelector` interface, `StreamSelectorManager` — stream selection inlined into `StreamEventProcessor.selectEvent()`
 
 # [17.105.0-M11] - 2026-03-05
 ### Changed

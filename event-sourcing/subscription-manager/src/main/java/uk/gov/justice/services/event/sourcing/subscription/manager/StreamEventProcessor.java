@@ -11,17 +11,16 @@ import uk.gov.justice.services.event.sourcing.subscription.error.MissingPosition
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamErrorStatusHandler;
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
+import uk.gov.justice.services.event.sourcing.subscription.manager.timer.StreamProcessingConfig;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
-import java.sql.Connection;
 import java.util.Optional;
 import java.util.UUID;
 
 import javax.inject.Inject;
 import javax.transaction.Transactional;
-import javax.transaction.UserTransaction;
 
 public class StreamEventProcessor {
 
@@ -32,16 +31,13 @@ public class StreamEventProcessor {
     private StreamErrorStatusHandler streamErrorStatusHandler;
 
     @Inject
-    private StreamSelectorManager streamSelectorManager;
-
-    @Inject
     private NextEventSelector nextEventSelector;
 
     @Inject
     private NewStreamStatusRepository newStreamStatusRepository;
 
     @Inject
-    private UserTransaction userTransaction;
+    private StreamProcessingConfig streamProcessingConfig;
 
     @Inject
     private TransactionHandler transactionHandler;
@@ -62,78 +58,67 @@ public class StreamEventProcessor {
     public EventProcessingStatus processSingleEvent(final String source, final String component) {
         micrometerMetricsCounters.incrementEventsProcessedCount(source, component);
 
-        final Connection advisoryLockConnection = streamSessionLockManager.openLockConnection();
-        UUID lockedStreamId = null;
+        transactionHandler.begin();
 
-        try {
-            transactionHandler.begin(userTransaction);
+        final Optional<PulledEvent> pulledEvent = selectEvent(source, component);
 
-            final Optional<PulledEvent> pulledEvent = selectEvent(source, component);
+        if (pulledEvent.isEmpty()) {
+            transactionHandler.rollback();
+            return EVENT_NOT_FOUND;
+        }
 
-            if (pulledEvent.isEmpty()) {
-                commitWithFallBackToRollback();
-                return EVENT_NOT_FOUND;
+        final UUID streamId = pulledEvent.get().lockedStreamStatus().streamId();
+
+        try (final StreamSessionLockManager.StreamSessionLock lock = streamSessionLockManager.lockStream(streamId, source, component)) {
+            if (lock.isAcquired()) {
+                processEventFound(pulledEvent.get(), source, component);
+            }else {
+                transactionHandler.rollback();
             }
-
-            final LockedStreamStatus lockedStreamStatus = pulledEvent.get().lockedStreamStatus();
-            lockedStreamId = lockedStreamStatus.streamId();
-
-            if (!streamSessionLockManager.tryLockStream(advisoryLockConnection, lockedStreamId)) {
-                commitWithFallBackToRollback();
-                return EVENT_NOT_FOUND;
-            }
-
-            processEvent(pulledEvent.get(), source, component);
             return EVENT_FOUND;
-        } finally {
-            if (lockedStreamId != null) {
-                streamSessionLockManager.unlockStream(advisoryLockConnection, lockedStreamId);
-            }
-            streamSessionLockManager.closeQuietly(advisoryLockConnection);
         }
     }
 
-    private Optional<PulledEvent> selectEvent(final String source, final String component) {
-        try {
-            final Optional<LockedStreamStatus> lockedStreamStatusOpt = streamSelectorManager.selectStreamToProcess(source, component);
-            return nextEventSelector.selectNextEvent(source, component, lockedStreamStatusOpt);
-        } catch (final StreamProcessingException e) {
-            transactionHandler.rollback(userTransaction);
-            throw e;
-        } catch (final Exception e) {
-            transactionHandler.rollback(userTransaction);
-            throw new StreamProcessingException(
-                    format("Failed to select event for processing: source '%s', component '%s'", source, component), e);
-        }
-    }
-
-    private void processEvent(final PulledEvent pulledEvent, final String source, final String component) {
+    private void processEventFound(final PulledEvent pulledEvent, final String source, final String component) {
         final JsonEnvelope eventJsonEnvelope = pulledEvent.jsonEnvelope();
         final LockedStreamStatus lockedStreamStatus = pulledEvent.lockedStreamStatus();
         final long streamCurrentPosition = lockedStreamStatus.position();
 
         try {
             streamEventLoggerMetadataAdder.addRequestDataToMdc(eventJsonEnvelope, component);
-
-            final long eventPositionInStream = getEventPosition(eventJsonEnvelope);
-
             streamEventValidator.validate(eventJsonEnvelope, source, component);
+
             componentEventProcessor.process(eventJsonEnvelope, component);
 
-            updateStreamPosition(lockedStreamStatus, source, component, eventPositionInStream);
+            updateStreamPosition(lockedStreamStatus, source, component, getEventPosition(eventJsonEnvelope));
 
             streamErrorStatusHandler.onStreamProcessingSuccess(
                     lockedStreamStatus.streamId(), source, component, lockedStreamStatus.streamErrorId());
 
             micrometerMetricsCounters.incrementEventsSucceededCount(source, component);
-            transactionHandler.commit(userTransaction);
+            transactionHandler.commit();
         } catch (final Exception e) {
-            transactionHandler.rollback(userTransaction);
+            transactionHandler.rollback();
             micrometerMetricsCounters.incrementEventsFailedCount(source, component);
             streamErrorStatusHandler.onStreamProcessingFailure(
                     eventJsonEnvelope, e, component, streamCurrentPosition, lockedStreamStatus.streamErrorId());
         } finally {
             streamEventLoggerMetadataAdder.clearMdc();
+        }
+    }
+
+    private Optional<PulledEvent> selectEvent(final String source, final String component) {
+        try {
+            final Optional<LockedStreamStatus> lockedStreamStatusOpt = newStreamStatusRepository
+                    .findOldestStreamToProcessByAcquiringLock(source, component, streamProcessingConfig.getMaxRetries());
+            return nextEventSelector.selectNextEvent(source, lockedStreamStatusOpt);
+        } catch (final StreamProcessingException e) {
+            transactionHandler.rollback();
+            throw e;
+        } catch (final Exception e) {
+            transactionHandler.rollback();
+            throw new StreamProcessingException(
+                    format("Failed to select event for processing: source '%s', component '%s'", source, component), e);
         }
     }
 
@@ -154,11 +139,4 @@ public class StreamEventProcessor {
         }
     }
 
-    private void commitWithFallBackToRollback() {
-        try {
-            transactionHandler.commit(userTransaction);
-        } catch (final Exception e) {
-            transactionHandler.rollback(userTransaction);
-        }
-    }
 }

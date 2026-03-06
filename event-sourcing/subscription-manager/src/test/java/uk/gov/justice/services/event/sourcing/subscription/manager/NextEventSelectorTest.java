@@ -7,8 +7,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.event.buffer.core.repository.subscription.LockedStreamStatus;
@@ -16,12 +14,9 @@ import uk.gov.justice.services.eventsourcing.source.api.service.core.NextEventRe
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.NextEventSelector.PulledEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
-import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
 import java.util.Optional;
 import java.util.UUID;
-
-import javax.transaction.UserTransaction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,15 +30,6 @@ public class NextEventSelectorTest {
     @Mock
     private NextEventReader nextEventReader;
 
-    @Mock
-    private MicrometerMetricsCounters micrometerMetricsCounters;
-
-    @Mock
-    private TransactionHandler transactionHandler;
-
-    @Mock
-    private UserTransaction userTransaction;
-
     @InjectMocks
     private NextEventSelector nextEventSelector;
 
@@ -51,7 +37,6 @@ public class NextEventSelectorTest {
     public void shouldReturnPulledEventWhenEventFound() {
         final UUID streamId = randomUUID();
         final String source = "some-source";
-        final String component = "some-component";
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
 
@@ -60,31 +45,26 @@ public class NextEventSelectorTest {
 
         when(nextEventReader.read(streamId, currentPosition, source)).thenReturn(of(eventJsonEnvelope));
 
-        final Optional<PulledEvent> result = nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus));
+        final Optional<PulledEvent> result = nextEventSelector.selectNextEvent(source, of(lockedStreamStatus));
 
         assertThat(result.isPresent(), is(true));
         assertThat(result.get().jsonEnvelope(), is(eventJsonEnvelope));
         assertThat(result.get().lockedStreamStatus(), is(lockedStreamStatus));
-        verifyNoInteractions(transactionHandler);
     }
 
     @Test
     public void shouldReturnEmptyWhenNoLockedStreamStatus() {
         final String source = "some-source";
-        final String component = "some-component";
 
-        final Optional<PulledEvent> result = nextEventSelector.selectNextEvent(source, component, empty());
+        final Optional<PulledEvent> result = nextEventSelector.selectNextEvent(source, empty());
 
         assertThat(result.isPresent(), is(false));
-        verifyNoInteractions(nextEventReader);
-        verifyNoInteractions(transactionHandler);
     }
 
     @Test
     public void shouldThrowStreamProcessingExceptionWhenEventNotFound() {
         final UUID streamId = randomUUID();
         final String source = "some-source";
-        final String component = "some-component";
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
 
@@ -94,18 +74,15 @@ public class NextEventSelectorTest {
 
         final StreamProcessingException exception = assertThrows(
                 StreamProcessingException.class,
-                () -> nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus)));
+                () -> nextEventSelector.selectNextEvent(source, of(lockedStreamStatus)));
 
         assertThat(exception.getMessage(), is("Unable to find next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition)));
-        verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        verify(transactionHandler).rollback(userTransaction);
     }
 
     @Test
     public void shouldThrowStreamProcessingExceptionWhenFindingEventFails() {
         final UUID streamId = randomUUID();
         final String source = "some-source";
-        final String component = "some-component";
         final long currentPosition = 5L;
         final long latestKnownPosition = 10L;
         final RuntimeException eventFindingException = new RuntimeException("Event finding failed");
@@ -116,10 +93,8 @@ public class NextEventSelectorTest {
 
         final StreamProcessingException exception = assertThrows(
                 StreamProcessingException.class,
-                () -> nextEventSelector.selectNextEvent(source, component, of(lockedStreamStatus)));
+                () -> nextEventSelector.selectNextEvent(source, of(lockedStreamStatus)));
 
         assertThat(exception.getMessage(), is("Failed to pull next event to process for streamId: '%s', position: %d, latestKnownPosition: %d".formatted(streamId, currentPosition, latestKnownPosition)));
-        verify(micrometerMetricsCounters).incrementEventsFailedCount(source, component);
-        verify(transactionHandler).rollback(userTransaction);
     }
 }

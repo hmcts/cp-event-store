@@ -5,13 +5,14 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.jdbc.persistence.ViewStoreJdbcDataSourceProvider;
 
+import java.util.Objects;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,6 +31,9 @@ import org.slf4j.Logger;
 @ExtendWith(MockitoExtension.class)
 public class StreamSessionLockManagerTest {
 
+    private static final String SOURCE = "some-source";
+    private static final String COMPONENT = "some-component";
+
     @Mock
     private ViewStoreJdbcDataSourceProvider viewStoreJdbcDataSourceProvider;
 
@@ -40,137 +44,193 @@ public class StreamSessionLockManagerTest {
     private StreamSessionLockManager streamSessionLockManager;
 
     @Test
-    public void shouldOpenConnectionFromViewStoreDataSource() throws Exception {
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-
-        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-
-        final Connection result = streamSessionLockManager.openLockConnection();
-
-        assertThat(result, is(connection));
-        verify(connection).setAutoCommit(true);
-    }
-
-    @Test
-    public void shouldThrowStreamSessionLockExceptionWhenOpenConnectionFails() throws Exception {
-        final DataSource dataSource = mock(DataSource.class);
-
-        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenThrow(new SQLException("Connection failed"));
-
-        assertThrows(StreamSessionLockException.class, () -> streamSessionLockManager.openLockConnection());
-    }
-
-    @Test
-    public void shouldAcquireAdvisoryLockForStream() throws Exception {
+    public void shouldAcquireLockAndReturnAcquiredStreamLock() throws Exception {
         final UUID streamId = randomUUID();
-        final long lockKey = streamId.getLeastSignificantBits();
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
         final ResultSet resultSet = mock(ResultSet.class);
 
+        mockConnectionFromDataSource(connection);
         when(connection.prepareStatement(StreamSessionLockManager.TRY_SESSION_ADVISORY_LOCK_SQL)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
         when(resultSet.getBoolean(1)).thenReturn(true);
 
-        final boolean locked = streamSessionLockManager.tryLockStream(connection, streamId);
+        final StreamSessionLockManager.StreamSessionLock lock = streamSessionLockManager.lockStream(streamId, SOURCE, COMPONENT);
 
-        assertThat(locked, is(true));
-        verify(preparedStatement).setLong(1, lockKey);
+        assertThat(lock.isAcquired(), is(true));
+        verify(preparedStatement).setInt(1, Objects.hash(SOURCE, COMPONENT));
+        verify(preparedStatement).setInt(2, (int) streamId.getLeastSignificantBits());
     }
 
     @Test
-    public void shouldReturnFalseWhenAdvisoryLockAlreadyHeld() throws Exception {
+    public void shouldReturnNotAcquiredStreamLockWhenAdvisoryLockAlreadyHeld() throws Exception {
         final UUID streamId = randomUUID();
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
         final ResultSet resultSet = mock(ResultSet.class);
 
+        mockConnectionFromDataSource(connection);
         when(connection.prepareStatement(StreamSessionLockManager.TRY_SESSION_ADVISORY_LOCK_SQL)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
         when(resultSet.getBoolean(1)).thenReturn(false);
 
-        final boolean locked = streamSessionLockManager.tryLockStream(connection, streamId);
+        final StreamSessionLockManager.StreamSessionLock lock = streamSessionLockManager.lockStream(streamId, SOURCE, COMPONENT);
 
-        assertThat(locked, is(false));
+        assertThat(lock.isAcquired(), is(false));
+        verify(logger).warn("Advisory lock contention detected for stream '{}', source '{}', component '{}'", streamId, SOURCE, COMPONENT);
     }
 
     @Test
-    public void shouldThrowExceptionWhenNoResultReturnedFromAdvisoryLock() throws Exception {
-        final UUID streamId = randomUUID();
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-        final ResultSet resultSet = mock(ResultSet.class);
-
-        when(connection.prepareStatement(StreamSessionLockManager.TRY_SESSION_ADVISORY_LOCK_SQL)).thenReturn(preparedStatement);
-        when(preparedStatement.executeQuery()).thenReturn(resultSet);
-        when(resultSet.next()).thenReturn(false);
-
-        assertThrows(StreamSessionLockException.class, () -> streamSessionLockManager.tryLockStream(connection, streamId));
-    }
-
-    @Test
-    public void shouldThrowExceptionWhenAdvisoryLockSqlFails() throws Exception {
+    public void shouldThrowExceptionAndCloseConnectionWhenLockSqlFails() throws Exception {
         final UUID streamId = randomUUID();
         final Connection connection = mock(Connection.class);
 
+        mockConnectionFromDataSource(connection);
         when(connection.prepareStatement(anyString())).thenThrow(new SQLException("SQL error"));
 
-        assertThrows(StreamSessionLockException.class, () -> streamSessionLockManager.tryLockStream(connection, streamId));
-    }
-
-    @Test
-    public void shouldUnlockAdvisoryLockForStream() throws Exception {
-        final UUID streamId = randomUUID();
-        final long lockKey = streamId.getLeastSignificantBits();
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-
-        when(connection.prepareStatement(StreamSessionLockManager.SESSION_ADVISORY_UNLOCK_SQL)).thenReturn(preparedStatement);
-
-        streamSessionLockManager.unlockStream(connection, streamId);
-
-        verify(preparedStatement).setLong(1, lockKey);
-        verify(preparedStatement).execute();
-    }
-
-    @Test
-    public void shouldLogWarningWhenUnlockFails() throws Exception {
-        final UUID streamId = randomUUID();
-        final Connection connection = mock(Connection.class);
-
-        when(connection.prepareStatement(anyString())).thenThrow(new SQLException("Unlock failed"));
-
-        streamSessionLockManager.unlockStream(connection, streamId);
-
-        verify(logger).warn("Failed to release advisory lock for stream '{}': {}", streamId, "Unlock failed");
-    }
-
-    @Test
-    public void shouldCloseConnectionQuietly() throws Exception {
-        final Connection connection = mock(Connection.class);
-
-        streamSessionLockManager.closeQuietly(connection);
+        assertThrows(StreamSessionLockException.class, () -> streamSessionLockManager.lockStream(streamId, SOURCE, COMPONENT));
 
         verify(connection).close();
     }
 
     @Test
-    public void shouldHandleNullConnectionInCloseQuietly() {
-        streamSessionLockManager.closeQuietly(null);
+    public void shouldThrowExceptionWhenGetConnectionFails() throws Exception {
+        final DataSource dataSource = mock(DataSource.class);
+
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenThrow(new SQLException("Connection failed"));
+
+        assertThrows(StreamSessionLockException.class, () -> streamSessionLockManager.lockStream(randomUUID(), SOURCE, COMPONENT));
     }
 
     @Test
-    public void shouldLogWarningWhenCloseConnectionFails() throws Exception {
+    public void shouldUnlockAndCloseConnectionOnCloseWhenLockWasAcquired() throws Exception {
+        final UUID streamId = randomUUID();
         final Connection connection = mock(Connection.class);
-        doThrow(new SQLException("Close failed")).when(connection).close();
+        final PreparedStatement lockStatement = mock(PreparedStatement.class);
+        final ResultSet lockResultSet = mock(ResultSet.class);
+        final PreparedStatement unlockStatement = mock(PreparedStatement.class);
+        final ResultSet unlockResultSet = mock(ResultSet.class);
 
-        streamSessionLockManager.closeQuietly(connection);
+        mockConnectionFromDataSource(connection);
+        when(connection.prepareStatement(StreamSessionLockManager.TRY_SESSION_ADVISORY_LOCK_SQL)).thenReturn(lockStatement);
+        when(lockStatement.executeQuery()).thenReturn(lockResultSet);
+        when(lockResultSet.next()).thenReturn(true);
+        when(lockResultSet.getBoolean(1)).thenReturn(true);
 
-        verify(logger).warn("Failed to close advisory lock connection: {}", "Close failed");
+        when(connection.prepareStatement(StreamSessionLockManager.SESSION_ADVISORY_UNLOCK_SQL)).thenReturn(unlockStatement);
+        when(unlockStatement.executeQuery()).thenReturn(unlockResultSet);
+        when(unlockResultSet.next()).thenReturn(true);
+        when(unlockResultSet.getBoolean(1)).thenReturn(true);
+
+        final StreamSessionLockManager.StreamSessionLock lock = streamSessionLockManager.lockStream(streamId, SOURCE, COMPONENT);
+        lock.close();
+
+        verify(unlockStatement).setInt(1, Objects.hash(SOURCE, COMPONENT));
+        verify(unlockStatement).setInt(2, (int) streamId.getLeastSignificantBits());
+        verify(connection).close();
+    }
+
+    @Test
+    public void shouldOnlyCloseConnectionOnCloseWhenLockWasNotAcquired() throws Exception {
+        final UUID streamId = randomUUID();
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
+        final ResultSet resultSet = mock(ResultSet.class);
+
+        mockConnectionFromDataSource(connection);
+        when(connection.prepareStatement(StreamSessionLockManager.TRY_SESSION_ADVISORY_LOCK_SQL)).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(true);
+        when(resultSet.getBoolean(1)).thenReturn(false);
+
+        final StreamSessionLockManager.StreamSessionLock lock = streamSessionLockManager.lockStream(streamId, SOURCE, COMPONENT);
+        lock.close();
+
+        verify(connection, never()).prepareStatement(StreamSessionLockManager.SESSION_ADVISORY_UNLOCK_SQL);
+        verify(connection).close();
+    }
+
+    @Test
+    public void shouldLogWarningWhenUnlockReturnsFalse() throws Exception {
+        final UUID streamId = randomUUID();
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement lockStatement = mock(PreparedStatement.class);
+        final ResultSet lockResultSet = mock(ResultSet.class);
+        final PreparedStatement unlockStatement = mock(PreparedStatement.class);
+        final ResultSet unlockResultSet = mock(ResultSet.class);
+
+        mockConnectionFromDataSource(connection);
+        when(connection.prepareStatement(StreamSessionLockManager.TRY_SESSION_ADVISORY_LOCK_SQL)).thenReturn(lockStatement);
+        when(lockStatement.executeQuery()).thenReturn(lockResultSet);
+        when(lockResultSet.next()).thenReturn(true);
+        when(lockResultSet.getBoolean(1)).thenReturn(true);
+
+        when(connection.prepareStatement(StreamSessionLockManager.SESSION_ADVISORY_UNLOCK_SQL)).thenReturn(unlockStatement);
+        when(unlockStatement.executeQuery()).thenReturn(unlockResultSet);
+        when(unlockResultSet.next()).thenReturn(true);
+        when(unlockResultSet.getBoolean(1)).thenReturn(false);
+
+        final StreamSessionLockManager.StreamSessionLock lock = streamSessionLockManager.lockStream(streamId, SOURCE, COMPONENT);
+        lock.close();
+
+        verify(logger).warn("Advisory unlock returned false for stream '{}' — lock was not held", streamId);
+        verify(connection).close();
+    }
+
+    @Test
+    public void shouldLogWarningWhenUnlockReturnsNoResult() throws Exception {
+        final UUID streamId = randomUUID();
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement lockStatement = mock(PreparedStatement.class);
+        final ResultSet lockResultSet = mock(ResultSet.class);
+        final PreparedStatement unlockStatement = mock(PreparedStatement.class);
+        final ResultSet unlockResultSet = mock(ResultSet.class);
+
+        mockConnectionFromDataSource(connection);
+        when(connection.prepareStatement(StreamSessionLockManager.TRY_SESSION_ADVISORY_LOCK_SQL)).thenReturn(lockStatement);
+        when(lockStatement.executeQuery()).thenReturn(lockResultSet);
+        when(lockResultSet.next()).thenReturn(true);
+        when(lockResultSet.getBoolean(1)).thenReturn(true);
+
+        when(connection.prepareStatement(StreamSessionLockManager.SESSION_ADVISORY_UNLOCK_SQL)).thenReturn(unlockStatement);
+        when(unlockStatement.executeQuery()).thenReturn(unlockResultSet);
+        when(unlockResultSet.next()).thenReturn(false);
+
+        final StreamSessionLockManager.StreamSessionLock lock = streamSessionLockManager.lockStream(streamId, SOURCE, COMPONENT);
+        lock.close();
+
+        verify(logger).warn("No result returned when releasing advisory lock for stream '{}'", streamId);
+        verify(connection).close();
+    }
+
+    @Test
+    public void shouldCloseConnectionEvenWhenUnlockFails() throws Exception {
+        final UUID streamId = randomUUID();
+        final Connection connection = mock(Connection.class);
+        final PreparedStatement lockStatement = mock(PreparedStatement.class);
+        final ResultSet lockResultSet = mock(ResultSet.class);
+
+        mockConnectionFromDataSource(connection);
+        when(connection.prepareStatement(StreamSessionLockManager.TRY_SESSION_ADVISORY_LOCK_SQL)).thenReturn(lockStatement);
+        when(lockStatement.executeQuery()).thenReturn(lockResultSet);
+        when(lockResultSet.next()).thenReturn(true);
+        when(lockResultSet.getBoolean(1)).thenReturn(true);
+
+        when(connection.prepareStatement(StreamSessionLockManager.SESSION_ADVISORY_UNLOCK_SQL)).thenThrow(new SQLException("Unlock failed"));
+
+        final StreamSessionLockManager.StreamSessionLock lock = streamSessionLockManager.lockStream(streamId, SOURCE, COMPONENT);
+        lock.close();
+
+        verify(logger).warn("Failed to release advisory lock for stream '{}': {}", streamId, "Unlock failed");
+        verify(connection).close();
+    }
+
+    private void mockConnectionFromDataSource(final Connection connection) throws SQLException {
+        final DataSource dataSource = mock(DataSource.class);
+        when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(dataSource);
+        when(dataSource.getConnection()).thenReturn(connection);
     }
 }

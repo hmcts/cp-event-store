@@ -18,7 +18,6 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 import javax.transaction.Transactional;
-import javax.transaction.UserTransaction;
 
 import org.slf4j.Logger;
 
@@ -35,9 +34,6 @@ public class StreamStatusService {
 
     @Inject
     private LatestKnownPositionAndIsUpToDateUpdater latestKnownPositionAndIsUpToDateUpdater;
-
-    @Inject
-    private UserTransaction userTransaction;
 
     @Inject
     private TransactionHandler transactionHandler;
@@ -65,7 +61,7 @@ public class StreamStatusService {
         final Long incomingPositionInStream = metadata.position().orElseThrow(() -> new MissingPositionInStreamException(format("No position found in event: name '%s', eventId '%s'", name, eventId)));
 
         try {
-            transactionHandler.begin(userTransaction);
+            transactionHandler.begin();
 
             newStreamStatusRepository.insertIfNotExists(
                     streamId,
@@ -101,12 +97,12 @@ public class StreamStatusService {
                 }
             }
 
-            transactionHandler.commit(userTransaction);
+            transactionHandler.commit();
 
             return eventOrderingStatus;
 
         } catch (final Exception e) {
-            transactionHandler.rollback(userTransaction);
+            transactionHandler.rollback();
             throw new StreamStatusException("Failed to update stream_status/event_buffer for eventId '%s', eventName '%s', streamId '%s'".formatted(eventId, name, streamId), e);
         }
     }

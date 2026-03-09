@@ -17,9 +17,12 @@ import org.slf4j.Logger;
 public class TransactionHandler {
 
     @Inject
+    private UserTransaction userTransaction;
+
+    @Inject
     private Logger logger;
 
-    public void begin(final UserTransaction userTransaction) {
+    public void begin() {
         try {
             userTransaction.begin();
         } catch (final SystemException | NotSupportedException e) {
@@ -27,7 +30,7 @@ public class TransactionHandler {
         }
     }
 
-    public void commit(final UserTransaction userTransaction) {
+    public void commit() {
         try {
             userTransaction.commit();
         } catch (final SystemException | RollbackException | HeuristicMixedException | HeuristicRollbackException e) {
@@ -35,7 +38,7 @@ public class TransactionHandler {
         }
     }
 
-    public void rollback(final UserTransaction userTransaction) {
+    public void rollback() {
         try {
 
             if (userTransaction.getStatus() != STATUS_NO_TRANSACTION) {

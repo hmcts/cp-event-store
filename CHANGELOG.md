@@ -5,6 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 ### Changed
+- Advisory locking stream uses source and component to avoid cross component interference
 - StreamEventProcessor: simplified with try-with-resources advisory lock; always returns `EVENT_FOUND` when event selected (including on lock contention)
 - TransactionHandler: inject `UserTransaction` internally instead of receiving as parameter
 - SubscriptionEventProcessor: updated for `TransactionHandler` API change

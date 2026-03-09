@@ -57,29 +57,28 @@ public class NewStreamStatusRepository {
                 AND component = ?
             """;
     private static final String SELECT_OLDEST_HEALTHY_STREAM_SQL = """
-                SELECT
-                    ss.stream_id,
-                    ss.position,
-                    ss.latest_known_position,
-                    ss.stream_error_id
-                FROM stream_status ss
-                LEFT JOIN stream_error_retry ser
-                    ON ser.stream_id = ss.stream_id
-                    AND ser.source = ss.source
-                    AND ser.component = ss.component
-                WHERE ss.source = ?
-                  AND ss.component = ?
-                  AND ss.position < ss.latest_known_position
-                  AND (
-                    ss.stream_error_id IS NULL
-                    OR (
-                      ser.retry_count < ?
-                      AND ser.next_retry_time <= now()
-                    )
-                  )
-                ORDER BY ss.discovered_at ASC
-                LIMIT 1
-                FOR NO KEY UPDATE OF ss SKIP LOCKED
+             SELECT
+                 ss.stream_id,
+                 ss.position,
+                 ss.latest_known_position,
+                 ss.stream_error_id
+             FROM stream_status ss
+             LEFT JOIN stream_error_retry ser
+                 ON ser.stream_id = ss.stream_id
+                 AND ser.source = ss.source
+                 AND ser.component = ss.component
+                 AND ser.retry_count < ?
+                 AND ser.next_retry_time <= now()
+             WHERE ss.source = ?
+               AND ss.component = ?
+               AND ss.position < ss.latest_known_position
+               AND (
+                 ss.stream_error_id IS NULL
+                 OR ser.stream_id IS NOT NULL
+               )
+             ORDER BY ss.discovered_at ASC
+             LIMIT 1
+             FOR NO KEY UPDATE OF ss SKIP LOCKED
             """;
     private static final String FIND_ALL_SQL = """
                 SELECT
@@ -152,12 +151,14 @@ public class NewStreamStatusRepository {
                     ON  ser.stream_id = ss.stream_id
                     AND ser.source    = ss.source
                     AND ser.component = ss.component
+                    AND ser.retry_count < ? 
+                    AND ser.next_retry_time <= now()
                 WHERE ss.source = ?
                   AND ss.component = ?
                   AND ss.position < ss.latest_known_position
                   AND (
                       ss.stream_error_id IS NULL
-                      OR (ser.retry_count < ? AND ser.next_retry_time <= now())
+                      OR ser.stream_id IS NOT NULL
                   )
                 LIMIT ?
             ) pending
@@ -229,9 +230,9 @@ public class NewStreamStatusRepository {
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_OLDEST_HEALTHY_STREAM_SQL)) {
 
-            preparedStatement.setString(1, source);
-            preparedStatement.setString(2, component);
-            preparedStatement.setInt(3, maxRetries);
+            preparedStatement.setInt(1, maxRetries);
+            preparedStatement.setString(2, source);
+            preparedStatement.setString(3, component);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
 
@@ -427,9 +428,9 @@ public class NewStreamStatusRepository {
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(COUNT_STREAMS_HAVING_EVENTS_TO_PROCESS_SQL)) {
 
-            preparedStatement.setString(1, source);
-            preparedStatement.setString(2, component);
-            preparedStatement.setInt(3, maxRetries);
+            preparedStatement.setInt(1, maxRetries);
+            preparedStatement.setString(2, source);
+            preparedStatement.setString(3, component);
             preparedStatement.setInt(4, maxWorkers);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {

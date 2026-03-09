@@ -4,7 +4,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+### Added
+- Partial index `stream_status_position_l_latest_known_position` on `stream_status` for pull-based stream selection
 ### Changed
+- Optimise pick-next and demand-count queries: push retry conditions into LEFT JOIN ON clause
 - Advisory locking stream uses source and component to avoid cross component interference
 - StreamEventProcessor: simplified with try-with-resources advisory lock; always returns `EVENT_FOUND` when event selected (including on lock contention)
 - TransactionHandler: inject `UserTransaction` internally instead of receiving as parameter

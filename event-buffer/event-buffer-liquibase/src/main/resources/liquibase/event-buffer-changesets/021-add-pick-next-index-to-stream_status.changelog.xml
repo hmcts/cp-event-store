@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.3.xsd">
+
+    <changeSet id="stream_buffer-021" author="TechPod"
+               logicalFilePath="liquibase/event-buffer-changesets/021-add-pick-next-index-to-stream_status.changelog.xml">
+
+        <sql>
+            CREATE INDEX stream_status_position_l_latest_known_position
+            ON stream_status (source, component, discovered_at)
+            INCLUDE (stream_id, position, latest_known_position, stream_error_id)
+            WHERE position &lt; latest_known_position
+        </sql>
+
+    </changeSet>
+
+</databaseChangeLog>

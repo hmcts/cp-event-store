@@ -1,6 +1,8 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.task;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +24,9 @@ public class StreamProcessingWorkerBeanTest {
 
     @Mock
     private StreamEventProcessor streamEventProcessor;
+
+    @Mock
+    private PollerCircuitBreaker pollerCircuitBreaker;
 
     @Mock
     private Logger logger;
@@ -71,16 +76,46 @@ public class StreamProcessingWorkerBeanTest {
     }
 
     @Test
-    public void shouldLogWarnWhenStreamProcessingExceptionThrown() {
+    public void shouldSkipProcessingWhenCircuitBreakerIsOpen() {
         final String source = "test-source";
         final String component = "test-component";
-        final StreamProcessingException exception = new StreamProcessingException("Events not linked yet");
+
+        when(pollerCircuitBreaker.isOpen(source, component)).thenReturn(true);
+
+        streamProcessingWorkerBean.processUntilIdle(source, component);
+
+        verify(streamEventProcessor, never()).processSingleEvent(any(), any());
+        verify(pollerCircuitBreaker, never()).recordSuccess(any(), any());
+        verify(pollerCircuitBreaker, never()).recordFailure(any(), any());
+        verify(logger).warn("Circuit breaker open, skipping processing for source: {}, component: {}",
+                source, component);
+    }
+
+    @Test
+    public void shouldRecordSuccessAfterLoopCompletesNormally() {
+        final String source = "test-source";
+        final String component = "test-component";
+
+        when(streamEventProcessor.processSingleEvent(source, component)).thenReturn(EVENT_NOT_FOUND);
+
+        streamProcessingWorkerBean.processUntilIdle(source, component);
+
+        verify(pollerCircuitBreaker).recordSuccess(source, component);
+        verify(pollerCircuitBreaker, never()).recordFailure(any(), any());
+    }
+
+    @Test
+    public void shouldRecordFailureWhenGeneralExceptionThrown() {
+        final String source = "test-source";
+        final String component = "test-component";
+        final RuntimeException exception = new RuntimeException("Connection error");
 
         doThrow(exception).when(streamEventProcessor).processSingleEvent(source, component);
 
         streamProcessingWorkerBean.processUntilIdle(source, component);
 
-        verify(logger).warn("Stream has pending events not yet available for source: {}, component: {}: {}",
-                source, component, "Events not linked yet");
+        verify(pollerCircuitBreaker).recordFailure(source, component);
+        verify(pollerCircuitBreaker, never()).recordSuccess(any(), any());
+        verify(logger).error("Error processing stream events for source: {}, component: {}", source, component, exception);
     }
 }

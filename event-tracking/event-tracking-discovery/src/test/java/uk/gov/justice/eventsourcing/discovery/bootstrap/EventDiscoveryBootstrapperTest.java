@@ -7,10 +7,12 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
+import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
@@ -24,6 +26,9 @@ import org.slf4j.Logger;
 
 @ExtendWith(MockitoExtension.class)
 public class EventDiscoveryBootstrapperTest {
+
+    @Mock
+    private EventPullConfiguration eventPullConfiguration;
 
     @Mock
     private SubscriptionSourceComponentFinder subscriptionSourceComponentFinder;
@@ -48,6 +53,7 @@ public class EventDiscoveryBootstrapperTest {
         final SourceComponentPair sourceComponentPair_1 = new SourceComponentPair(source_1, component_1);
         final SourceComponentPair sourceComponentPair_2 = new SourceComponentPair(source_2, component_2);
 
+        when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(true);
         when(subscriptionSourceComponentFinder.findListenerOrIndexerPairs())
                 .thenReturn(asList(sourceComponentPair_1, sourceComponentPair_2));
 
@@ -61,5 +67,16 @@ public class EventDiscoveryBootstrapperTest {
         inOrder.verify(logger).info("Inserted empty row into event_subscription_status for source 'source_2', component 'component_2'");
 
         verify(eventSubscriptionStatusRepository, never()).insertEmptyRowFor(source_1, component_1);
+    }
+
+    @Test
+    public void shouldNotBootstrapIfPullMechanismIsNotEnabled() throws Exception {
+
+        when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(false);
+
+        eventDiscoveryBootstrapper.bootstrapEventDiscovery();
+
+        verifyNoInteractions(subscriptionSourceComponentFinder);
+        verifyNoInteractions(eventSubscriptionStatusRepository);
     }
 }

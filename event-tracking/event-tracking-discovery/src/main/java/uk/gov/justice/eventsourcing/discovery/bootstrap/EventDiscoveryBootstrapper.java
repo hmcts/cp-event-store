@@ -5,6 +5,7 @@ import static javax.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatus;
 import uk.gov.justice.eventsourcing.discovery.dataaccess.EventSubscriptionStatusRepository;
+import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
@@ -18,6 +19,9 @@ import org.slf4j.Logger;
 public class EventDiscoveryBootstrapper {
 
     @Inject
+    private EventPullConfiguration eventPullConfiguration;
+
+    @Inject
     private SubscriptionSourceComponentFinder subscriptionSourceComponentFinder;
 
     @Inject
@@ -29,9 +33,11 @@ public class EventDiscoveryBootstrapper {
     @Transactional(REQUIRED)
     public void bootstrapEventDiscovery() {
 
-        subscriptionSourceComponentFinder
-                .findListenerOrIndexerPairs()
-                .forEach(this::doBootstrap);
+        if (eventPullConfiguration.shouldProcessEventsByPullMechanism()) {
+            subscriptionSourceComponentFinder
+                    .findListenerOrIndexerPairs()
+                    .forEach(this::doBootstrap);
+        }
     }
 
     private void doBootstrap(final SourceComponentPair sourceComponentPair) {

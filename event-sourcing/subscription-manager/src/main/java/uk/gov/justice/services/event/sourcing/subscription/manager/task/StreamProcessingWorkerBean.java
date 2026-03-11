@@ -25,19 +25,26 @@ public class StreamProcessingWorkerBean {
     private StreamEventProcessor streamEventProcessor;
 
     @Inject
+    private PollerCircuitBreaker pollerCircuitBreaker;
+
+    @Inject
     private Logger logger;
 
     @Transactional(Transactional.TxType.NEVER)
     public void processUntilIdle(final String source, final String component) {
+        if (pollerCircuitBreaker.isOpen(source, component)) {
+            logger.warn("Circuit breaker open, skipping processing for source: {}, component: {}", source, component);
+            return;
+        }
+
         try {
             EventProcessingStatus status;
             do {
                 status = streamEventProcessor.processSingleEvent(source, component);
             } while (status == EVENT_FOUND);
-        } catch (final StreamProcessingException e) {
-            logger.warn("Stream has pending events not yet available for source: {}, component: {}: {}",
-                    source, component, e.getMessage());
+            pollerCircuitBreaker.recordSuccess(source, component);
         } catch (final Exception e) {
+            pollerCircuitBreaker.recordFailure(source, component);
             logger.error("Error processing stream events for source: {}, component: {}", source, component, e);
         }
     }

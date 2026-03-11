@@ -43,8 +43,8 @@ public class CircuitStateTest {
         public void shouldRemainClosedWhenFailuresBelowThreshold() {
             final CircuitState circuitState = new CircuitState();
 
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
 
             assertThat(circuitState.getState(), is(CLOSED));
             assertThat(circuitState.isOpen(), is(false));
@@ -55,15 +55,15 @@ public class CircuitStateTest {
         public void shouldResetFailureCountOnSuccess() {
             final CircuitState circuitState = new CircuitState();
 
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
             circuitState.onSuccess(SOURCE, COMPONENT, logger);
 
             assertThat(circuitState.getState(), is(CLOSED));
 
             // failure count reset: need threshold failures again to open
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
 
             assertThat(circuitState.getState(), is(CLOSED));
             assertThat(circuitState.isOpen(), is(false));
@@ -77,12 +77,12 @@ public class CircuitStateTest {
             public void shouldOpenAndBlockRequestsAfterConsecutiveFailuresReachThreshold() {
                 final CircuitState circuitState = new CircuitState();
 
-                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
-                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
-                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
 
                 assertThat(circuitState.getState(), is(OPEN));
-                assertThat(circuitState.tryAcquireProbeSlot(COOLDOWN_MILLIS), is(false));
+                assertThat(circuitState.tryAcquireProbeSlot(0L, COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(false));
                 verify(logger).error("Circuit breaker OPENED after {} consecutive failures for source: {}, component: {}",
                         FAILURE_THRESHOLD_3, SOURCE, COMPONENT);
             }
@@ -96,7 +96,7 @@ public class CircuitStateTest {
         public void shouldBeOpenWhenInOpenState() {
             final CircuitState circuitState = new CircuitState();
 
-            circuitState.onFailure(SOURCE, COMPONENT, 1, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, 1, 0L, logger);
 
             assertThat(circuitState.isOpen(), is(true));
         }
@@ -105,7 +105,7 @@ public class CircuitStateTest {
         public void shouldBeTrippedWhenInOpenState() {
             final CircuitState circuitState = new CircuitState();
 
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
 
             assertThat(circuitState.isOpen(), is(true));
             assertThat(circuitState.isTripped(), is(true));
@@ -115,35 +115,35 @@ public class CircuitStateTest {
         public void shouldBlockAllRequestsWhileCooldownNotElapsed() {
             final CircuitState circuitState = new CircuitState();
 
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
 
             assertThat(circuitState.getState(), is(OPEN));
-            assertThat(circuitState.tryAcquireProbeSlot(COOLDOWN_MILLIS), is(false));
+            assertThat(circuitState.tryAcquireProbeSlot(0L, COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(false));
         }
 
         @Test
         public void shouldRemainOpenWhenFailureOccursWhileCooldownNotElapsed() {
             final CircuitState circuitState = new CircuitState();
 
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
             assertThat(circuitState.getState(), is(OPEN));
 
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
             assertThat(circuitState.getState(), is(OPEN));
-            assertThat(circuitState.tryAcquireProbeSlot(COOLDOWN_MILLIS), is(false));
+            assertThat(circuitState.tryAcquireProbeSlot(0L, COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(false));
         }
 
         @Test
         public void shouldRemainOpenWhenSuccessOccursForInFlightRequestAfterCircuitOpened() {
             final CircuitState circuitState = new CircuitState();
 
-            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
             assertThat(circuitState.getState(), is(OPEN));
 
             // race: a request that started while CLOSED completed successfully after circuit opened
             circuitState.onSuccess(SOURCE, COMPONENT, logger);
             assertThat(circuitState.getState(), is(OPEN));
-            assertThat(circuitState.tryAcquireProbeSlot(COOLDOWN_MILLIS), is(false));
+            assertThat(circuitState.tryAcquireProbeSlot(0L, COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(false));
         }
 
         @Nested
@@ -153,9 +153,9 @@ public class CircuitStateTest {
             public void shouldAllowSingleProbeRequestAfterCooldownElapsed() {
                 final CircuitState circuitState = new CircuitState();
 
-                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
 
-                assertThat(circuitState.tryAcquireProbeSlot(EXPIRED_COOLDOWN_MILLIS), is(true));
+                assertThat(circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(true));
                 assertThat(circuitState.getState(), is(HALF_OPEN));
                 assertThat(circuitState.isTripped(), is(true));
             }
@@ -164,8 +164,8 @@ public class CircuitStateTest {
             public void shouldNotBeOpenOnceTransitionedToHalfOpen() {
                 final CircuitState circuitState = new CircuitState();
 
-                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, logger);
-                circuitState.tryAcquireProbeSlot(EXPIRED_COOLDOWN_MILLIS);
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
+                circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger);
 
                 assertThat(circuitState.getState(), is(HALF_OPEN));
                 assertThat(circuitState.isTripped(), is(true));
@@ -175,13 +175,13 @@ public class CircuitStateTest {
             public void shouldBlockSubsequentRequestsOnceProbeSlotIsAllocated() {
                 final CircuitState circuitState = new CircuitState();
 
-                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
 
-                assertThat(circuitState.tryAcquireProbeSlot(EXPIRED_COOLDOWN_MILLIS), is(true)); // probe wins
+                assertThat(circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(true)); // probe wins
                 assertThat(circuitState.getState(), is(HALF_OPEN));
                 assertThat(circuitState.isTripped(), is(true));
 
-                assertThat(circuitState.tryAcquireProbeSlot(EXPIRED_COOLDOWN_MILLIS), is(false)); // blocked
+                assertThat(circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(false)); // blocked
                 assertThat(circuitState.getState(), is(HALF_OPEN));
                 assertThat(circuitState.isTripped(), is(true));
             }
@@ -198,9 +198,9 @@ public class CircuitStateTest {
             public void shouldCloseCircuitAndAllowRequests() {
                 final CircuitState circuitState = new CircuitState();
 
-                circuitState.onFailure(SOURCE, COMPONENT, 1, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, 1, 0L, logger);
 
-                circuitState.tryAcquireProbeSlot(EXPIRED_COOLDOWN_MILLIS); // allocate probe slot
+                circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger); // allocate probe slot
                 assertThat(circuitState.getState(), is(HALF_OPEN));
 
                 circuitState.onSuccess(SOURCE, COMPONENT, logger);
@@ -215,19 +215,49 @@ public class CircuitStateTest {
             public void shouldResetFailureCountSoThresholdMustBeReachedAgainToReopen() {
                 final CircuitState circuitState = new CircuitState();
 
-                circuitState.onFailure(SOURCE, COMPONENT, 1, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, 1, 0L, logger);
 
-                circuitState.tryAcquireProbeSlot(EXPIRED_COOLDOWN_MILLIS); // allocate probe slot
+                circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger); // allocate probe slot
                 circuitState.onSuccess(SOURCE, COMPONENT, logger);
 
                 assertThat(circuitState.getState(), is(CLOSED));
 
                 // failure count reset: need threshold failures again to re-open
-                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
-                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_3, 0L, logger);
 
                 assertThat(circuitState.getState(), is(CLOSED));
                 assertThat(circuitState.isOpen(), is(false));
+            }
+        }
+
+        @Nested
+        class ProbeWorkerDied {
+
+            @Test
+            public void shouldAllowNewProbeWhenHalfOpenProbeTimesOut() {
+                final CircuitState circuitState = new CircuitState();
+
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
+                circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger); // probe slot acquired at T=0
+                assertThat(circuitState.getState(), is(HALF_OPEN));
+
+                // simulate coordinator tick after cooldown has elapsed with no worker completing
+                assertThat(circuitState.tryAcquireProbeSlot(COOLDOWN_MILLIS + 1, COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(true));
+                assertThat(circuitState.getState(), is(HALF_OPEN));
+            }
+
+            @Test
+            public void shouldNotRecoverHalfOpenProbeUntilCooldownElapsed() {
+                final CircuitState circuitState = new CircuitState();
+
+                circuitState.onFailure(SOURCE, COMPONENT, FAILURE_THRESHOLD_1, 0L, logger);
+                circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger); // probe slot acquired at T=0
+                assertThat(circuitState.getState(), is(HALF_OPEN));
+
+                // T=1ms — probe is still within its timeout window
+                assertThat(circuitState.tryAcquireProbeSlot(1L, COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(false));
+                assertThat(circuitState.getState(), is(HALF_OPEN));
             }
         }
 
@@ -238,15 +268,15 @@ public class CircuitStateTest {
             public void shouldReopenCircuitAndBlockRequestsWhileCooldownNotElapsed() {
                 final CircuitState circuitState = new CircuitState();
 
-                circuitState.onFailure(SOURCE, COMPONENT, 1, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, 1, 0L, logger);
 
-                circuitState.tryAcquireProbeSlot(EXPIRED_COOLDOWN_MILLIS); // allocate probe slot
+                circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger); // allocate probe slot
                 assertThat(circuitState.getState(), is(HALF_OPEN));
 
-                circuitState.onFailure(SOURCE, COMPONENT, 1, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, 1, 0L, logger);
 
                 assertThat(circuitState.getState(), is(OPEN));
-                assertThat(circuitState.tryAcquireProbeSlot(COOLDOWN_MILLIS), is(false));
+                assertThat(circuitState.tryAcquireProbeSlot(0L, COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(false));
                 verify(logger).warn("Circuit breaker re-OPENED (probe failed again) for source: {}, component: {}",
                         SOURCE, COMPONENT);
             }
@@ -255,14 +285,14 @@ public class CircuitStateTest {
             public void shouldAllowNextProbeAfterCooldownElapses() {
                 final CircuitState circuitState = new CircuitState();
 
-                circuitState.onFailure(SOURCE, COMPONENT, 1, logger);
+                circuitState.onFailure(SOURCE, COMPONENT, 1, 0L, logger);
 
-                circuitState.tryAcquireProbeSlot(EXPIRED_COOLDOWN_MILLIS); // first probe slot
-                circuitState.onFailure(SOURCE, COMPONENT, 1, logger); // probe fails, re-opens
+                circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger); // first probe slot
+                circuitState.onFailure(SOURCE, COMPONENT, 1, 0L, logger); // probe fails, re-opens
 
                 assertThat(circuitState.getState(), is(OPEN));
 
-                assertThat(circuitState.tryAcquireProbeSlot(EXPIRED_COOLDOWN_MILLIS), is(true)); // second probe slot
+                assertThat(circuitState.tryAcquireProbeSlot(0L, EXPIRED_COOLDOWN_MILLIS, SOURCE, COMPONENT, logger), is(true)); // second probe slot
                 assertThat(circuitState.getState(), is(HALF_OPEN));
             }
         }
@@ -275,7 +305,7 @@ public class CircuitStateTest {
         public void openToClosedIsNotFeasible() {
             final CircuitState circuitState = new CircuitState();
 
-            circuitState.onFailure(SOURCE, COMPONENT, 1, logger);
+            circuitState.onFailure(SOURCE, COMPONENT, 1, 0L, logger);
             assertThat(circuitState.getState(), is(OPEN));
 
             //onSuccess gets called only when state is CLOSED

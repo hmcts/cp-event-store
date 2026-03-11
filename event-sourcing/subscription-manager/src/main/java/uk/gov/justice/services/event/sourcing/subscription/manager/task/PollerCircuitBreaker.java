@@ -1,5 +1,6 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.task;
 
+import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.sourcing.subscription.manager.timer.StreamProcessingConfig;
 import uk.gov.justice.subscription.SourceComponentPair;
 
@@ -21,6 +22,9 @@ public class PollerCircuitBreaker {
     @Inject
     private Logger logger;
 
+    @Inject
+    private UtcClock clock;
+
     public boolean isOpen(final String source, final String component) {
         return getCircuitState(source, component).isOpen();
     }
@@ -31,7 +35,8 @@ public class PollerCircuitBreaker {
 
     public boolean tryTransitionToProbe(final String source, final String component) {
         final CircuitState state = getCircuitState(source, component);
-        return state.tryAcquireProbeSlot(streamProcessingConfig.getCircuitBreakerCoolDownMilliseconds());
+        return state.tryAcquireProbeSlot(currentMillis(), streamProcessingConfig.getCircuitBreakerCoolDownMilliseconds(),
+                source, component, logger);
     }
 
     public void recordSuccess(final String source, final String component) {
@@ -43,7 +48,12 @@ public class PollerCircuitBreaker {
         final CircuitState state = getCircuitState(source, component);
         state.onFailure(source, component,
                 streamProcessingConfig.getCircuitBreakerFailureThreshold(),
+                currentMillis(),
                 logger);
+    }
+
+    private long currentMillis() {
+        return clock.now().toInstant().toEpochMilli();
     }
 
     private CircuitState getCircuitState(String source, String component) {

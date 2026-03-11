@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+# [17.105.0-M12] - 2026-03-011
 ### Added
 - Partial index `stream_status_position_l_latest_known_position` on `stream_status` for pull-based stream selection
 ### Changed

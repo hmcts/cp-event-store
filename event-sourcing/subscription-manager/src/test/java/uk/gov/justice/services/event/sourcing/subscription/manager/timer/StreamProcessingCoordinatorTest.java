@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
+import uk.gov.justice.services.event.sourcing.subscription.manager.task.PollerCircuitBreaker;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerFactory;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerTask;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.WorkerActivityTracker;
@@ -62,6 +63,9 @@ public class StreamProcessingCoordinatorTest {
 
     @Mock
     private WorkerActivityTracker workerActivityTracker;
+
+    @Mock
+    private PollerCircuitBreaker pollerCircuitBreaker;
 
     @Captor
     private ArgumentCaptor<TimerConfig> timerConfigCaptor;
@@ -225,5 +229,37 @@ public class StreamProcessingCoordinatorTest {
 
         verify(logger).error("Failed to coordinate workers for source: {}, component: {}",
                 "source", "component", exception);
+    }
+
+    @Test
+    public void shouldSpawnSingleProbeWorkerWhenCircuitOpenAndCooldownElapsed() {
+        final SourceComponentPair pair = new SourceComponentPair("source", "component");
+        final Timer timer = mock(Timer.class);
+        final StreamProcessingWorkerTask task = mock(StreamProcessingWorkerTask.class);
+
+        when(timer.getInfo()).thenReturn(pair);
+        when(pollerCircuitBreaker.isCircuitTripped("source", "component")).thenReturn(true);
+        when(pollerCircuitBreaker.tryTransitionToProbe("source", "component")).thenReturn(true);
+        when(streamProcessingWorkerFactory.createWorkerTask(pair)).thenReturn(task);
+
+        streamProcessingCoordinator.coordinateWorkers(timer);
+
+        verify(managedExecutorService, times(1)).execute(task);
+        verifyNoInteractions(newStreamStatusRepository);
+    }
+
+    @Test
+    public void shouldNotSpawnWhenCircuitTrippedButProbeCannotBeAcquired() {
+        final SourceComponentPair pair = new SourceComponentPair("source", "component");
+        final Timer timer = mock(Timer.class);
+
+        when(timer.getInfo()).thenReturn(pair);
+        when(pollerCircuitBreaker.isCircuitTripped("source", "component")).thenReturn(true);
+        when(pollerCircuitBreaker.tryTransitionToProbe("source", "component")).thenReturn(false);
+
+        streamProcessingCoordinator.coordinateWorkers(timer);
+
+        verify(managedExecutorService, never()).execute(any(Runnable.class));
+        verifyNoInteractions(newStreamStatusRepository);
     }
 }

@@ -22,23 +22,33 @@ public class PollerCircuitBreaker {
     private Logger logger;
 
     public boolean isOpen(final String source, final String component) {
-        final CircuitState state = circuitMap.computeIfAbsent(
-                new SourceComponentPair(source, component), k -> new CircuitState());
-        return !state.allowRequest(streamProcessingConfig.getCircuitBreakerCoolDownMilliseconds());
+        return getCircuitState(source, component).isOpen();
+    }
+
+    public boolean isCircuitTripped(final String source, final String component) {
+        return getCircuitState(source, component).isTripped();
+    }
+
+    public boolean tryTransitionToProbe(final String source, final String component) {
+        final CircuitState state = getCircuitState(source, component);
+        return state.tryAcquireProbeSlot(streamProcessingConfig.getCircuitBreakerCoolDownMilliseconds());
     }
 
     public void recordSuccess(final String source, final String component) {
-        final CircuitState state = circuitMap.computeIfAbsent(
-                new SourceComponentPair(source, component), k -> new CircuitState());
+        final CircuitState state = getCircuitState(source, component);
         state.onSuccess(source, component, logger);
     }
 
     public void recordFailure(final String source, final String component) {
-        final CircuitState state = circuitMap.computeIfAbsent(
-                new SourceComponentPair(source, component), k -> new CircuitState());
+        final CircuitState state = getCircuitState(source, component);
         state.onFailure(source, component,
                 streamProcessingConfig.getCircuitBreakerFailureThreshold(),
                 logger);
+    }
+
+    private CircuitState getCircuitState(String source, String component) {
+        return circuitMap.computeIfAbsent(
+                new SourceComponentPair(source, component), k -> new CircuitState());
     }
 
 }

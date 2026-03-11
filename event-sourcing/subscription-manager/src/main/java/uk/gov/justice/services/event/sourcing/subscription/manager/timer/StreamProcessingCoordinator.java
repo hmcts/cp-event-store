@@ -2,6 +2,7 @@ package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
 import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
+import uk.gov.justice.services.event.sourcing.subscription.manager.task.PollerCircuitBreaker;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerFactory;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerTask;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.WorkerActivityTracker;
@@ -59,6 +60,9 @@ public class StreamProcessingCoordinator {
     @Inject
     private WorkerActivityTracker workerActivityTracker;
 
+    @Inject
+    private PollerCircuitBreaker pollerCircuitBreaker;
+
     @PostConstruct
     public void startTimerService() {
         if (eventPullConfiguration.shouldProcessEventsByPullMechanism()) {
@@ -87,6 +91,13 @@ public class StreamProcessingCoordinator {
         final SourceComponentPair pair = (SourceComponentPair) timer.getInfo();
 
         try {
+            if (pollerCircuitBreaker.isCircuitTripped(pair.source(), pair.component())) {
+                if (pollerCircuitBreaker.tryTransitionToProbe(pair.source(), pair.component())) {
+                    spawnWorkers(pair, 1);
+                }
+                return;
+            }
+
             final int demand = newStreamStatusRepository.countStreamsHavingEventsToProcess(
                     pair.source(),
                     pair.component(),

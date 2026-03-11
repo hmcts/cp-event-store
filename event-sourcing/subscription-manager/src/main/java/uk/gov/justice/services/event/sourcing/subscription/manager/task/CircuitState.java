@@ -17,19 +17,23 @@ class CircuitState {
         return state.get();
     }
 
-    boolean allowRequest(final long cooldownMillis) {
-        switch (state.get()) {
-            case CLOSED:
-                return true;
-            case OPEN:
-                final long elapsed = System.currentTimeMillis() - openedAtMillis;
-                if (elapsed < cooldownMillis) {
-                    return false;
-                }
-                return state.compareAndSet(State.OPEN, State.HALF_OPEN);
-            default:
-                return false;
+    boolean isOpen() {
+        return state.get() == State.OPEN;
+    }
+
+    boolean isTripped() {
+        return state.get() != State.CLOSED;
+    }
+
+    boolean tryAcquireProbeSlot(final long cooldownMillis) {
+        if (state.get() != State.OPEN) {
+            return false;
         }
+        final long elapsed = System.currentTimeMillis() - openedAtMillis;
+        if (elapsed < cooldownMillis) {
+            return false;
+        }
+        return state.compareAndSet(State.OPEN, State.HALF_OPEN);
     }
 
     void onSuccess(final String source, final String component, final Logger logger) {

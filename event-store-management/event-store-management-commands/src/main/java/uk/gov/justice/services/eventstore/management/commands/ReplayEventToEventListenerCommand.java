@@ -10,4 +10,9 @@ public class ReplayEventToEventListenerCommand extends BaseSystemCommand {
     public ReplayEventToEventListenerCommand() {
         super(REPLAY_EVENT_TO_EVENT_LISTENER, DESCRIPTION);
     }
+
+    @Override
+    public boolean isDisabledByPullMechanism() {
+        return true;
+    }
 }

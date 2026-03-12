@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+### Changed
+- The JMX commands `CATCHUP`, `INDEXER_CATCHUP`, `REPLAY_EVENT_TO_EVENT_INDEXER`, 
+    `REPLAY_EVENT_TO_EVENT_LISTENER` and `VERIFY_CATCHUP` are now disabled if 
+    the pull mechanism is enabled. Calling them will result in a command not found
+
 # [17.105.0-M12] - 2026-03-011
 ### Added
 - Partial index `stream_status_position_l_latest_known_position` on `stream_status` for pull-based stream selection

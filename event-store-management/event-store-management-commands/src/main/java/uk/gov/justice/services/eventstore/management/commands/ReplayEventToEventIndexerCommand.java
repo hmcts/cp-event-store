@@ -10,4 +10,9 @@ public class ReplayEventToEventIndexerCommand extends BaseSystemCommand {
     public ReplayEventToEventIndexerCommand() {
         super(REPLAY_EVENT_TO_EVENT_INDEXER, DESCRIPTION);
     }
+
+    @Override
+    public boolean isDisabledByPullMechanism() {
+        return true;
+    }
 }

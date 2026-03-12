@@ -16,7 +16,12 @@ public class EventCatchupCommandTest {
 
     @Test
     public void shouldBeEventCatchupCommand() throws Exception {
-
         assertThat(eventCatchupCommand.isEventCatchup(), is(true));
     }
+
+    @Test
+    public void shouldBeDisabledByPullMechanism() throws Exception {
+        assertThat(new VerifyCatchupCommand().isDisabledByPullMechanism(), is(true));
+    }
+
 }

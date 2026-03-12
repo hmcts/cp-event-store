@@ -10,4 +10,9 @@ public interface CatchupCommand extends SystemCommand {
     default boolean isEventCatchup() {
         return CATCHUP.equals(getName());
     }
+
+    @Override
+    default boolean isDisabledByPullMechanism() {
+        return true;
+    }
 }

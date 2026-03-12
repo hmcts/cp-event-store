@@ -10,4 +10,9 @@ public class IndexerCatchupCommand extends BaseSystemCommand implements CatchupC
     public IndexerCatchupCommand() {
         super(INDEXER_CATCHUP, DESCRIPTION);
     }
+
+    @Override
+    public boolean isDisabledByPullMechanism() {
+        return true;
+    }
 }

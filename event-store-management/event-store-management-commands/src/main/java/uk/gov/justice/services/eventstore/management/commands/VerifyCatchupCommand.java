@@ -10,4 +10,9 @@ public class VerifyCatchupCommand extends BaseSystemCommand implements Verificat
     public VerifyCatchupCommand() {
         super(VERIFY_CATCHUP, DESCRIPTION);
     }
+
+    @Override
+    public boolean isDisabledByPullMechanism() {
+        return true;
+    }
 }

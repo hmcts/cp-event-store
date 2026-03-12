@@ -11,4 +11,9 @@ public class VerifyCatchupCommandTest {
     public void shouldBeCatchupVerification() throws Exception {
         assertThat(new VerifyCatchupCommand().isCatchupVerification(), is(true));
     }
+
+    @Test
+    public void shouldBeDisabledByPullMechanism() throws Exception {
+        assertThat(new VerifyCatchupCommand().isDisabledByPullMechanism(), is(true));
+    }
 }

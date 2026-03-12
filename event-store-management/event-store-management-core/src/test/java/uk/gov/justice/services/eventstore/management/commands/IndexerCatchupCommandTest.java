@@ -16,7 +16,11 @@ public class IndexerCatchupCommandTest {
 
     @Test
     public void shouldBeIndexerCatchupCommand() throws Exception {
-
         assertThat(indexerCatchupCommand.isEventCatchup(), is(false));
+    }
+
+    @Test
+    public void shouldBeDisabledByPullMechanism() throws Exception {
+        assertThat(new VerifyCatchupCommand().isDisabledByPullMechanism(), is(true));
     }
 }

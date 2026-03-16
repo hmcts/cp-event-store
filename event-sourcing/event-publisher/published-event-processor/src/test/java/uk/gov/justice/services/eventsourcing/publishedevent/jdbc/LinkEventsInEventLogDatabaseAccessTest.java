@@ -1,33 +1,27 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
-import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.INSERT_EVENT_INTO_PUBLISH_QUEUE_QUERY;
+import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.SELECT_BATCH_OF_UNLINKED_EVENT_IDS;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.SELECT_HIGHEST_LINKED_EVENT_NUMBER_SQL;
-import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.SELECT_NEXT_UNLINKED_EVENT_ID;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.UPDATE_EVENT_NUMBERS_FOR_EVENT;
 
 import org.slf4j.Logger;
 import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -55,269 +49,117 @@ public class LinkEventsInEventLogDatabaseAccessTest {
     private LinkEventsInEventLogDatabaseAccess linkEventsInEventLogDatabaseAccess;
 
     @Test
-    public void shouldAddEventNumbersToEventToLink() throws Exception {
-
-        final UUID eventId = randomUUID();
-        final Long eventNumber = 42L;
-        final Long previousEventNumber = 41L;
+    public void shouldGetEventStoreConnection() throws Exception {
 
         final DataSource dataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
         when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
         when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(UPDATE_EVENT_NUMBERS_FOR_EVENT)).thenReturn(preparedStatement);
 
-        linkEventsInEventLogDatabaseAccess.linkEvent(eventId, eventNumber, previousEventNumber);
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-
-        inOrder.verify(preparedStatement).setLong(1, eventNumber);
-        inOrder.verify(preparedStatement).setLong(2, previousEventNumber);
-        inOrder.verify(preparedStatement).setObject(3, eventId);
-        inOrder.verify(preparedStatement).executeUpdate();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
+        assertThat(linkEventsInEventLogDatabaseAccess.getEventStoreConnection(), is(connection));
     }
 
     @Test
-    public void shouldThrowEventPublishingExceptionIfAddingEventNumbersToEventFails() throws Exception {
-
-        final SQLException sqlException = new SQLException("Ooops");
-
-        final UUID eventId = fromString("717cb318-ee4f-4959-ad11-5eff7aca88b4");
-        final Long eventNumber = 42L;
-        final Long previousEventNumber = 41L;
-
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(UPDATE_EVENT_NUMBERS_FOR_EVENT)).thenReturn(preparedStatement);
-        doThrow(sqlException).when(preparedStatement).executeUpdate();
-
-        final EventPublishingException eventPublishingException = assertThrows(
-                EventPublishingException.class,
-                () -> linkEventsInEventLogDatabaseAccess.linkEvent(eventId, eventNumber, previousEventNumber));
-
-        assertThat(eventPublishingException.getCause(), is(sqlException));
-        assertThat(eventPublishingException.getMessage(), is("Failed to link event in event_log table. eventId '717cb318-ee4f-4959-ad11-5eff7aca88b4' eventNumber 42, previousEventNumber 41"));
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-
-        inOrder.verify(preparedStatement).setLong(1, eventNumber);
-        inOrder.verify(preparedStatement).setLong(2, previousEventNumber);
-        inOrder.verify(preparedStatement).setObject(3, eventId);
-        inOrder.verify(preparedStatement).executeUpdate();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
-    @Test
-    public void shouldGetHighestEventNumberFromEventLogTable() throws Exception {
+    public void shouldFindCurrentHighestEventNumberUsingProvidedConnection() throws Exception {
 
         final Long highestEventNumber = 42L;
-
-        final DataSource dataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
         final ResultSet resultSet = mock(ResultSet.class);
 
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
         when(connection.prepareStatement(SELECT_HIGHEST_LINKED_EVENT_NUMBER_SQL)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true);
         when(resultSet.getLong(1)).thenReturn(highestEventNumber);
 
-        assertThat(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable(), is(highestEventNumber));
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
+        assertThat(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable(connection), is(highestEventNumber));
     }
 
     @Test
-    public void shouldReturnHighestEventNumberOfZeroIfNoEventsFoundInEventLogTable() throws Exception {
+    public void shouldReturnZeroIfNoEventsFound() throws Exception {
 
-        final DataSource dataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
         final ResultSet resultSet = mock(ResultSet.class);
 
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
         when(connection.prepareStatement(SELECT_HIGHEST_LINKED_EVENT_NUMBER_SQL)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(false);
 
-        assertThat(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable(), is(0L));
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
+        assertThat(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable(connection), is(0L));
     }
 
     @Test
-    public void shouldThrowEventPublishingExceptionIfGettingHighestEventNumberFromEventLogTableFails() throws Exception {
+    public void shouldFindBatchOfNextEventIdsToLink() throws Exception {
 
-        final SQLException sqlException = new SQLException("Ooops");
-
-        final DataSource dataSource = mock(DataSource.class);
+        final UUID eventId1 = randomUUID();
+        final UUID eventId2 = randomUUID();
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
         final ResultSet resultSet = mock(ResultSet.class);
 
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(SELECT_HIGHEST_LINKED_EVENT_NUMBER_SQL)).thenReturn(preparedStatement);
+        when(connection.prepareStatement(SELECT_BATCH_OF_UNLINKED_EVENT_IDS)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
-        when(resultSet.next()).thenThrow(sqlException);
+        when(resultSet.next()).thenReturn(true, true, false);
+        when(resultSet.getObject(1, UUID.class)).thenReturn(eventId1, eventId2);
 
-        final EventPublishingException eventPublishingException = assertThrows(
-                EventPublishingException.class,
-                () -> linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable());
+        final List<UUID> result = linkEventsInEventLogDatabaseAccess.findBatchOfNextEventIdsToLink(connection, 10);
 
-        assertThat(eventPublishingException.getCause(), is(sqlException));
-        assertThat(eventPublishingException.getMessage(), is("Failed to find highest event number in event log table"));
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
+        assertThat(result.size(), is(2));
+        assertThat(result.get(0), is(eventId1));
+        assertThat(result.get(1), is(eventId2));
+        verify(preparedStatement).setInt(1, 10);
     }
 
     @Test
-    public void shouldFindIdOfNextEventToLink() throws Exception {
+    public void shouldLinkEventsBatchUsingJdbcBatch() throws Exception {
 
-        final UUID eventId = randomUUID();
-        final DataSource dataSource = mock(DataSource.class);
+        final UUID eventId1 = randomUUID();
+        final UUID eventId2 = randomUUID();
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-        final ResultSet resultSet = mock(ResultSet.class);
 
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(SELECT_NEXT_UNLINKED_EVENT_ID)).thenReturn(preparedStatement);
-        when(preparedStatement.executeQuery()).thenReturn(resultSet);
-        when(resultSet.next()).thenReturn(true);
-        when(resultSet.getObject(1, UUID.class)).thenReturn(eventId);
+        when(connection.prepareStatement(UPDATE_EVENT_NUMBERS_FOR_EVENT)).thenReturn(preparedStatement);
 
-        assertThat(linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink(), is(of(eventId)));
+        final List<LinkedEventData> linkDataList = List.of(
+                new LinkedEventData(eventId1, 1L, 0L),
+                new LinkedEventData(eventId2, 2L, 1L)
+        );
 
-        final InOrder inOrder = inOrder(resultSet, preparedStatement, connection);
-        inOrder.verify(resultSet).close();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
+        linkEventsInEventLogDatabaseAccess.linkEventsBatch(connection, linkDataList);
+
+        final InOrder inOrder = inOrder(preparedStatement);
+        inOrder.verify(preparedStatement).setLong(1, 1L);
+        inOrder.verify(preparedStatement).setLong(2, 0L);
+        inOrder.verify(preparedStatement).setObject(3, eventId1);
+        inOrder.verify(preparedStatement).addBatch();
+        inOrder.verify(preparedStatement).setLong(1, 2L);
+        inOrder.verify(preparedStatement).setLong(2, 1L);
+        inOrder.verify(preparedStatement).setObject(3, eventId2);
+        inOrder.verify(preparedStatement).addBatch();
+        inOrder.verify(preparedStatement).executeBatch();
     }
 
     @Test
-    public void shouldReturnEmptyIfNoEventsToLinkFound() throws Exception {
+    public void shouldInsertBatchIntoPublishQueue() throws Exception {
 
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-        final ResultSet resultSet = mock(ResultSet.class);
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(SELECT_NEXT_UNLINKED_EVENT_ID)).thenReturn(preparedStatement);
-        when(preparedStatement.executeQuery()).thenReturn(resultSet);
-        when(resultSet.next()).thenReturn(false);
-
-        assertThat(linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink(), is(empty()));
-
-        final InOrder inOrder = inOrder(resultSet, preparedStatement, connection);
-        inOrder.verify(resultSet).close();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
-    @Test
-    public void shouldThrowEventPublishingExceptionIfFindingIdOfNextEventToLinkFails() throws Exception {
-
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-        final ResultSet resultSet = mock(ResultSet.class);
-        final SQLException sqlException = new SQLException("Ooops");
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(SELECT_NEXT_UNLINKED_EVENT_ID)).thenReturn(preparedStatement);
-        when(preparedStatement.executeQuery()).thenReturn(resultSet);
-        when(resultSet.next()).thenReturn(true);
-        when(resultSet.getObject(1, UUID.class)).thenThrow(sqlException);
-
-        final EventPublishingException eventPublishingException = assertThrows(
-                EventPublishingException.class,
-                () -> linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink());
-
-        assertThat(eventPublishingException.getCause(), is(sqlException));
-        assertThat(eventPublishingException.getMessage(), is("Failed find event id to link"));
-
-        final InOrder inOrder = inOrder(resultSet, preparedStatement, connection);
-        inOrder.verify(resultSet).close();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
-    @Test
-    public void shouldInsertLinkedEventIntoPublishQueue() throws Exception {
-
-        final UUID eventId = randomUUID();
+        final UUID eventId1 = randomUUID();
+        final UUID eventId2 = randomUUID();
         final ZonedDateTime now = new UtcClock().now();
-        final Timestamp nowAsTimestamp = toSqlTimestamp(now);
-
-        final DataSource dataSource = mock(DataSource.class);
         final Connection connection = mock(Connection.class);
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
 
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
         when(connection.prepareStatement(INSERT_EVENT_INTO_PUBLISH_QUEUE_QUERY)).thenReturn(preparedStatement);
         when(clock.now()).thenReturn(now);
 
-        linkEventsInEventLogDatabaseAccess.insertLinkedEventIntoPublishQueue(eventId);
+        linkEventsInEventLogDatabaseAccess.insertBatchIntoPublishQueue(connection, List.of(eventId1, eventId2));
 
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-        inOrder.verify(preparedStatement).setObject(1, eventId);
-        inOrder.verify(preparedStatement).setTimestamp(2, nowAsTimestamp);
-        inOrder.verify(preparedStatement).executeUpdate();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
-    }
-
-    @Test
-    public void shouldThrowEventPublishingExceptionIfInsertingLinkedEventIntoPublishQueueFails() throws Exception {
-
-        final UUID eventId = fromString("ca7e3fb7-e9d4-49f7-b4b4-700556ed0347");
-        final ZonedDateTime now = new UtcClock().now();
-        final SQLException sqlException = new SQLException("Oops");
-
-        final DataSource dataSource = mock(DataSource.class);
-        final Connection connection = mock(Connection.class);
-        final PreparedStatement preparedStatement = mock(PreparedStatement.class);
-
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(dataSource);
-        when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.prepareStatement(INSERT_EVENT_INTO_PUBLISH_QUEUE_QUERY)).thenReturn(preparedStatement);
-        when(clock.now()).thenReturn(now);
-
-        doThrow(sqlException).when(preparedStatement).executeUpdate();
-
-        final EventPublishingException eventPublishingException = assertThrows(
-                EventPublishingException.class,
-                () -> linkEventsInEventLogDatabaseAccess.insertLinkedEventIntoPublishQueue(eventId));
-
-        assertThat(eventPublishingException.getCause(), is(sqlException));
-        assertThat(eventPublishingException.getMessage(), is("Failed to insert linked event into publish_queue table. eventId: 'ca7e3fb7-e9d4-49f7-b4b4-700556ed0347'"));
-
-        final InOrder inOrder = inOrder(preparedStatement, connection);
-        inOrder.verify(preparedStatement).executeUpdate();
-        inOrder.verify(preparedStatement).close();
-        inOrder.verify(connection).close();
+        final InOrder inOrder = inOrder(preparedStatement);
+        inOrder.verify(preparedStatement).setObject(1, eventId1);
+        inOrder.verify(preparedStatement).addBatch();
+        inOrder.verify(preparedStatement).setObject(1, eventId2);
+        inOrder.verify(preparedStatement).addBatch();
+        inOrder.verify(preparedStatement).executeBatch();
     }
 }

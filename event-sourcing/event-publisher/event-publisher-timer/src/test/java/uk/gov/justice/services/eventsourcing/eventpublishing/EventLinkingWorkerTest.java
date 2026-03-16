@@ -22,33 +22,33 @@ public class EventLinkingWorkerTest {
     private EventLinkingWorker eventLinkingWorker;
 
     @Test
-    public void shouldLinkNewEventsUntilNoMoreUnlinkedEventsAreFound() throws Exception {
+    public void shouldLinkBatchesUntilNoneLinked() throws Exception {
 
         final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = mock(SufficientTimeRemainingCalculator.class);
 
         when(sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()).thenReturn(true);
-        when(eventNumberLinker.findAndAndLinkNextUnlinkedEvent()).thenReturn(true, true, false);
+        when(eventNumberLinker.findAndLinkEventsInBatch()).thenReturn(10, 5, 0);
 
         eventLinkingWorker.linkNewEvents(sufficientTimeRemainingCalculator);
 
-        verify(eventNumberLinker, times(3)).findAndAndLinkNextUnlinkedEvent();
+        verify(eventNumberLinker, times(3)).findAndLinkEventsInBatch();
     }
 
     @Test
-    public void shouldContinueLinkingEventsUntilMaxTimeIsExceeded() throws Exception {
+    public void shouldStopLinkingWhenTimeIsExceeded() throws Exception {
 
         final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = mock(SufficientTimeRemainingCalculator.class);
 
         when(sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()).thenReturn(true, true, false);
-        when(eventNumberLinker.findAndAndLinkNextUnlinkedEvent()).thenReturn(true);
+        when(eventNumberLinker.findAndLinkEventsInBatch()).thenReturn(10);
 
         eventLinkingWorker.linkNewEvents(sufficientTimeRemainingCalculator);
 
-        verify(eventNumberLinker, times(2)).findAndAndLinkNextUnlinkedEvent();
+        verify(eventNumberLinker, times(2)).findAndLinkEventsInBatch();
     }
 
     @Test
-    public void shouldNotProcessNextEventIfNoSufficientProcessingTimeRemaining() throws Exception {
+    public void shouldNotProcessIfNoSufficientTimeRemaining() throws Exception {
 
         final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = mock(SufficientTimeRemainingCalculator.class);
 
@@ -56,6 +56,6 @@ public class EventLinkingWorkerTest {
 
         eventLinkingWorker.linkNewEvents(sufficientTimeRemainingCalculator);
 
-        verify(eventNumberLinker, never()).findAndAndLinkNextUnlinkedEvent();
+        verify(eventNumberLinker, never()).findAndLinkEventsInBatch();
     }
 }

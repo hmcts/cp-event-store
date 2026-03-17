@@ -9,10 +9,11 @@ public class EventLinkingWorker {
 
     public void linkNewEvents(final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator) {
 
-        boolean continueRunning = true;
-        while (continueRunning) {
-            continueRunning = sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()
-                              && eventNumberLinker.findAndAndLinkNextUnlinkedEvent();
+        while (sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()) {
+            final int linked = eventNumberLinker.findAndLinkEventsInBatch();
+            if (linked == 0) {
+                break;
+            }
         }
     }
 }

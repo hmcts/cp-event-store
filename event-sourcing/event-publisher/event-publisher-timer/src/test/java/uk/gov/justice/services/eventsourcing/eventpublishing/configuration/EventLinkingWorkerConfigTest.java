@@ -56,6 +56,16 @@ public class EventLinkingWorkerConfigTest {
     }
 
     @Test
+    public void shouldGetBatchSize() throws Exception {
+
+        final int batchSize = 20;
+
+        setField(eventLinkingWorkerConfig, "batchSize", "" + batchSize);
+
+        assertThat(eventLinkingWorkerConfig.getBatchSize(), is(batchSize));
+    }
+
+    @Test
     public void shouldGetTransactionTimeoutSeconds() throws Exception {
 
         final int timeoutSeconds = 120;

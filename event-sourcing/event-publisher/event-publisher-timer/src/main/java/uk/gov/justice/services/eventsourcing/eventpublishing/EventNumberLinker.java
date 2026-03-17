@@ -1,6 +1,8 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing;
 
-import java.util.Optional;
+import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.transaction.UserTransaction;
@@ -8,11 +10,13 @@ import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.Event
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.AdvisoryLockDataAccess;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.CompatibilityModePublishedEventRepository;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventNumberLinkingException;
+import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkedEventData;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess;
 
 public class EventNumberLinker {
 
     static final Long ADVISORY_LOCK_KEY = 42L;
+    public static final int NO_EVENT_LINKED = 0;
 
     @Inject
     private LinkEventsInEventLogDatabaseAccess linkEventsInEventLogDatabaseAccess;
@@ -29,41 +33,63 @@ public class EventNumberLinker {
     @Inject
     private UserTransaction userTransaction;
 
-    public boolean findAndAndLinkNextUnlinkedEvent() {
+    /**
+     * Finds and links up to batchSize unlinked events in a single JTA transaction.
+     * Uses a single connection for all operations and JDBC batch for writes.
+     *
+     * @return the number of events linked (0 means no work)
+     */
+    public int findAndLinkEventsInBatch() {
 
-        try {
+        final int batchSize = eventLinkingWorkerConfig.getBatchSize();
+
+        try (final Connection connection = linkEventsInEventLogDatabaseAccess.getEventStoreConnection()) {
             final int transactionTimeoutSeconds = eventLinkingWorkerConfig.getTransactionTimeoutSeconds();
             final int localStatementTimeoutSeconds = eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds();
             userTransaction.setTransactionTimeout(transactionTimeoutSeconds);
             userTransaction.begin();
-            linkEventsInEventLogDatabaseAccess.setStatementTimeoutOnCurrentTransaction(localStatementTimeoutSeconds);
 
-            // obtain advisory lock if available
-            if(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(ADVISORY_LOCK_KEY)) {
-                final Optional<UUID> idOfNextEventToLink = linkEventsInEventLogDatabaseAccess.findIdOfNextEventToLink();
+            linkEventsInEventLogDatabaseAccess.setStatementTimeoutOnCurrentTransaction(connection, localStatementTimeoutSeconds);
 
-                if (idOfNextEventToLink.isPresent()) {
-                    final Long previousEventNumber = linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable();
-                    final Long newEventNumber = previousEventNumber + 1;
-                    final UUID eventId = idOfNextEventToLink.get();
+            // Acquire advisory lock (releases on commit/rollback)
+            if (!advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(connection, ADVISORY_LOCK_KEY)) {
+                userTransaction.rollback();
+                return NO_EVENT_LINKED;
+            }
 
-                    linkEventsInEventLogDatabaseAccess.linkEvent(eventId, newEventNumber, previousEventNumber);
-                    linkEventsInEventLogDatabaseAccess.insertLinkedEventIntoPublishQueue(eventId);
+            // Find batch of unlinked event IDs
+            final List<UUID> eventIds = linkEventsInEventLogDatabaseAccess.findBatchOfNextEventIdsToLink(connection, batchSize);
 
-                    // Temporary. To be removed once the migration to the new publishing is released
-                    // and published_event table is deleted
-                    if(eventLinkingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable()) {
-                        compatibilityModePublishedEventRepository.insertIntoPublishedEvent(eventId, newEventNumber, previousEventNumber);
-                        compatibilityModePublishedEventRepository.setEventNumberSequenceTo(newEventNumber);
-                    }
+            if (eventIds.isEmpty()) {
+                userTransaction.rollback();
+                return NO_EVENT_LINKED;
+            }
 
-                    userTransaction.commit();
-                    return true;
-                }
+            // Get current highest event number (once per batch)
+            long eventNumber = linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable(connection);
+
+            // Build batch link data
+            final List<LinkedEventData> linkDataList = new ArrayList<>(eventIds.size());
+            for (final UUID eventId : eventIds) {
+                final long previousEventNumber = eventNumber;
+                eventNumber = previousEventNumber + 1;
+                linkDataList.add(new LinkedEventData(eventId, eventNumber, previousEventNumber));
+            }
+
+            // Execute as JDBC batch (2 round-trips instead of 2N)
+            linkEventsInEventLogDatabaseAccess.linkEventsBatch(connection, linkDataList);
+            linkEventsInEventLogDatabaseAccess.insertBatchIntoPublishQueue(connection, eventIds);
+
+            // Temporary. To be removed once the migration to the new publishing is released
+            // and published_event table is deleted
+            if (eventLinkingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable()) {
+                compatibilityModePublishedEventRepository.insertBatchIntoPublishedEvent(connection, linkDataList);
+                compatibilityModePublishedEventRepository.setEventNumberSequenceTo(connection, eventNumber);
             }
 
             userTransaction.commit();
-            return false;
+
+            return eventIds.size();
 
         } catch (final Exception e) {
             try {
@@ -71,7 +97,7 @@ public class EventNumberLinker {
             } catch (final Exception ignored) {
                 //ignore
             }
-            throw new EventNumberLinkingException("Exception occurred while linking event number", e);
+            throw new EventNumberLinkingException("Exception occurred while linking events in batch", e);
         }
     }
 }

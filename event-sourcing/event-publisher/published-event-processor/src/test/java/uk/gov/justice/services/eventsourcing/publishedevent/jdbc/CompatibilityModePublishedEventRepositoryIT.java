@@ -1,17 +1,12 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
-import static java.util.Optional.of;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 import static uk.gov.justice.services.messaging.spi.DefaultJsonMetadata.metadataBuilder;
 
-import uk.gov.justice.services.common.converter.StringToJsonObjectConverter;
 import uk.gov.justice.services.common.util.UtcClock;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
-import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.test.utils.persistence.DatabaseCleaner;
 import uk.gov.justice.services.test.utils.persistence.FrameworkTestDataSourceFactory;
@@ -24,207 +19,104 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import javax.json.JsonObject;
-import javax.json.JsonValue;
 import javax.sql.DataSource;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 public class CompatibilityModePublishedEventRepositoryIT {
+
     private final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
 
-    private final StringToJsonObjectConverter stringToJsonObjectConverter = new StringToJsonObjectConverter();
-
-    @Mock
-    private EventStoreDataSourceProvider eventStoreDataSourceProvider;
-
-    @InjectMocks
-    private CompatibilityModePublishedEventRepository compatibilityModePublishedEventRepository;
+    private final CompatibilityModePublishedEventRepository compatibilityModePublishedEventRepository = new CompatibilityModePublishedEventRepository();
 
     @BeforeEach
-    public void cleanEventLogTables() throws Exception {
+    public void cleanEventLogTables() {
         new DatabaseCleaner().cleanEventStoreTables("framework");
     }
 
     @Test
-    public void shouldInsertEnvelopeIntoPublishedEventTable() throws Exception {
+    public void shouldInsertBatchIntoPublishedEventTable() throws Exception {
 
-        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
-        final UUID eventId = randomUUID();
-        final UUID streamId = randomUUID();
-        final String name = "some-event-name";
-        final Long eventNumber = 23L;
-        final Long previousEventNumber = 22L;
-        final long positionInStream = 234L;
-        final String payloadAsJson = "{}";
+        final UUID eventId1 = randomUUID();
+        final UUID eventId2 = randomUUID();
         final ZonedDateTime createdAt = new UtcClock().now();
 
-        final Metadata metadata = metadataBuilder()
-                .withId(eventId)
-                .withName(name)
-                .withStreamId(streamId)
-                .createdAt(createdAt)
-                .withPosition(positionInStream)
-                .build();
+        insertEventIntoEventLog(eventId1, randomUUID(), 1L, "event-1", 1L, 0L, createdAt);
+        insertEventIntoEventLog(eventId2, randomUUID(), 1L, "event-2", 2L, 1L, createdAt.plusSeconds(1));
 
-        final Metadata metadataWithEventNumbers = metadataBuilder().withId(eventId)
-                .withName(name)
-                .withStreamId(streamId)
-                .withEventNumber(eventNumber)
-                .withPreviousEventNumber(previousEventNumber)
-                .createdAt(createdAt)
-                .withPosition(positionInStream)
-                .build();
+        final List<LinkedEventData> linkDataList = List.of(
+                new LinkedEventData(eventId1, 1L, 0L),
+                new LinkedEventData(eventId2, 2L, 1L)
+        );
 
-        insertEvent(eventId, streamId, positionInStream, name, eventNumber, previousEventNumber, metadata.asJsonObject().toString(), createdAt, payloadAsJson);
+        try (final Connection connection = eventStoreDataSource.getConnection()) {
+            compatibilityModePublishedEventRepository.insertBatchIntoPublishedEvent(connection, linkDataList);
+        }
 
-        compatibilityModePublishedEventRepository.insertIntoPublishedEvent(eventId, eventNumber, previousEventNumber);
-
-        final List<LinkedEvent> foundEvents = compatibilityModePublishedEventRepository.findAll();
-
-        assertThat(foundEvents.size(), is(1));
-
-        final JsonObject actualMetadata = stringToJsonObjectConverter.convert(foundEvents.get(0).getMetadata());
-        assertThat(foundEvents.get(0).getId(), is(eventId));
-        assertThat(foundEvents.get(0).getStreamId(), is(streamId));
-        assertThat(foundEvents.get(0).getPositionInStream(), is(positionInStream));
-        assertThat(foundEvents.get(0).getName(), is(name));
-        assertThat(actualMetadata, is(metadataWithEventNumbers.asJsonObject()));
-        assertThat(foundEvents.get(0).getPayload(), is(payloadAsJson));
-        assertThat(foundEvents.get(0).getCreatedAt(), is(createdAt));
-        assertThat(foundEvents.get(0).getEventNumber(), is(of(eventNumber)));
-        assertThat(foundEvents.get(0).getPreviousEventNumber(), is(previousEventNumber));
+        assertThat(countPublishedEvents(), is(2));
     }
 
     @Test
-    public void shouldHandleJsonNullPayload() throws Exception {
-
-        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
-        final UUID eventId = randomUUID();
-        final UUID streamId = randomUUID();
-        final String name = "some-event-name";
-        final Long eventNumber = 23L;
-        final Long previousEventNumber = 22L;
-        final long positionInStream = 234L;
-        final ZonedDateTime createdAt = new UtcClock().now();
-
-        final Metadata metadata = metadataBuilder()
-                .withId(eventId)
-                .withName(name)
-                .withStreamId(streamId)
-                .createdAt(createdAt)
-                .withPosition(positionInStream)
-                .build();
-
-        final Metadata metadataWithEventNumbers = metadataBuilder().withId(eventId)
-                .withName(name)
-                .withStreamId(streamId)
-                .withEventNumber(eventNumber)
-                .withPreviousEventNumber(previousEventNumber)
-                .createdAt(createdAt)
-                .withPosition(positionInStream)
-                .withEventNumber(eventNumber)
-                .withPreviousEventNumber(previousEventNumber)
-                .build();
-
-        insertEvent(eventId, streamId, positionInStream, name, eventNumber, previousEventNumber, metadata.asJsonObject().toString(), createdAt, JsonValue.NULL.toString());
-
-        compatibilityModePublishedEventRepository.insertIntoPublishedEvent(eventId, eventNumber, previousEventNumber);
-
-        final List<LinkedEvent> foundEvents = compatibilityModePublishedEventRepository.findAll();
-
-        assertThat(foundEvents.size(), is(1));
-
-        final JsonObject actualMetadata = stringToJsonObjectConverter.convert(foundEvents.get(0).getMetadata());
-        assertThat(foundEvents.get(0).getId(), is(eventId));
-        assertThat(foundEvents.get(0).getStreamId(), is(streamId));
-        assertThat(foundEvents.get(0).getPositionInStream(), is(positionInStream));
-        assertThat(foundEvents.get(0).getName(), is(name));
-        assertThat(actualMetadata, is(metadataWithEventNumbers.asJsonObject()));
-        assertThat(foundEvents.get(0).getPayload(), is("null"));
-        assertThat(foundEvents.get(0).getCreatedAt(), is(createdAt));
-        assertThat(foundEvents.get(0).getEventNumber(), is(of(eventNumber)));
-        assertThat(foundEvents.get(0).getPreviousEventNumber(), is(previousEventNumber));
-    }
-
-    @Test
-    public void shouldSetTheEventNumberSequenceToTheCurrentEvenNumber() throws Exception {
-
-        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
+    public void shouldSetEventNumberSequenceUsingProvidedConnection() throws Exception {
 
         final Long currentSequenceNumber = getCurrentSequenceNumber();
-        final Long newSequenceNumber = currentSequenceNumber + 23;
+        final Long newSequenceNumber = currentSequenceNumber + 42;
 
-        compatibilityModePublishedEventRepository.setEventNumberSequenceTo(newSequenceNumber);
+        try (final Connection connection = eventStoreDataSource.getConnection()) {
+            compatibilityModePublishedEventRepository.setEventNumberSequenceTo(connection, newSequenceNumber);
+        }
 
         assertThat(getCurrentSequenceNumber(), is(newSequenceNumber));
+    }
 
-        compatibilityModePublishedEventRepository.setEventNumberSequenceTo(currentSequenceNumber);
-        assertThat(getCurrentSequenceNumber(), is(currentSequenceNumber));
-
+    private int countPublishedEvents() throws SQLException {
+        try (final Connection connection = eventStoreDataSource.getConnection();
+             final PreparedStatement ps = connection.prepareStatement("SELECT COUNT(*) FROM published_event");
+             final ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getInt(1) : 0;
+        }
     }
 
     private Long getCurrentSequenceNumber() throws SQLException {
-
-        final String sql = """
-                SELECT last_value FROM event_sequence_seq;
-                """;
-        final DataSource eventStoreDataSource = new FrameworkTestDataSourceFactory().createEventStoreDataSource();
-        try(final Connection connection = eventStoreDataSource.getConnection();
-            final PreparedStatement preparedStatement = connection.prepareStatement(sql);
-            final ResultSet resultSet = preparedStatement.executeQuery()) {
-
-            if (resultSet.next()) {
-                return resultSet.getLong(1);
+        try (final Connection connection = eventStoreDataSource.getConnection();
+             final PreparedStatement ps = connection.prepareStatement("SELECT last_value FROM event_sequence_seq");
+             final ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getLong(1);
             }
-
             throw new RuntimeException("Failed to get last value from 'event_sequence_seq' sequence");
         }
     }
 
-    private void insertEvent(final UUID eventId, final UUID streamId, final long position, final String name, final Long eventNumber, final Long previousEventNumber,
-                             final String metadata, final ZonedDateTime createdAt, final String payload) throws Exception {
+    private void insertEventIntoEventLog(final UUID eventId, final UUID streamId, final long position,
+                                          final String name, final Long eventNumber, final Long previousEventNumber,
+                                          final ZonedDateTime createdAt) throws Exception {
+        final Metadata metadata = metadataBuilder()
+                .withId(eventId)
+                .withName(name)
+                .withStreamId(streamId)
+                .createdAt(createdAt)
+                .withPosition(position)
+                .build();
 
         final String sql = """
-                INSERT INTO event_log (
-                    id,
-                    stream_id,
-                    position_in_stream,
-                    name,
-                    payload,
-                    metadata,
-                    date_created,
-                    event_number,
-                    previous_event_number)
-                VALUES (?, ?, ?, ?,  ?, ?, ?, ?, ?)
+                INSERT INTO event_log (id, stream_id, position_in_stream, name, payload, metadata, date_created, event_number, previous_event_number)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (final Connection connection = eventStoreDataSource.getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-
-            preparedStatement.setObject(1, eventId);
-            preparedStatement.setObject(2, streamId);
-            preparedStatement.setLong(3, position);
-            preparedStatement.setString(4, name);
-            preparedStatement.setString(5, payload);
-            preparedStatement.setString(6, metadata);
-            preparedStatement.setTimestamp(7, toSqlTimestamp(createdAt));
-            preparedStatement.setLong(8, eventNumber);
-            preparedStatement.setLong(9, previousEventNumber);
-
-            preparedStatement.execute();
+             final PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setObject(1, eventId);
+            ps.setObject(2, streamId);
+            ps.setLong(3, position);
+            ps.setString(4, name);
+            ps.setString(5, "{}");
+            ps.setString(6, metadata.asJsonObject().toString());
+            ps.setTimestamp(7, toSqlTimestamp(createdAt));
+            ps.setLong(8, eventNumber);
+            ps.setLong(9, previousEventNumber);
+            ps.execute();
         }
     }
 }

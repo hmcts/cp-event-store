@@ -68,4 +68,22 @@ public class AdvisoryLockDataAccess {
             throw new AdvisoryLockException(format("Failed to obtain non-blocking advisory lock on database with lock key '%d'", advisoryLockId), e);
         }
     }
+
+    public boolean tryNonBlockingTransactionLevelAdvisoryLock(final Connection connection, final Long advisoryLockId) {
+
+        try (final PreparedStatement lockPreparedStatement = connection.prepareStatement(NON_BLOCKING_TRANSACTION_LEVEL_ADVISORY_LOCK_SQL)) {
+            lockPreparedStatement.setLong(1, advisoryLockId);
+
+            try (final ResultSet resultSet = lockPreparedStatement.executeQuery()) {
+
+                if (resultSet.next()) {
+                    return resultSet.getBoolean(1);
+                }
+
+                throw new AdvisoryLockException(format("Unable to obtain non-blocking advisory lock for id '%d'. No result returned when obtaining lock", advisoryLockId));
+            }
+        } catch (final SQLException e) {
+            throw new AdvisoryLockException(format("Failed to obtain non-blocking advisory lock on database with lock key '%d'", advisoryLockId), e);
+        }
+    }
 }

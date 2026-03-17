@@ -93,8 +93,6 @@ public class LinkEventsInEventLogDatabaseAccessIT {
     @Test
     public void shouldLinkEventsBatchAndInsertBatchIntoPublishQueue() throws Exception {
 
-        when(eventStoreDataSourceProvider.getDefaultDataSource()).thenReturn(eventStoreDataSource);
-
         final UUID eventId1 = randomUUID();
         final UUID eventId2 = randomUUID();
 

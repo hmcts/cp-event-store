@@ -4,6 +4,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+### [17.104.1-M1]  - 2026-03-17
+### Changed
 - Batch event linking: `EventNumberLinker` now links N events per JTA transaction using JDBC `executeBatch()`, 
   configurable via JNDI `event.linking.worker.batch.size` (default 10)
 

@@ -23,6 +23,10 @@ public class EventLinkingWorkerConfig {
     private String timeBetweenRunsMilliseconds;
 
     @Inject
+    @Value(key = "event.linking.worker.batch.size", defaultValue = "10")
+    private String batchSize;
+
+    @Inject
     @Value(key = "event.linking.worker.transaction.timeout.seconds", defaultValue = DEFAULT_TIMEOUT_SECONDS)
     private String transactionTimeoutSeconds;
 
@@ -40,6 +44,10 @@ public class EventLinkingWorkerConfig {
 
     public long getTimeBetweenRunsMilliseconds() {
         return parseLong(timeBetweenRunsMilliseconds);
+    }
+
+    public int getBatchSize() {
+        return parseInt(batchSize);
     }
 
     public int getTransactionTimeoutSeconds() {

@@ -5,7 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import javax.inject.Inject;
 import org.slf4j.Logger;
@@ -13,9 +14,6 @@ import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.eventsourcing.publishedevent.EventPublishingException;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 
-import static java.lang.String.format;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 public class LinkEventsInEventLogDatabaseAccess {
@@ -33,12 +31,12 @@ public class LinkEventsInEventLogDatabaseAccess {
                 FROM event_log
                 """;
 
-    static final String SELECT_NEXT_UNLINKED_EVENT_ID = """
+    static final String SELECT_BATCH_OF_UNLINKED_EVENT_IDS = """
                 SELECT id
                 FROM event_log
                 WHERE event_number IS NULL
                 ORDER BY date_created
-                LIMIT 1
+                LIMIT ?
                 """;
 
     static final String INSERT_EVENT_INTO_PUBLISH_QUEUE_QUERY = """
@@ -56,29 +54,24 @@ public class LinkEventsInEventLogDatabaseAccess {
     @Inject
     private UtcClock clock;
 
-    public void linkEvent(final UUID eventId, final Long eventNumber, final Long previousEventNumber) {
-
-        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_EVENT_NUMBERS_FOR_EVENT)) {
-            preparedStatement.setLong(1, eventNumber);
-            preparedStatement.setLong(2, previousEventNumber);
-            preparedStatement.setObject(3, eventId);
-            preparedStatement.executeUpdate();
-
+    public Connection getEventStoreConnection() {
+        try {
+            return eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
         } catch (final SQLException e) {
-            throw new EventPublishingException(
-                    format("Failed to link event in event_log table. eventId '%s' eventNumber %d, previousEventNumber %d",
-                            eventId,
-                            eventNumber,
-                            previousEventNumber),
-                    e);
+            throw new EventPublishingException("Failed to get event store connection", e);
         }
     }
 
-    public Long findCurrentHighestEventNumberInEventLogTable() {
+    public void setStatementTimeoutOnCurrentTransaction(final Connection connection, final int statementTimeoutInSecs) {
+        try (final Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("SET LOCAL statement_timeout = '" + statementTimeoutInSecs + "s'");
+        } catch (final SQLException e) {
+            logger.info("Failed to set local statement timeout (safe to ignore)", e);
+        }
+    }
 
-        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_HIGHEST_LINKED_EVENT_NUMBER_SQL);
+    public Long findCurrentHighestEventNumberInEventLogTable(final Connection connection) {
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_HIGHEST_LINKED_EVENT_NUMBER_SQL);
              final ResultSet resultSet = preparedStatement.executeQuery()) {
 
             if (resultSet.next()) {
@@ -92,43 +85,46 @@ public class LinkEventsInEventLogDatabaseAccess {
         }
     }
 
-    public Optional<UUID> findIdOfNextEventToLink() {
+    public List<UUID> findBatchOfNextEventIdsToLink(final Connection connection, final int batchSize) {
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BATCH_OF_UNLINKED_EVENT_IDS)) {
+            preparedStatement.setInt(1, batchSize);
 
-        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_NEXT_UNLINKED_EVENT_ID);
-             final ResultSet resultSet = preparedStatement.executeQuery()) {
-
-            if (resultSet.next()) {
-                return of(resultSet.getObject(1, UUID.class));
+            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                final List<UUID> eventIds = new ArrayList<>(batchSize);
+                while (resultSet.next()) {
+                    eventIds.add(resultSet.getObject(1, UUID.class));
+                }
+                return eventIds;
             }
-
-            return empty();
         } catch (final SQLException e) {
-            throw new EventPublishingException("Failed find event id to link", e);
+            throw new EventPublishingException("Failed to find batch of event ids to link", e);
         }
     }
 
-    public void setStatementTimeoutOnCurrentTransaction(int statementTimeoutInSecs) {
-
-        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate("SET LOCAL statement_timeout = '" + statementTimeoutInSecs + "s'");
+    public void linkEventsBatch(final Connection connection, final List<LinkedEventData> linkDataList) {
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_EVENT_NUMBERS_FOR_EVENT)) {
+            for (final LinkedEventData linkData : linkDataList) {
+                preparedStatement.setLong(1, linkData.eventNumber());
+                preparedStatement.setLong(2, linkData.previousEventNumber());
+                preparedStatement.setObject(3, linkData.eventId());
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
         } catch (final SQLException e) {
-            logger.info("Failed to set local statement timeout (safe to ignore)", e);
+            throw new EventPublishingException("Failed to batch link events in event_log table", e);
         }
     }
 
-    public void insertLinkedEventIntoPublishQueue(final UUID eventId) {
-
-        try (final Connection connection = eventStoreDataSourceProvider.getDefaultDataSource().getConnection();
-             final PreparedStatement preparedStatement = connection.prepareStatement(INSERT_EVENT_INTO_PUBLISH_QUEUE_QUERY)) {
-
-            preparedStatement.setObject(1, eventId);
-            preparedStatement.setTimestamp(2, toSqlTimestamp(clock.now()));
-            preparedStatement.executeUpdate();
-
+    public void insertBatchIntoPublishQueue(final Connection connection, final List<UUID> eventIds) {
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(INSERT_EVENT_INTO_PUBLISH_QUEUE_QUERY)) {
+            for (final UUID eventId : eventIds) {
+                preparedStatement.setObject(1, eventId);
+                preparedStatement.setTimestamp(2, toSqlTimestamp(clock.now()));
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
         } catch (final SQLException e) {
-            throw new EventPublishingException(format("Failed to insert linked event into publish_queue table. eventId: '%s'", eventId), e);
+            throw new EventPublishingException("Failed to batch insert events into publish_queue table", e);
         }
     }
 }

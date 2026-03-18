@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+### [17.105.0-M15]  - 2026-03-18
+### Changed
+- Batch event linking: `EventNumberLinker` now links N events per JTA transaction using JDBC `executeBatch()`,
+  configurable via JNDI `event.linking.worker.batch.size` (default 10)
+
 # [17.105.0-M14] - 2026-03-013
 ### Changed
 - The JMX commands `CATCHUP`, `INDEXER_CATCHUP`, `REPLAY_EVENT_TO_EVENT_INDEXER`, 

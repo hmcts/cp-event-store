@@ -1,25 +1,30 @@
-package uk.gov.justice.services.eventsourcing.publishedevent.publishing;
+package uk.gov.justice.services.eventsourcing.publishedevent.prepublish;
 
 import org.slf4j.Logger;
-import uk.gov.justice.services.eventsourcing.publishedevent.publish.PublishedEventDeQueuerAndPublisher;
+import uk.gov.justice.services.eventsourcing.publishedevent.publishing.EventPublishingNotifier;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
 
 import javax.annotation.Resource;
 import javax.ejb.Singleton;
 import javax.enterprise.concurrent.ManagedExecutorService;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
-public class EventPublishingNotifier {
+public class PrePublishNotifier {
 
     @Inject
     private Logger logger;
 
     @Inject
-    private PublishedEventDeQueuerAndPublisher publishedEventDeQueuerAndPublisher;
+    private PrePublishProcessor prePublishProcessor;
 
     @Inject
-    private PublisherTimerConfig publisherTimerConfig;
+    private PrePublisherTimerConfig prePublisherTimerConfig;
+
+    @Inject
+    private EventPublishingNotifier eventPublishingNotifier;
 
     @Resource
     private ManagedExecutorService managedExecutorService;
@@ -27,13 +32,18 @@ public class EventPublishingNotifier {
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final Object monitor = new Object();
 
+
+    public void onEventAppendedEvent(@Observes final EventAppendedEvent eventAppendedEvent) {
+        this.wakeUp(false);
+    }
+
     public void wakeUp(boolean startIfStopped) {
         if (startIfStopped && started.compareAndSet(false, true)) {
             try {
                 managedExecutorService.submit(this::runWithInterruptable);
             } catch (final Exception e) {
                 started.set(false);
-                logger.error("Failed to start event publishing notifier thread", e);
+                logger.error("Failed to start pre-publish notifier thread", e);
             }
         }
         synchronized (monitor) {
@@ -43,26 +53,27 @@ public class EventPublishingNotifier {
 
     private void runWithInterruptable() {
         try {
-            long currentBackoff = publisherTimerConfig.getBackoffMinMilliseconds();
+            long currentBackoff = prePublisherTimerConfig.getBackoffMinMilliseconds();
 
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    if (publishedEventDeQueuerAndPublisher.deQueueAndPublish()) {
-                        currentBackoff = publisherTimerConfig.getBackoffMinMilliseconds();
+                    if (prePublishProcessor.prePublishNextEvent()) {
+                        currentBackoff = prePublisherTimerConfig.getBackoffMinMilliseconds();
+                        eventPublishingNotifier.wakeUp(false);
                     } else {
                         synchronized (monitor) {
                             monitor.wait(currentBackoff);
                         }
                         currentBackoff = Math.min(
-                                (long) (currentBackoff * publisherTimerConfig.getBackoffMultiplier()),
-                                publisherTimerConfig.getBackoffMaxMilliseconds()
+                                (long) (currentBackoff * prePublisherTimerConfig.getBackoffMultiplier()),
+                                prePublisherTimerConfig.getBackoffMaxMilliseconds()
                         );
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (Exception e) {
-                    logger.error("Error in event publishing notifier loop", e);
+                    logger.error("Error in pre-publish notifier loop", e);
                     try {
                         synchronized (monitor) {
                             monitor.wait(currentBackoff);
@@ -72,14 +83,14 @@ public class EventPublishingNotifier {
                         break;
                     }
                     currentBackoff = Math.min(
-                            (long) (currentBackoff * publisherTimerConfig.getBackoffMultiplier()),
-                            publisherTimerConfig.getBackoffMaxMilliseconds()
+                            (long) (currentBackoff * prePublisherTimerConfig.getBackoffMultiplier()),
+                            prePublisherTimerConfig.getBackoffMaxMilliseconds()
                     );
                 }
             }
         } finally {
             started.set(false);
-            logger.info("Event publishing notifier thread exited, will restart on next timer tick");
+            logger.info("Pre-publish notifier thread exited, will restart on next timer tick");
         }
     }
 }

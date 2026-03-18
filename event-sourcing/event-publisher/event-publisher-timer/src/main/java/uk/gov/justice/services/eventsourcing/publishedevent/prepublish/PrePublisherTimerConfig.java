@@ -30,19 +30,19 @@ public class PrePublisherTimerConfig extends NotifierWorkerConfig {
     private String disablePrePublish;
 
     @Inject
-    @Value(key = "event.linking.worker.notified", defaultValue = "false")
+    @Value(key = "pre.publish.worker.notified", defaultValue = "false")
     private String eventLinkerNotified;
 
     @Inject
-    @Value(key = "event.linking.worker.backoff.min.milliseconds", defaultValue = "5")
+    @Value(key = "pre.publish.worker.backoff.min.milliseconds", defaultValue = "5")
     private String backoffMinMilliseconds;
 
     @Inject
-    @Value(key = "event.linking.worker.backoff.max.milliseconds", defaultValue = "100")
+    @Value(key = "pre.publish.worker.backoff.max.milliseconds", defaultValue = "100")
     private String backoffMaxMilliseconds;
 
     @Inject
-    @Value(key = "event.linking.worker.backoff.multiplier", defaultValue = "1.5")
+    @Value(key = "pre.publish.worker.backoff.multiplier", defaultValue = "1.5")
     private String backoffMultiplier;
 
     public long getTimerStartWaitMilliseconds() {

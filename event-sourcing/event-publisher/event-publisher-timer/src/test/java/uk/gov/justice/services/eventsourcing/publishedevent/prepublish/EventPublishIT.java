@@ -199,7 +199,7 @@ public class EventPublishIT {
             OversizeMessageGuard.class,
             JmsMessagingConfiguration.class,
             ValueProducer.class,
-            EventLinkingNotifier.class,
+            PrePublishNotifier.class,
             EventPublishingNotifier.class
     })
     public WebApp war() {

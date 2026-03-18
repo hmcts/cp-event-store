@@ -29,7 +29,7 @@ public class PrePublisherTimerBean {
     private AsynchronousPrePublisher asynchronousPrePublisher;
 
     @Inject
-    private EventLinkingNotifier eventLinkingNotifier;
+    private PrePublishNotifier prePublishNotifier;
 
     @PostConstruct
     public void startTimerService() {
@@ -46,7 +46,7 @@ public class PrePublisherTimerBean {
 
         if (! prePublisherTimerConfig.isDisabled()) {
             if (prePublisherTimerConfig.shouldWorkerNotified())
-                eventLinkingNotifier.wakeUp(true);
+                prePublishNotifier.wakeUp(true);
             else {
                 asynchronousPrePublisher.performPrePublish();
             }

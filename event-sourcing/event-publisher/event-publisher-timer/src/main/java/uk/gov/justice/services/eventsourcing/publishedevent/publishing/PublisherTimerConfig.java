@@ -36,15 +36,15 @@ public class PublisherTimerConfig extends NotifierWorkerConfig {
     private String eventPublisherNotified;
 
     @Inject
-    @Value(key = "event.linking.worker.backoff.min.milliseconds", defaultValue = "5")
+    @Value(key = "event.publishing.worker.backoff.min.milliseconds", defaultValue = "5")
     private String backoffMinMilliseconds;
 
     @Inject
-    @Value(key = "event.linking.worker.backoff.max.milliseconds", defaultValue = "100")
+    @Value(key = "event.publishing.worker.backoff.max.milliseconds", defaultValue = "100")
     private String backoffMaxMilliseconds;
 
     @Inject
-    @Value(key = "event.linking.worker.backoff.multiplier", defaultValue = "1.5")
+    @Value(key = "event.publishing.worker.backoff.multiplier", defaultValue = "1.5")
     private String backoffMultiplier;
 
     public long getTimerStartWaitMilliseconds() {

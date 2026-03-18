@@ -32,7 +32,7 @@ public class EventAppendTriggerService {
     private Logger logger;
 
     @Inject
-    @Value(key = "event.linking.worker.notified", defaultValue = "false")
+    @Value(key = "pre.publish.worker.notified", defaultValue = "false")
     private String eventLinkerNotified;
 
     private boolean shouldWorkerNotified;

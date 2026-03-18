@@ -5,9 +5,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 ## Added
-- Proactive event linking and publishing based on observable events enabled via jndi configurations
-  - event.linking.worker.notified
-  - event.publishing.worker.notified
+- Notification-based event linking and publishing via CDI events, enabled via JNDI:
+  - pre.publish.worker.notified (linking)
+  - event.publishing.worker.notified (publishing)
+- Bug fixes: dead notifier thread recovery, submit() failure handling
   
 # [17.103.7] - 2025-12-09
 ### Changed

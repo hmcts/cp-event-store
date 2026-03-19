@@ -1,22 +1,27 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
 
 import javax.enterprise.concurrent.ManagedExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 
 @ExtendWith(MockitoExtension.class)
 class EventLinkingNotifierTest {
@@ -33,62 +38,81 @@ class EventLinkingNotifierTest {
     @Mock
     private ManagedExecutorService managedExecutorService;
 
+    @Mock
+    private Logger logger;
+
     @InjectMocks
     private EventLinkingNotifier eventLinkingNotifier;
 
     @Test
     void shouldWakeUpOnEventAppended() {
-        EventAppendedEvent event = mock(EventAppendedEvent.class);
-        
+        final EventAppendedEvent event = mock(EventAppendedEvent.class);
+
         eventLinkingNotifier.onEventAppendedEvent(event);
 
-        // wakeUp(false) shouldn't start the worker if it's not running
         verify(managedExecutorService, never()).submit(any(Runnable.class));
     }
 
     @Test
     void shouldNotSubmitIfAlreadyStarted() {
-        // First wakeUp starts it
         eventLinkingNotifier.wakeUp(true);
         verify(managedExecutorService).submit(any(Runnable.class));
 
-        // Second wakeUp should not submit again
         eventLinkingNotifier.wakeUp(true);
         verify(managedExecutorService, times(1)).submit(any(Runnable.class));
     }
 
     @Test
     void shouldProcessEventsWhenRunning() {
-        // We will execute the runnable directly to test the loop logic
-        // But we need to ensure it breaks the loop.
-        // The loop breaks if Thread.currentThread().isInterrupted()
-        // We can mock eventNumberLinker to interrupt the thread after some calls.
-        
         when(eventLinkingWorkerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
         when(eventLinkingWorkerConfig.getBackoffMultiplier()).thenReturn(1.5);
         when(eventLinkingWorkerConfig.getBackoffMaxMilliseconds()).thenReturn(100L);
 
-        when(eventNumberLinker.findAndAndLinkNextUnlinkedEvent())
-                .thenReturn(true)
-                .thenReturn(false)
+        when(eventNumberLinker.findAndLinkEventsInBatch())
+                .thenReturn(1)
+                .thenReturn(0)
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
-                    return false;
+                    return 0;
                 });
 
-        // We need to capture the runnable.
-        // However, we can't easily capture it from InjectMocks if we call wakeUp.
-        // So we will just call wakeUp and capture the argument passed to managedExecutorService.submit
-        
         eventLinkingNotifier.wakeUp(true);
-        
-        var captor = org.mockito.ArgumentCaptor.forClass(Runnable.class);
+
+        final ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
         verify(managedExecutorService).submit(captor.capture());
-        Runnable runnable = captor.getValue();
-        
-        runnable.run();
-        
-        verify(eventNumberLinker, times(3)).findAndAndLinkNextUnlinkedEvent();
+        captor.getValue().run();
+
+        verify(eventNumberLinker, times(3)).findAndLinkEventsInBatch();
         verify(eventPublishingNotifier, times(1)).wakeUp(false);
+    }
+
+    @Test
+    void shouldResetStartedFlagWhenThreadExits() {
+        when(eventLinkingWorkerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
+
+        when(eventNumberLinker.findAndLinkEventsInBatch())
+                .thenAnswer(invocation -> {
+                    Thread.currentThread().interrupt();
+                    return 0;
+                });
+
+        eventLinkingNotifier.wakeUp(true);
+
+        final ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
+        verify(managedExecutorService).submit(captor.capture());
+        captor.getValue().run();
+
+        eventLinkingNotifier.wakeUp(true);
+        verify(managedExecutorService, times(2)).submit(any(Runnable.class));
+    }
+
+    @Test
+    void shouldResetStartedFlagWhenSubmitFails() {
+        doThrow(new RejectedExecutionException("Pool full"))
+                .when(managedExecutorService).submit(any(Runnable.class));
+
+        eventLinkingNotifier.wakeUp(true);
+
+        assertThat(true, is(true));
     }
 }

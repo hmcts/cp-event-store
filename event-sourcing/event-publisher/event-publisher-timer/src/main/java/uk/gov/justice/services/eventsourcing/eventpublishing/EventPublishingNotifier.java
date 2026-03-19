@@ -1,19 +1,21 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventPublishingWorkerConfig;
 
 import javax.annotation.Resource;
 import javax.ejb.Singleton;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.inject.Inject;
+
+import org.slf4j.Logger;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class EventPublishingNotifier {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(EventPublishingNotifier.class);
+    @Inject
+    private Logger logger;
 
     @Inject
     private LinkedEventPublisher linkedEventPublisher;
@@ -27,9 +29,14 @@ public class EventPublishingNotifier {
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final Object monitor = new Object();
 
-    public void wakeUp(boolean startIfStopped) {
+    public void wakeUp(final boolean startIfStopped) {
         if (startIfStopped && started.compareAndSet(false, true)) {
-            managedExecutorService.submit(this::runWithInterruptable);
+            try {
+                managedExecutorService.submit(this::runWithInterruptable);
+            } catch (final Exception e) {
+                started.set(false);
+                logger.error("Failed to start event publishing notifier thread", e);
+            }
         }
         synchronized (monitor) {
             monitor.notifyAll();
@@ -37,41 +44,42 @@ public class EventPublishingNotifier {
     }
 
     private void runWithInterruptable() {
-        long currentBackoff = eventPublishingWorkerConfig.getBackoffMinMilliseconds();
+        try {
+            long currentBackoff = eventPublishingWorkerConfig.getBackoffMinMilliseconds();
 
-        while (!Thread.currentThread().isInterrupted()) {
-            try {
-                if (linkedEventPublisher.publishNextNewEvent()) {
-                    currentBackoff = eventPublishingWorkerConfig.getBackoffMinMilliseconds();
-                } else {
-                    synchronized (monitor) {
-                        monitor.wait(currentBackoff);
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    if (linkedEventPublisher.publishNextNewEvent()) {
+                        currentBackoff = eventPublishingWorkerConfig.getBackoffMinMilliseconds();
+                    } else {
+                        synchronized (monitor) {
+                            monitor.wait(currentBackoff);
+                        }
+                        currentBackoff = Math.min(
+                                (long) (currentBackoff * eventPublishingWorkerConfig.getBackoffMultiplier()),
+                                eventPublishingWorkerConfig.getBackoffMaxMilliseconds()
+                        );
+                    }
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (final Exception e) {
+                    logger.error("Error in event publishing notifier loop", e);
+                    try {
+                        synchronized (monitor) {
+                            monitor.wait(currentBackoff);
+                        }
+                    } catch (final InterruptedException ie) {
+                        Thread.currentThread().interrupt();
                     }
                     currentBackoff = Math.min(
                             (long) (currentBackoff * eventPublishingWorkerConfig.getBackoffMultiplier()),
                             eventPublishingWorkerConfig.getBackoffMaxMilliseconds()
                     );
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                LOGGER.info("EventPublishingWorker interrupted, stopping.");
-                break;
-            } catch (Exception e) {
-                LOGGER.error("Error in EventPublishingWorker loop", e);
-                // Ensure we don't spin in a tight loop on error
-                try {
-                    synchronized (monitor) {
-                        monitor.wait(currentBackoff);
-                    }
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-                currentBackoff = Math.min(
-                        (long) (currentBackoff * eventPublishingWorkerConfig.getBackoffMultiplier()),
-                        eventPublishingWorkerConfig.getBackoffMaxMilliseconds()
-                );
             }
+        } finally {
+            started.set(false);
+            logger.info("Event publishing notifier thread exited, will restart on next timer tick");
         }
     }
 }

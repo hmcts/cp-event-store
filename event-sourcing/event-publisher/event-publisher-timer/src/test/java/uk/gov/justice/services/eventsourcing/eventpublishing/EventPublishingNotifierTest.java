@@ -1,7 +1,5 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -15,7 +13,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
-import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventPublishingWorkerConfig;
 
 import javax.enterprise.concurrent.ManagedExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -25,9 +22,6 @@ class EventPublishingNotifierTest {
 
     @Mock
     private LinkedEventPublisher linkedEventPublisher;
-
-    @Mock
-    private EventPublishingWorkerConfig eventPublishingWorkerConfig;
 
     @Mock
     private ManagedExecutorService managedExecutorService;
@@ -56,13 +50,8 @@ class EventPublishingNotifierTest {
 
     @Test
     void shouldProcessEventsWhenRunning() {
-        when(eventPublishingWorkerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
-        when(eventPublishingWorkerConfig.getBackoffMultiplier()).thenReturn(1.5);
-        when(eventPublishingWorkerConfig.getBackoffMaxMilliseconds()).thenReturn(100L);
-
         when(linkedEventPublisher.publishNextNewEvent())
                 .thenReturn(true)
-                .thenReturn(false)
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
                     return false;
@@ -74,13 +63,11 @@ class EventPublishingNotifierTest {
         verify(managedExecutorService).submit(captor.capture());
         captor.getValue().run();
 
-        verify(linkedEventPublisher, times(3)).publishNextNewEvent();
+        verify(linkedEventPublisher, times(2)).publishNextNewEvent();
     }
 
     @Test
     void shouldResetStartedFlagWhenThreadExits() {
-        when(eventPublishingWorkerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
-
         when(linkedEventPublisher.publishNextNewEvent())
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
@@ -104,6 +91,8 @@ class EventPublishingNotifierTest {
 
         eventPublishingNotifier.wakeUp(true);
 
-        assertThat(true, is(true));
+        verify(managedExecutorService).submit(any(Runnable.class));
+        eventPublishingNotifier.wakeUp(true);
+        verify(managedExecutorService, times(2)).submit(any(Runnable.class));
     }
 }

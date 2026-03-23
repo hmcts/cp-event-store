@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.INSERT_EVENT_INTO_PUBLISH_QUEUE_QUERY;
-import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.SELECT_BATCH_OF_UNLINKED_EVENT_IDS;
+import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.SELECT_BATCH_OF_UNLINKED_EVENTS;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.SELECT_HIGHEST_LINKED_EVENT_NUMBER_SQL;
 import static uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess.UPDATE_EVENT_NUMBERS_FOR_EVENT;
 
@@ -99,16 +99,21 @@ public class LinkEventsInEventLogDatabaseAccessTest {
         final PreparedStatement preparedStatement = mock(PreparedStatement.class);
         final ResultSet resultSet = mock(ResultSet.class);
 
-        when(connection.prepareStatement(SELECT_BATCH_OF_UNLINKED_EVENT_IDS)).thenReturn(preparedStatement);
+        final UUID streamId1 = randomUUID();
+        final UUID streamId2 = randomUUID();
+
+        when(connection.prepareStatement(SELECT_BATCH_OF_UNLINKED_EVENTS)).thenReturn(preparedStatement);
         when(preparedStatement.executeQuery()).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(true, true, false);
-        when(resultSet.getObject(1, UUID.class)).thenReturn(eventId1, eventId2);
+        when(resultSet.getObject("id", UUID.class)).thenReturn(eventId1, eventId2);
+        when(resultSet.getObject("stream_id", UUID.class)).thenReturn(streamId1, streamId2);
+        when(resultSet.getLong("position_in_stream")).thenReturn(1L, 2L);
 
-        final List<UUID> result = linkEventsInEventLogDatabaseAccess.findBatchOfNextEventIdsToLink(connection, 10);
+        final List<EventDetailsToLink> result = linkEventsInEventLogDatabaseAccess.findBatchOfNextEventsToLink(connection, 10);
 
         assertThat(result.size(), is(2));
-        assertThat(result.get(0), is(eventId1));
-        assertThat(result.get(1), is(eventId2));
+        assertThat(result.get(0).eventId(), is(eventId1));
+        assertThat(result.get(1).eventId(), is(eventId2));
         verify(preparedStatement).setInt(1, 10);
     }
 

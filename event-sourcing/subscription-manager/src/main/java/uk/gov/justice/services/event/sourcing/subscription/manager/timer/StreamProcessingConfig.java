@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import uk.gov.justice.services.common.configuration.Value;
+import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.services.common.util.LazyValue;
 
 import static java.lang.Boolean.parseBoolean;
@@ -23,6 +24,14 @@ public class StreamProcessingConfig {
     private final LazyValue accessEventStoreViaRestLazyValue = new LazyValue();
     private final LazyValue circuitBreakerFailureThresholdLazyValue = new LazyValue();
     private final LazyValue circuitBreakerCoolDownLazyValue = new LazyValue();
+    private final LazyValue discoveryNotifiedLazyValue = new LazyValue();
+
+    @Inject
+    private EventPullConfiguration eventPullConfiguration;
+
+    @Inject
+    @Value(key = "stream.processing.discovery.notified", defaultValue = "false")
+    private String discoveryNotified;
 
     @Inject
     @Value(key = "stream.processing.timer.start.wait.milliseconds", defaultValue = "7250")
@@ -102,5 +111,10 @@ public class StreamProcessingConfig {
 
     public long getCircuitBreakerCoolDownMilliseconds() {
         return circuitBreakerCoolDownLazyValue.createIfAbsent(() -> parseLong(circuitBreakerCoolDownMilliseconds));
+    }
+
+    public boolean shouldDiscoveryNotified() {
+        return eventPullConfiguration.shouldProcessEventsByPullMechanism()
+                && discoveryNotifiedLazyValue.createIfAbsent(() -> parseBoolean(discoveryNotified));
     }
 }

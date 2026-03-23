@@ -83,10 +83,10 @@ public class LinkEventsInEventLogDatabaseAccessIT {
         insertUnlinkedEventIntoEventLogTable(eventId3, oneMinuteAgo.plusSeconds(4), 4);
 
         try (final Connection connection = eventStoreDataSource.getConnection()) {
-            final List<UUID> result = linkEventsInEventLogDatabaseAccess.findBatchOfNextEventIdsToLink(connection, 2);
+            final List<EventDetailsToLink> result = linkEventsInEventLogDatabaseAccess.findBatchOfNextEventsToLink(connection, 2);
             assertThat(result.size(), is(2));
-            assertThat(result.get(0), is(eventId1));
-            assertThat(result.get(1), is(eventId2));
+            assertThat(result.get(0).eventId(), is(eventId1));
+            assertThat(result.get(1).eventId(), is(eventId2));
         }
     }
 

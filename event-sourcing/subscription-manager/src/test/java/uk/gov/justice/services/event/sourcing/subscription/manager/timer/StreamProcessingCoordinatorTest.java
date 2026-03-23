@@ -15,6 +15,7 @@ import uk.gov.justice.services.event.sourcing.subscription.manager.task.PollerCi
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerFactory;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerTask;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.WorkerActivityTracker;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamEventsDiscoveredEvent;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
@@ -261,5 +262,42 @@ public class StreamProcessingCoordinatorTest {
 
         verify(managedExecutorService, never()).execute(any(Runnable.class));
         verifyNoInteractions(newStreamStatusRepository);
+    }
+
+    @Test
+    public void shouldSpawnOneWorkerOnStreamEventsDiscoveredWhenNoActiveWorkers() {
+        final StreamEventsDiscoveredEvent event = new StreamEventsDiscoveredEvent("source", "component");
+        final StreamProcessingWorkerTask task = mock(StreamProcessingWorkerTask.class);
+
+        when(streamProcessingConfig.shouldDiscoveryNotified()).thenReturn(true);
+        when(workerActivityTracker.getActiveCount(new SourceComponentPair("source", "component"))).thenReturn(0);
+        when(streamProcessingWorkerFactory.createWorkerTask(new SourceComponentPair("source", "component"))).thenReturn(task);
+
+        streamProcessingCoordinator.onStreamEventsDiscovered(event);
+
+        verify(managedExecutorService, times(1)).execute(task);
+    }
+
+    @Test
+    public void shouldNotSpawnWorkerOnStreamEventsDiscoveredWhenWorkersAlreadyActive() {
+        final StreamEventsDiscoveredEvent event = new StreamEventsDiscoveredEvent("source", "component");
+
+        when(streamProcessingConfig.shouldDiscoveryNotified()).thenReturn(true);
+        when(workerActivityTracker.getActiveCount(new SourceComponentPair("source", "component"))).thenReturn(3);
+
+        streamProcessingCoordinator.onStreamEventsDiscovered(event);
+
+        verify(managedExecutorService, never()).execute(any(Runnable.class));
+    }
+
+    @Test
+    public void shouldDoNothingOnStreamEventsDiscoveredWhenDiscoveryNotifiedIsDisabled() {
+        final StreamEventsDiscoveredEvent event = new StreamEventsDiscoveredEvent("source", "component");
+
+        when(streamProcessingConfig.shouldDiscoveryNotified()).thenReturn(false);
+
+        streamProcessingCoordinator.onStreamEventsDiscovered(event);
+
+        verifyNoInteractions(workerActivityTracker, managedExecutorService);
     }
 }

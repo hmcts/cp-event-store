@@ -50,6 +50,9 @@ public class EventStreamManager {
     @Inject
     private EventSourceNameProvider eventSourceNameProvider;
 
+    @Inject
+    private EventAppendTriggerService eventAppendTriggerService;
+
     /**
      * Get the stream of events.
      *
@@ -74,7 +77,7 @@ public class EventStreamManager {
     /**
      * Get the stream of events from the given version.
      *
-     * @param id      the UUID of the stream
+     * @param id       the UUID of the stream
      * @param position the version of the stream,
      * @param pageSize the size of the page in the result set
      * @return the stream of events
@@ -136,6 +139,7 @@ public class EventStreamManager {
                 }
             }
         }
+        eventAppendTriggerService.registerTransactionListener();
         return currentVersion;
     }
 
@@ -221,6 +225,7 @@ public class EventStreamManager {
         for (final JsonEnvelope event : envelopeList) {
             publishingEventAppender.append(event, id, ++currentPosition, eventSourceNameProvider.getDefaultEventSourceName());
         }
+        eventAppendTriggerService.registerTransactionListener();
         return currentPosition;
     }
 

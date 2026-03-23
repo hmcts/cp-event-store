@@ -1,7 +1,5 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing;
 
-import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventPublishingWorkerConfig;
-
 import javax.annotation.Resource;
 import javax.ejb.Singleton;
 import javax.enterprise.concurrent.ManagedExecutorService;
@@ -9,10 +7,13 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class EventPublishingNotifier {
+
+    private static final Object SIGNAL = new Object();
 
     @Inject
     private Logger logger;
@@ -20,14 +21,11 @@ public class EventPublishingNotifier {
     @Inject
     private LinkedEventPublisher linkedEventPublisher;
 
-    @Inject
-    private EventPublishingWorkerConfig eventPublishingWorkerConfig;
-
     @Resource
     private ManagedExecutorService managedExecutorService;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
-    private final Object monitor = new Object();
+    private final ArrayBlockingQueue<Object> workSignal = new ArrayBlockingQueue<>(1);
 
     public void wakeUp(final boolean startIfStopped) {
         if (startIfStopped && started.compareAndSet(false, true)) {
@@ -38,43 +36,19 @@ public class EventPublishingNotifier {
                 logger.error("Failed to start event publishing notifier thread", e);
             }
         }
-        synchronized (monitor) {
-            monitor.notifyAll();
-        }
+        workSignal.offer(SIGNAL);
     }
 
     private void runWithInterruptable() {
         try {
-            long currentBackoff = eventPublishingWorkerConfig.getBackoffMinMilliseconds();
-
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    if (linkedEventPublisher.publishNextNewEvent()) {
-                        currentBackoff = eventPublishingWorkerConfig.getBackoffMinMilliseconds();
-                    } else {
-                        synchronized (monitor) {
-                            monitor.wait(currentBackoff);
-                        }
-                        currentBackoff = Math.min(
-                                (long) (currentBackoff * eventPublishingWorkerConfig.getBackoffMultiplier()),
-                                eventPublishingWorkerConfig.getBackoffMaxMilliseconds()
-                        );
-                    }
+                    workSignal.take();
+                    while (linkedEventPublisher.publishNextNewEvent()) {}
                 } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
                 } catch (final Exception e) {
                     logger.error("Error in event publishing notifier loop", e);
-                    try {
-                        synchronized (monitor) {
-                            monitor.wait(currentBackoff);
-                        }
-                    } catch (final InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
-                    currentBackoff = Math.min(
-                            (long) (currentBackoff * eventPublishingWorkerConfig.getBackoffMultiplier()),
-                            eventPublishingWorkerConfig.getBackoffMaxMilliseconds()
-                    );
                 }
             }
         } finally {

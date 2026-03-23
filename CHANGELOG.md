@@ -4,7 +4,12 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
-
+## Added
+- Notification-based event linking and publishing via CDI events, enabled via JNDI:
+  - pre.publish.worker.notified (linking)
+  - event.publishing.worker.notified (publishing)
+- Bug fixes: dead notifier thread recovery, submit() failure handling
+  
 # [17.103.7] - 2025-12-09
 ### Changed
 - Used JsonFactory instead of Json.create methods

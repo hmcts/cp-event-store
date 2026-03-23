@@ -76,4 +76,14 @@ public class PrePublisherTimerConfigTest {
 
         assertThat(prePublisherTimerConfig.isDisabled(), is(true));
     }
+
+    @Test
+    public void shouldReturnTrueIfWorkerNotified() throws Exception {
+
+        setField(prePublisherTimerConfig, "eventLinkerNotified", "true");
+        assertThat(prePublisherTimerConfig.shouldWorkerNotified(), is(true));
+
+        setField(prePublisherTimerConfig, "eventLinkerNotified", "false");
+        assertThat(prePublisherTimerConfig.shouldWorkerNotified(), is(false));
+    }
 }

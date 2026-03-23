@@ -15,6 +15,7 @@ import static uk.gov.justice.services.test.utils.core.messaging.JsonEnvelopeBuil
 import static uk.gov.justice.services.test.utils.core.messaging.MetadataBuilderFactory.metadataWithRandomUUID;
 import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.getValueOfField;
 
+import org.apache.openejb.core.SimpleTransactionSynchronizationRegistry;
 import uk.gov.justice.domain.aggregate.Aggregate;
 import uk.gov.justice.domain.aggregate.TestAggregate;
 import uk.gov.justice.domain.aggregate.classloader.CustomClassLoaderObjectInputStreamStrategy;
@@ -53,6 +54,7 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueuesDataAc
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventConverter;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventJdbcRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.eventstream.EventStreamJdbcRepository;
+import uk.gov.justice.services.eventsourcing.source.core.EventAppendTriggerService;
 import uk.gov.justice.services.eventsourcing.source.core.EventAppender;
 import uk.gov.justice.services.eventsourcing.source.core.EventSource;
 import uk.gov.justice.services.eventsourcing.source.core.EventSourceNameProvider;
@@ -109,6 +111,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.naming.InitialContext;
+import javax.transaction.TransactionManager;
+import javax.transaction.TransactionSynchronizationRegistry;
 
 import org.apache.openejb.jee.WebApp;
 import org.apache.openejb.junit5.RunWithApplicationComposer;
@@ -218,6 +222,8 @@ public class SnapshotAwareAggregateServiceIT {
             EventStreamJdbcRepository.class,
             MaxRetryProvider.class,
             EventSourceNameProvider.class,
+            TestSimpleTransactionSynchronizationRegistry.class,
+            EventAppendTriggerService.class,
             EventStreamManager.class,
 
             JndiAppNameProvider.class,
@@ -260,7 +266,6 @@ public class SnapshotAwareAggregateServiceIT {
 
     @Test
     public void shouldStoreABrandNewSnapshotWhenEventCountInTheStreamReachesThreshold() throws Exception {
-
         final UUID streamId = randomUUID();
         appendEventsViaAggregate(streamId, SNAPSHOT_THRESHOLD);
 
@@ -592,6 +597,15 @@ public class SnapshotAwareAggregateServiceIT {
         @Produces
         public EventInsertionStrategy eventLogInsertionStrategy() {
             return new AnsiSQLEventLogInsertionStrategy();
+        }
+    }
+
+    @ApplicationScoped
+    public static class TestSimpleTransactionSynchronizationRegistry extends  SimpleTransactionSynchronizationRegistry {
+
+
+        public TestSimpleTransactionSynchronizationRegistry() {
+            super(null);
         }
     }
 }

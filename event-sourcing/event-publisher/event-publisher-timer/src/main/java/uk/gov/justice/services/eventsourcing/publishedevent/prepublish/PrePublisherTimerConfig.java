@@ -4,6 +4,7 @@ import static java.lang.Boolean.parseBoolean;
 import static java.lang.Long.parseLong;
 
 import uk.gov.justice.services.common.configuration.GlobalValue;
+import uk.gov.justice.services.common.configuration.Value;
 
 import javax.inject.Inject;
 
@@ -25,6 +26,10 @@ public class PrePublisherTimerConfig {
     @GlobalValue(key = "pre.publish.disable", defaultValue = "false")
     private String disablePrePublish;
 
+    @Inject
+    @Value(key = "pre.publish.worker.notified", defaultValue = "false")
+    private String eventLinkerNotified;
+
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
@@ -43,5 +48,9 @@ public class PrePublisherTimerConfig {
 
     public void setDisabled(final boolean disable) {
         this.disablePrePublish = Boolean.toString(disable);
+    }
+
+    public boolean shouldWorkerNotified() {
+        return parseBoolean(eventLinkerNotified);
     }
 }

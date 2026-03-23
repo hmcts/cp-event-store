@@ -28,6 +28,9 @@ public class PrePublisherTimerBean {
     @Inject
     private AsynchronousPrePublisher asynchronousPrePublisher;
 
+    @Inject
+    private PrePublishNotifier prePublishNotifier;
+
     @PostConstruct
     public void startTimerService() {
 
@@ -42,7 +45,12 @@ public class PrePublisherTimerBean {
     public void performPrePublish() {
 
         if (! prePublisherTimerConfig.isDisabled()) {
-            asynchronousPrePublisher.performPrePublish();
+            if (prePublisherTimerConfig.shouldWorkerNotified())
+                prePublishNotifier.wakeUp(true);
+            else {
+                asynchronousPrePublisher.performPrePublish();
+            }
+
         }
     }
 }

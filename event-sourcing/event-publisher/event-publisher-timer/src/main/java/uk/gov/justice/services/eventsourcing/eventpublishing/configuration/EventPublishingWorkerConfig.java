@@ -1,5 +1,6 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Long.parseLong;
 
 import uk.gov.justice.services.common.configuration.Value;
@@ -22,6 +23,13 @@ public class EventPublishingWorkerConfig {
     @Value(key = "event.publishing.worker.time.between.runs.milliseconds", defaultValue = "5")
     private String timeBetweenRunsMilliseconds;
 
+    @Inject
+    @Value(key = "event.publishing.worker.notified", defaultValue = "false")
+    private String eventPublisherNotified;
+
+    public boolean shouldWorkerNotified() {
+        return parseBoolean(eventPublisherNotified);
+    }
 
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
@@ -34,6 +42,4 @@ public class EventPublishingWorkerConfig {
     public long getTimeBetweenRunsMilliseconds() {
         return parseLong(timeBetweenRunsMilliseconds);
     }
-
-
 }

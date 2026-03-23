@@ -17,71 +17,55 @@ public class EventLinkingWorkerConfigTest {
 
     @Test
     public void shouldGetTheStartWaitTime() throws Exception {
-
-        final long milliseconds = 72374L;
-
-        setField(eventLinkingWorkerConfig, "timerStartWaitMilliseconds", "" + milliseconds);
-
-        assertThat(eventLinkingWorkerConfig.getTimerStartWaitMilliseconds(), is(milliseconds));
+        setField(eventLinkingWorkerConfig, "timerStartWaitMilliseconds", "72374");
+        assertThat(eventLinkingWorkerConfig.getTimerStartWaitMilliseconds(), is(72374L));
     }
 
     @Test
     public void shouldGetTheTimerInterval() throws Exception {
-
-        final long milliseconds = 2998734L;
-
-        setField(eventLinkingWorkerConfig, "timerIntervalMilliseconds", "" + milliseconds);
-
-        assertThat(eventLinkingWorkerConfig.getTimerIntervalMilliseconds(), is(milliseconds));
+        setField(eventLinkingWorkerConfig, "timerIntervalMilliseconds", "2998734");
+        assertThat(eventLinkingWorkerConfig.getTimerIntervalMilliseconds(), is(2998734L));
     }
 
     @Test
     public void shouldGetTheTimeBetweenRuns() throws Exception {
-
-        final long milliseconds = 9982134L;
-
-        setField(eventLinkingWorkerConfig, "timeBetweenRunsMilliseconds", "" + milliseconds);
-
-        assertThat(eventLinkingWorkerConfig.getTimeBetweenRunsMilliseconds(), is(milliseconds));
+        setField(eventLinkingWorkerConfig, "timeBetweenRunsMilliseconds", "9982134");
+        assertThat(eventLinkingWorkerConfig.getTimeBetweenRunsMilliseconds(), is(9982134L));
     }
 
     @Test
     public void shouldGetPublishEventToPublishedEventTable() throws Exception {
-
+        setField(eventLinkingWorkerConfig, "insertEventIntoPublishedEventTable", "false");
         assertThat(eventLinkingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable(), is(false));
 
         setField(eventLinkingWorkerConfig, "insertEventIntoPublishedEventTable", "true");
-
         assertThat(eventLinkingWorkerConfig.shouldAlsoInsertEventIntoPublishedEventTable(), is(true));
     }
 
     @Test
     public void shouldGetBatchSize() throws Exception {
-
-        final int batchSize = 20;
-
-        setField(eventLinkingWorkerConfig, "batchSize", "" + batchSize);
-
-        assertThat(eventLinkingWorkerConfig.getBatchSize(), is(batchSize));
+        setField(eventLinkingWorkerConfig, "batchSize", "20");
+        assertThat(eventLinkingWorkerConfig.getBatchSize(), is(20));
     }
 
     @Test
     public void shouldGetTransactionTimeoutSeconds() throws Exception {
-
-        final int timeoutSeconds = 120;
-
-        setField(eventLinkingWorkerConfig, "transactionTimeoutSeconds", "" + timeoutSeconds);
-
-        assertThat(eventLinkingWorkerConfig.getTransactionTimeoutSeconds(), is(timeoutSeconds));
+        setField(eventLinkingWorkerConfig, "transactionTimeoutSeconds", "120");
+        assertThat(eventLinkingWorkerConfig.getTransactionTimeoutSeconds(), is(120));
     }
 
     @Test
     public void shouldGetTransactionStatementTimeoutSeconds() throws Exception {
+        setField(eventLinkingWorkerConfig, "transactionStatementTimeoutSeconds", "240");
+        assertThat(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds(), is(240));
+    }
 
-        final int timeoutSeconds = 240;
+    @Test
+    public void shouldGetEventLinkerNotified() throws Exception {
+        setField(eventLinkingWorkerConfig, "eventLinkerNotified", "true");
+        assertThat(eventLinkingWorkerConfig.shouldWorkerNotified(), is(true));
 
-        setField(eventLinkingWorkerConfig, "transactionStatementTimeoutSeconds", "" + timeoutSeconds);
-
-        assertThat(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds(), is(timeoutSeconds));
+        setField(eventLinkingWorkerConfig, "eventLinkerNotified", "false");
+        assertThat(eventLinkingWorkerConfig.shouldWorkerNotified(), is(false));
     }
 }

@@ -34,6 +34,9 @@ public class EventLinkingTimerBean {
     private EventLinkingWorker eventLinkingWorker;
 
     @Inject
+    private EventLinkingNotifier eventLinkingNotifier;
+
+    @Inject
     private SufficientTimeRemainingCalculatorFactory sufficientTimeRemainingCalculatorFactory;
 
     @PostConstruct
@@ -47,11 +50,12 @@ public class EventLinkingTimerBean {
 
     @Timeout
     public void runEventLinkingWorker(final Timer timer) {
-
-        final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = sufficientTimeRemainingCalculatorFactory.createNew(
-                timer,
-                eventLinkingWorkerConfig.getTimeBetweenRunsMilliseconds());
-
-        eventLinkingWorker.linkNewEvents(sufficientTimeRemainingCalculator);
+        if (eventLinkingWorkerConfig.shouldWorkerNotified())
+            eventLinkingNotifier.wakeUp(true);
+        else {
+            eventLinkingWorker.linkNewEvents(sufficientTimeRemainingCalculatorFactory.createNew(
+                    timer,
+                    eventLinkingWorkerConfig.getTimeBetweenRunsMilliseconds()));
+        }
     }
 }

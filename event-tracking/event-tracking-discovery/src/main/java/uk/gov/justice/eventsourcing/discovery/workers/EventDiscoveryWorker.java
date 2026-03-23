@@ -10,7 +10,7 @@ import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStre
 import uk.gov.justice.services.eventsourcing.discovery.DiscoveryResult;
 import uk.gov.justice.services.eventsourcing.discovery.EventDiscoveryConfig;
 import uk.gov.justice.services.eventsourcing.discovery.EventSubscriptionDiscoverer;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 import uk.gov.justice.subscription.SourceComponentPair;
 
 import java.util.Optional;

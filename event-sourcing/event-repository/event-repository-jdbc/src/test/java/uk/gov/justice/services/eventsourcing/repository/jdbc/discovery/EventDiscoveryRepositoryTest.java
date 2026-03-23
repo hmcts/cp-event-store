@@ -1,6 +1,8 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.discovery;
 
 import static java.util.UUID.randomUUID;
+
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;

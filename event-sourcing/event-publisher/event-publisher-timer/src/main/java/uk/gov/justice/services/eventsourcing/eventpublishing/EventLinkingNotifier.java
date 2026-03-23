@@ -2,7 +2,8 @@ package uk.gov.justice.services.eventsourcing.eventpublishing;
 
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventDetailsToLink;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventLinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventsLinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +36,7 @@ public class EventLinkingNotifier {
     private EventPublishingNotifier eventPublishingNotifier;
 
     @Inject
-    private Event<EventLinkedEvent> eventLinkedEventFirer;
+    private Event<EventsLinkedEvent> eventsLinkedEventFirer;
 
     @Resource
     private ManagedExecutorService managedExecutorService;
@@ -83,10 +84,15 @@ public class EventLinkingNotifier {
     private void notifyListeners(final List<EventDetailsToLink> linkedEvents) {
         eventPublishingNotifier.wakeUp(false);
 
-        final Map<UUID, Long> streamPositions = new HashMap<>();
+        final Map<UUID, Long> maxPositions = new HashMap<>();
         for (final EventDetailsToLink details : linkedEvents) {
-            streamPositions.merge(details.streamId(), details.positionInStream(), Math::max);
+            maxPositions.merge(details.streamId(), details.positionInStream(), Math::max);
         }
-        eventLinkedEventFirer.fireAsync(new EventLinkedEvent(Map.copyOf(streamPositions)));
+
+        final List<StreamPosition> streamPositions = maxPositions.entrySet().stream()
+                .map(e -> new StreamPosition(e.getKey(), e.getValue()))
+                .toList();
+
+        eventsLinkedEventFirer.fireAsync(new EventsLinkedEvent(streamPositions));
     }
 }

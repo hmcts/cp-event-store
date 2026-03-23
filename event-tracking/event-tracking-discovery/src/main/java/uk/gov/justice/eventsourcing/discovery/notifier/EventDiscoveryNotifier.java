@@ -3,16 +3,15 @@ package uk.gov.justice.eventsourcing.discovery.notifier;
 import uk.gov.justice.eventsourcing.discovery.timers.EventDiscoveryTimerConfig;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventLinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventsLinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamStatusAdvancedEvent;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import javax.ejb.Singleton;
 import javax.enterprise.event.Event;
@@ -42,7 +41,7 @@ public class EventDiscoveryNotifier {
     @Inject
     private Logger logger;
 
-    public void onEventLinkedEvent(@ObservesAsync final EventLinkedEvent eventLinkedEvent) {
+    public void onEventLinkedEvent(@ObservesAsync final EventsLinkedEvent eventLinkedEvent) {
 
         if (!eventDiscoveryTimerConfig.shouldDiscoveryNotified()) {
             return;
@@ -51,12 +50,12 @@ public class EventDiscoveryNotifier {
         final List<SourceComponentPair> pairs = subscriptionSourceComponentFinder.findListenerOrIndexerPairs();
         final Set<SourceComponentPair> advancedPairs = new HashSet<>();
 
-        for (final Map.Entry<UUID, Long> entry : eventLinkedEvent.streamPositions().entrySet()) {
+        for (final StreamPosition streamPosition : eventLinkedEvent.streamPositions()) {
             for (final SourceComponentPair pair : pairs) {
                 if (newStreamStatusRepository.upsertLatestKnownPositionIfIncreased(
-                        entry.getKey(), pair.source(), pair.component(), entry.getValue(), clock.now())) {
+                        streamPosition.streamId(), pair.source(), pair.component(), streamPosition.positionInStream(), clock.now())) {
                     logger.debug("Stream position advanced: stream='{}', source='{}', component='{}', position={}",
-                            entry.getKey(), pair.source(), pair.component(), entry.getValue());
+                            streamPosition.streamId(), pair.source(), pair.component(), streamPosition.positionInStream());
                     advancedPairs.add(pair);
                 }
             }

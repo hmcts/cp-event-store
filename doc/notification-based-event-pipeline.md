@@ -25,7 +25,7 @@ Framework F's pull-based processing (EVENT_LISTENER/EVENT_INDEXER) enables a sec
 
 | Notifier | Fires on | Effect |
 |----------|----------|--------|
-| `EventDiscoveryNotifier` | `EventLinkedEvent` (async) | Conditional UPSERT on `stream_status.latest_known_position`; fires `StreamStatusAdvancedEvent` if position advanced |
+| `EventDiscoveryNotifier` | `EventsLinkedEvent` (async) | Conditional UPSERT on `stream_status.latest_known_position`; fires `StreamStatusAdvancedEvent` if position advanced |
 | `StreamProcessingCoordinator` | `StreamStatusAdvancedEvent` (async) | Spawns 1 worker if none active for the source/component pair |
 
 ### Signaling: ArrayBlockingQueue(1)
@@ -48,7 +48,7 @@ EventStreamManager.append()
     → [background thread wakes from take()]
     → while (eventNumberLinker.findAndLinkEventsInBatch() > 0):
         → eventPublishingNotifier.wakeUp(false)                  ← Phase 1: wake publisher
-        → fireAsync(EventLinkedEvent(streamIds, positions))      ← Phase 2 trigger
+        → fireAsync(EventsLinkedEvent(streamIds, positions))      ← Phase 2 trigger
           → EventDiscoveryNotifier @ObservesAsync                ← UPSERT stream_status
             → [if position advanced] fireAsync(StreamStatusAdvancedEvent(source, component))
               → StreamProcessingCoordinator @ObservesAsync       ← spawn worker if idle
@@ -59,7 +59,7 @@ EventStreamManager.append()
 | Event | Fields | Fired By | Observed By | Type |
 |-------|--------|----------|-------------|------|
 | `EventAppendedEvent` | none (marker) | `EventAppendTriggerService` | `EventLinkingNotifier` | `@Observes` (sync) |
-| `EventLinkedEvent` | `Map<UUID, Long>` (streamId → highest position) | `EventLinkingNotifier` | `EventDiscoveryNotifier` | `@ObservesAsync` |
+| `EventsLinkedEvent` | `Map<UUID, Long>` (streamId → highest position) | `EventLinkingNotifier` | `EventDiscoveryNotifier` | `@ObservesAsync` |
 | `StreamStatusAdvancedEvent` | `source`, `component` | `EventDiscoveryNotifier` | `StreamProcessingCoordinator` | `@ObservesAsync` |
 
 ### EventDiscoveryNotifier — Conditional UPSERT
@@ -149,7 +149,7 @@ Timers always run alongside notifications:
 | Linking class | `PrePublishNotifier` | `EventLinkingNotifier` | `EventLinkingNotifier` |
 | JNDI prefix | `pre.publish.worker.*` | `event.linking.worker.*` | `event.linking.worker.*` |
 | Linking method | `PrePublishProcessor` (single event, DB sequence) | `EventNumberLinker` (batch, advisory lock 42) | Same as E |
-| Phase 2 | N/A | N/A | `EventLinkedEvent` → `EventDiscoveryNotifier` → `StreamProcessingCoordinator` |
+| Phase 2 | N/A | N/A | `EventsLinkedEvent` → `EventDiscoveryNotifier` → `StreamProcessingCoordinator` |
 | Viewstore recovery after crash | 60-80% (push-based JMS) *† | 60-80% (push-based JMS) *† | **100% (pull-based)** *† |
 
 *† Further testing required — these figures are from limited local replica failure tests (2 pods, 10–30 events per scenario). Production-scale validation with more replicas and higher event volumes is needed to confirm.*

@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventDetailsToLink;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventLinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventsLinkedEvent;
 
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
@@ -38,7 +38,7 @@ class EventLinkingNotifierTest {
     private EventPublishingNotifier eventPublishingNotifier;
 
     @Mock
-    private Event<EventLinkedEvent> eventLinkedEventFirer;
+    private Event<EventsLinkedEvent> eventLinkedEventFirer;
 
     @Mock
     private ManagedExecutorService managedExecutorService;
@@ -87,7 +87,7 @@ class EventLinkingNotifierTest {
 
         verify(eventNumberLinker, times(2)).findAndLinkEventsInBatch();
         verify(eventPublishingNotifier, times(1)).wakeUp(false);
-        verify(eventLinkedEventFirer, times(1)).fireAsync(any(EventLinkedEvent.class));
+        verify(eventLinkedEventFirer, times(1)).fireAsync(any(EventsLinkedEvent.class));
     }
 
     @Test

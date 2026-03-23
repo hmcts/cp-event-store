@@ -1,6 +1,8 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.discovery;
 
 import static java.util.Optional.ofNullable;
+
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 import static java.util.UUID.fromString;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.CoreMatchers.hasItems;

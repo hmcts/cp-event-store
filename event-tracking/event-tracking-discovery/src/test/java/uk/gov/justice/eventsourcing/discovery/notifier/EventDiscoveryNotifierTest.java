@@ -12,14 +12,14 @@ import static org.mockito.Mockito.when;
 import uk.gov.justice.eventsourcing.discovery.timers.EventDiscoveryTimerConfig;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventLinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventsLinkedEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamStatusAdvancedEvent;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import javax.enterprise.event.Event;
@@ -58,7 +58,7 @@ public class EventDiscoveryNotifierTest {
     @Test
     public void shouldDoNothingIfDiscoveryNotifiedIsDisabled() {
 
-        final EventLinkedEvent eventLinkedEvent = new EventLinkedEvent(Map.of(randomUUID(), 5L));
+        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(randomUUID(), 5L)));
 
         when(eventDiscoveryTimerConfig.shouldDiscoveryNotified()).thenReturn(false);
 
@@ -76,7 +76,7 @@ public class EventDiscoveryNotifierTest {
         final ZonedDateTime now = new UtcClock().now();
 
         final SourceComponentPair pair = mock(SourceComponentPair.class);
-        final EventLinkedEvent eventLinkedEvent = new EventLinkedEvent(Map.of(streamId, position));
+        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(streamId, position)));
 
         when(pair.source()).thenReturn("MY_SOURCE");
         when(pair.component()).thenReturn("EVENT_LISTENER");
@@ -100,7 +100,7 @@ public class EventDiscoveryNotifierTest {
         final ZonedDateTime now = new UtcClock().now();
 
         final SourceComponentPair pair = mock(SourceComponentPair.class);
-        final EventLinkedEvent eventLinkedEvent = new EventLinkedEvent(Map.of(streamId, position));
+        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(streamId, position)));
 
         when(pair.source()).thenReturn("MY_SOURCE");
         when(pair.component()).thenReturn("EVENT_LISTENER");
@@ -125,7 +125,7 @@ public class EventDiscoveryNotifierTest {
 
         final SourceComponentPair pair1 = mock(SourceComponentPair.class);
         final SourceComponentPair pair2 = mock(SourceComponentPair.class);
-        final EventLinkedEvent eventLinkedEvent = new EventLinkedEvent(Map.of(streamId, position));
+        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(streamId, position)));
 
         when(pair1.source()).thenReturn("SOURCE_1");
         when(pair1.component()).thenReturn("EVENT_LISTENER");
@@ -150,7 +150,7 @@ public class EventDiscoveryNotifierTest {
     @Test
     public void shouldHandleEmptySourceComponentPairList() {
 
-        final EventLinkedEvent eventLinkedEvent = new EventLinkedEvent(Map.of(randomUUID(), 1L));
+        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(randomUUID(), 1L)));
 
         when(eventDiscoveryTimerConfig.shouldDiscoveryNotified()).thenReturn(true);
         when(subscriptionSourceComponentFinder.findListenerOrIndexerPairs()).thenReturn(emptyList());

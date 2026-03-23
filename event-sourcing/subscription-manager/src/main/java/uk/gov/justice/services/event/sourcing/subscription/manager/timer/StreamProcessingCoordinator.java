@@ -6,7 +6,7 @@ import uk.gov.justice.services.event.sourcing.subscription.manager.task.PollerCi
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerFactory;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerTask;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.WorkerActivityTracker;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamEventsDiscoveredEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamStatusAdvancedEvent;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
@@ -117,7 +117,7 @@ public class StreamProcessingCoordinator {
         }
     }
 
-    public void onStreamEventsDiscovered(@ObservesAsync final StreamEventsDiscoveredEvent event) {
+    public void onStreamStatusAdvanced(@ObservesAsync final StreamStatusAdvancedEvent event) {
 
         if (!streamProcessingConfig.shouldDiscoveryNotified()) {
             return;

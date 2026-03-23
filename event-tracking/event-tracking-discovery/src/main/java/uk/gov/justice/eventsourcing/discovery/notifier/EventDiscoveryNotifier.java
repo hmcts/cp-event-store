@@ -4,7 +4,7 @@ import uk.gov.justice.eventsourcing.discovery.timers.EventDiscoveryTimerConfig;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventLinkedEvent;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamEventsDiscoveredEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamStatusAdvancedEvent;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
@@ -34,7 +34,7 @@ public class EventDiscoveryNotifier {
     private EventDiscoveryTimerConfig eventDiscoveryTimerConfig;
 
     @Inject
-    private Event<StreamEventsDiscoveredEvent> streamEventsDiscoveredFirer;
+    private Event<StreamStatusAdvancedEvent> streamStatusAdvancedFirer;
 
     @Inject
     private UtcClock clock;
@@ -63,7 +63,7 @@ public class EventDiscoveryNotifier {
         }
 
         for (final SourceComponentPair pair : advancedPairs) {
-            streamEventsDiscoveredFirer.fireAsync(new StreamEventsDiscoveredEvent(pair.source(), pair.component()));
+            streamStatusAdvancedFirer.fireAsync(new StreamStatusAdvancedEvent(pair.source(), pair.component()));
         }
     }
 }

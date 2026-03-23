@@ -13,7 +13,7 @@ import uk.gov.justice.eventsourcing.discovery.timers.EventDiscoveryTimerConfig;
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventLinkedEvent;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamEventsDiscoveredEvent;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamStatusAdvancedEvent;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
@@ -44,7 +44,7 @@ public class EventDiscoveryNotifierTest {
     private EventDiscoveryTimerConfig eventDiscoveryTimerConfig;
 
     @Mock
-    private Event<StreamEventsDiscoveredEvent> streamEventsDiscoveredFirer;
+    private Event<StreamStatusAdvancedEvent> streamStatusAdvancedFirer;
 
     @Mock
     private UtcClock clock;
@@ -65,7 +65,7 @@ public class EventDiscoveryNotifierTest {
         eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
 
         verify(subscriptionSourceComponentFinder, never()).findListenerOrIndexerPairs();
-        verify(streamEventsDiscoveredFirer, never()).fireAsync(any());
+        verify(streamStatusAdvancedFirer, never()).fireAsync(any());
     }
 
     @Test
@@ -89,7 +89,7 @@ public class EventDiscoveryNotifierTest {
 
         eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
 
-        verify(streamEventsDiscoveredFirer).fireAsync(any(StreamEventsDiscoveredEvent.class));
+        verify(streamStatusAdvancedFirer).fireAsync(any(StreamStatusAdvancedEvent.class));
     }
 
     @Test
@@ -113,7 +113,7 @@ public class EventDiscoveryNotifierTest {
 
         eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
 
-        verify(streamEventsDiscoveredFirer, never()).fireAsync(any());
+        verify(streamStatusAdvancedFirer, never()).fireAsync(any());
     }
 
     @Test
@@ -144,7 +144,7 @@ public class EventDiscoveryNotifierTest {
         eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
 
         // Only the pair that actually advanced is notified
-        verify(streamEventsDiscoveredFirer, times(1)).fireAsync(any(StreamEventsDiscoveredEvent.class));
+        verify(streamStatusAdvancedFirer, times(1)).fireAsync(any(StreamStatusAdvancedEvent.class));
     }
 
     @Test
@@ -157,6 +157,6 @@ public class EventDiscoveryNotifierTest {
 
         eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
 
-        verify(streamEventsDiscoveredFirer, never()).fireAsync(any());
+        verify(streamStatusAdvancedFirer, never()).fireAsync(any());
     }
 }

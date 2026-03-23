@@ -25,8 +25,8 @@ Framework F's pull-based processing (EVENT_LISTENER/EVENT_INDEXER) enables a sec
 
 | Notifier | Fires on | Effect |
 |----------|----------|--------|
-| `EventDiscoveryNotifier` | `EventLinkedEvent` (async) | Conditional UPSERT on `stream_status.latest_known_position`; fires `StreamEventsDiscoveredEvent` if position advanced |
-| `StreamProcessingCoordinator` | `StreamEventsDiscoveredEvent` (async) | Spawns 1 worker if none active for the source/component pair |
+| `EventDiscoveryNotifier` | `EventLinkedEvent` (async) | Conditional UPSERT on `stream_status.latest_known_position`; fires `StreamStatusAdvancedEvent` if position advanced |
+| `StreamProcessingCoordinator` | `StreamStatusAdvancedEvent` (async) | Spawns 1 worker if none active for the source/component pair |
 
 ### Full CDI Event Chain
 
@@ -40,7 +40,7 @@ EventStreamManager.append()
     → [on success] eventPublishingNotifier.wakeUp(false)         ← Phase 1: wake publisher
     → [on success] fireAsync(EventLinkedEvent(streamIds, positions))  ← Phase 2 trigger
       → EventDiscoveryNotifier @ObservesAsync                    ← UPSERT stream_status
-        → [if position advanced] fireAsync(StreamEventsDiscoveredEvent(source, component))
+        → [if position advanced] fireAsync(StreamStatusAdvancedEvent(source, component))
           → StreamProcessingCoordinator @ObservesAsync           ← spawn worker if idle
 ```
 
@@ -50,7 +50,7 @@ EventStreamManager.append()
 |-------|--------|----------|-------------|------|
 | `EventAppendedEvent` | none (marker) | `EventAppendTriggerService` | `EventLinkingNotifier` | `@Observes` (sync) |
 | `EventLinkedEvent` | `Map<UUID, Long>` (streamId → highest position) | `EventLinkingNotifier` | `EventDiscoveryNotifier` | `@ObservesAsync` |
-| `StreamEventsDiscoveredEvent` | `source`, `component` | `EventDiscoveryNotifier` | `StreamProcessingCoordinator` | `@ObservesAsync` |
+| `StreamStatusAdvancedEvent` | `source`, `component` | `EventDiscoveryNotifier` | `StreamProcessingCoordinator` | `@ObservesAsync` |
 
 Phase 1 observers are synchronous (`@Observes`) because they only call `monitor.notifyAll()` — instant. Phase 2 observers are asynchronous (`@ObservesAsync`) because they perform DB operations and must not block the linking thread.
 
@@ -66,7 +66,7 @@ ON CONFLICT (stream_id, source, component) DO UPDATE SET
 WHERE stream_status.latest_known_position < EXCLUDED.latest_known_position
 ```
 
-`executeUpdate() > 0` means the position advanced — fire `StreamEventsDiscoveredEvent`. This is idempotent: out-of-order async events or concurrent timer discovery both converge to the correct state.
+`executeUpdate() > 0` means the position advanced — fire `StreamStatusAdvancedEvent`. This is idempotent: out-of-order async events or concurrent timer discovery both converge to the correct state.
 
 ## JNDI Configuration
 

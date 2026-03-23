@@ -14,10 +14,10 @@ Two notifier beans observe CDI events fired after an event is committed to `even
 
 | Notifier | Fires on | Wakes | Effect |
 |----------|----------|-------|--------|
-| `EventLinkingNotifier` | New event committed | Linking worker thread | Links events immediately via `EventNumberLinker.findAndLinkEventsInBatch()` |
-| `EventPublishingNotifier` | Events linked | Publishing worker thread | Publishes events immediately (publish_queue drain) |
+| `EventLinkingNotifier` | New event committed | Linking background thread | Links events immediately via `EventNumberLinker.findAndLinkEventsInBatch()` |
+| `EventPublishingNotifier` | Events linked | Publishing background thread | Publishes events immediately (publish_queue drain) |
 
-Each notifier runs a single background thread that calls the same processing method as the timer. A `started` AtomicBoolean prevents concurrent executions. The existing timer continues as a safety net (unchanged interval).
+Each notifier runs a single background thread managed by `ManagedExecutorService`. An `AtomicBoolean started` prevents concurrent executions. The existing timer continues as a safety net.
 
 ### Phase 2: Discovery + Stream Processing (F only)
 
@@ -28,6 +28,15 @@ Framework F's pull-based processing (EVENT_LISTENER/EVENT_INDEXER) enables a sec
 | `EventDiscoveryNotifier` | `EventLinkedEvent` (async) | Conditional UPSERT on `stream_status.latest_known_position`; fires `StreamStatusAdvancedEvent` if position advanced |
 | `StreamProcessingCoordinator` | `StreamStatusAdvancedEvent` (async) | Spawns 1 worker if none active for the source/component pair |
 
+### Signaling: ArrayBlockingQueue(1)
+
+Phase 1 notifiers use an `ArrayBlockingQueue<Object>(1)` as a coalescing signal:
+
+- **Producer** (`wakeUp`): `workSignal.offer(SIGNAL)` — non-blocking. If the queue already has a signal (consumer is processing), the offer silently drops. The consumer drains all available work via an inner loop, so duplicate signals are unnecessary.
+- **Consumer** (background thread): `workSignal.take()` — blocks until a signal arrives, then drains all accumulated work before blocking again.
+
+Phase 1 observers are synchronous (`@Observes`) because `workSignal.offer()` is non-blocking — instant. Phase 2 observers are asynchronous (`@ObservesAsync`) because they perform DB operations and must not block the linking thread.
+
 ### Full CDI Event Chain
 
 ```
@@ -35,13 +44,14 @@ EventStreamManager.append()
   → EventAppendTriggerService.registerTransactionListener()
   → [TX commit]
   → fire(EventAppendedEvent)                                     ← marker, no payload
-  → EventLinkingNotifier @Observes                               ← wakes linking thread
-    → eventNumberLinker.findAndLinkEventsInBatch()               ← advisory lock 42, batch mode
-    → [on success] eventPublishingNotifier.wakeUp(false)         ← Phase 1: wake publisher
-    → [on success] fireAsync(EventLinkedEvent(streamIds, positions))  ← Phase 2 trigger
-      → EventDiscoveryNotifier @ObservesAsync                    ← UPSERT stream_status
-        → [if position advanced] fireAsync(StreamStatusAdvancedEvent(source, component))
-          → StreamProcessingCoordinator @ObservesAsync           ← spawn worker if idle
+  → EventLinkingNotifier @Observes                               ← workSignal.offer(SIGNAL)
+    → [background thread wakes from take()]
+    → while (eventNumberLinker.findAndLinkEventsInBatch() > 0):
+        → eventPublishingNotifier.wakeUp(false)                  ← Phase 1: wake publisher
+        → fireAsync(EventLinkedEvent(streamIds, positions))      ← Phase 2 trigger
+          → EventDiscoveryNotifier @ObservesAsync                ← UPSERT stream_status
+            → [if position advanced] fireAsync(StreamStatusAdvancedEvent(source, component))
+              → StreamProcessingCoordinator @ObservesAsync       ← spawn worker if idle
 ```
 
 ### CDI Event Types
@@ -51,8 +61,6 @@ EventStreamManager.append()
 | `EventAppendedEvent` | none (marker) | `EventAppendTriggerService` | `EventLinkingNotifier` | `@Observes` (sync) |
 | `EventLinkedEvent` | `Map<UUID, Long>` (streamId → highest position) | `EventLinkingNotifier` | `EventDiscoveryNotifier` | `@ObservesAsync` |
 | `StreamStatusAdvancedEvent` | `source`, `component` | `EventDiscoveryNotifier` | `StreamProcessingCoordinator` | `@ObservesAsync` |
-
-Phase 1 observers are synchronous (`@Observes`) because they only call `monitor.notifyAll()` — instant. Phase 2 observers are asynchronous (`@ObservesAsync`) because they perform DB operations and must not block the linking thread.
 
 ### EventDiscoveryNotifier — Conditional UPSERT
 
@@ -76,12 +84,6 @@ WHERE stream_status.latest_known_position < EXCLUDED.latest_known_position
 |----------|---------|--------|
 | `event.linking.worker.notified` | `false` | Enables EventLinkingNotifier |
 | `event.publishing.worker.notified` | `false` | Enables EventPublishingNotifier |
-| `event.linking.worker.backoff.min.milliseconds` | `5` | Min backoff when idle (linking) |
-| `event.linking.worker.backoff.max.milliseconds` | `100` | Max backoff cap (linking) |
-| `event.linking.worker.backoff.multiplier` | `1.5` | Backoff growth factor (linking) |
-| `event.publishing.worker.backoff.min.milliseconds` | `5` | Min backoff when idle (publishing) |
-| `event.publishing.worker.backoff.max.milliseconds` | `100` | Max backoff cap (publishing) |
-| `event.publishing.worker.backoff.multiplier` | `1.5` | Backoff growth factor (publishing) |
 
 ### Phase 2 (requires pull-based processing enabled)
 
@@ -91,7 +93,7 @@ WHERE stream_status.latest_known_position < EXCLUDED.latest_known_position
 | `event.discovery.notified` | `false` | Enables EventDiscoveryNotifier |
 | `stream.processing.discovery.notified` | `false` | Enables StreamProcessingCoordinator wake-up |
 
-All flags default to OFF. Enabling them is purely additive — timers remain active as fallbacks.
+All flags default to OFF. Enabling them is purely additive — timers remain active as fallbacks. With notification enabled, consider relaxing safety-net timer intervals (e.g., 500ms–1000ms) to reduce idle polling.
 
 ## Expected Performance Characteristics
 
@@ -109,7 +111,7 @@ At scale (multiple replicas), notification can **improve effective throughput** 
 
 ### Idle CPU
 
-Timer-based polling executes database queries on every tick, even when no work exists. Notification replaces this with `Object.wait()` on a monitor — near-zero idle cost. Expected idle CPU reduction is **2-4x** for WildFly and Postgres compared to default timer intervals, and greater compared to aggressive (low-interval) timers.
+Timer-based polling executes database queries on every tick, even when no work exists. Notification replaces this with `ArrayBlockingQueue.take()` — the thread blocks with near-zero idle cost. Expected idle CPU reduction is **2-4x** for WildFly and Postgres compared to default timer intervals, and greater compared to aggressive (low-interval) timers.
 
 ### Aggressive Timers vs Notification
 
@@ -148,4 +150,6 @@ Timers always run alongside notifications:
 | JNDI prefix | `pre.publish.worker.*` | `event.linking.worker.*` | `event.linking.worker.*` |
 | Linking method | `PrePublishProcessor` (single event, DB sequence) | `EventNumberLinker` (batch, advisory lock 42) | Same as E |
 | Phase 2 | N/A | N/A | `EventLinkedEvent` → `EventDiscoveryNotifier` → `StreamProcessingCoordinator` |
-| Viewstore recovery after crash | 60-80% (push-based JMS) | 60-80% (push-based JMS) | **100% (pull-based)** |
+| Viewstore recovery after crash | 60-80% (push-based JMS) *† | 60-80% (push-based JMS) *† | **100% (pull-based)** *† |
+
+*† Further testing required — these figures are from limited local replica failure tests (2 pods, 10–30 events per scenario). Production-scale validation with more replicas and higher event volumes is needed to confirm.*

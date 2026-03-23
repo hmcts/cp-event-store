@@ -2,8 +2,6 @@ package uk.gov.justice.services.eventsourcing.eventpublishing;
 
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -12,7 +10,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventDetailsToLink;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventLinkedEvent;
@@ -36,9 +33,6 @@ class EventLinkingNotifierTest {
 
     @Mock
     private EventNumberLinker eventNumberLinker;
-
-    @Mock
-    private EventLinkingWorkerConfig eventLinkingWorkerConfig;
 
     @Mock
     private EventPublishingNotifier eventPublishingNotifier;
@@ -75,16 +69,11 @@ class EventLinkingNotifierTest {
 
     @Test
     void shouldProcessBatchAndFirePhase2Events() {
-        when(eventLinkingWorkerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
-        when(eventLinkingWorkerConfig.getBackoffMultiplier()).thenReturn(1.5);
-        when(eventLinkingWorkerConfig.getBackoffMaxMilliseconds()).thenReturn(100L);
-
         final EventDetailsToLink event1 = new EventDetailsToLink(randomUUID(), randomUUID(), 1);
         final EventDetailsToLink event2 = new EventDetailsToLink(randomUUID(), randomUUID(), 1);
 
         when(eventNumberLinker.findAndLinkEventsInBatch())
                 .thenReturn(List.of(event1, event2))
-                .thenReturn(emptyList())
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
                     return emptyList();
@@ -96,15 +85,13 @@ class EventLinkingNotifierTest {
         verify(managedExecutorService).submit(captor.capture());
         captor.getValue().run();
 
-        verify(eventNumberLinker, times(3)).findAndLinkEventsInBatch();
+        verify(eventNumberLinker, times(2)).findAndLinkEventsInBatch();
         verify(eventPublishingNotifier, times(1)).wakeUp(false);
         verify(eventLinkedEventFirer, times(1)).fireAsync(any(EventLinkedEvent.class));
     }
 
     @Test
     void shouldResetStartedFlagWhenThreadExits() {
-        when(eventLinkingWorkerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
-
         when(eventNumberLinker.findAndLinkEventsInBatch())
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
@@ -128,10 +115,7 @@ class EventLinkingNotifierTest {
 
         eventLinkingNotifier.wakeUp(true);
 
-        // After submit failure, started should be reset — second wakeUp should attempt submit again
-        doThrow(new RejectedExecutionException("Pool full"))
-                .when(managedExecutorService).submit(any(Runnable.class));
-
+        verify(managedExecutorService).submit(any(Runnable.class));
         eventLinkingNotifier.wakeUp(true);
         verify(managedExecutorService, times(2)).submit(any(Runnable.class));
     }

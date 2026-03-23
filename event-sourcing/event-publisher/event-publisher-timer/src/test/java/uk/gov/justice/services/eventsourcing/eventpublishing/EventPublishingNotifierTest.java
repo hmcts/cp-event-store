@@ -1,6 +1,7 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,7 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
-import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventPublishingWorkerConfig;
+
+import java.util.concurrent.RejectedExecutionException;
 
 import javax.enterprise.concurrent.ManagedExecutorService;
 
@@ -21,9 +23,6 @@ class EventPublishingNotifierTest {
 
     @Mock
     private LinkedEventPublisher linkedEventPublisher;
-
-    @Mock
-    private EventPublishingWorkerConfig eventPublishingWorkerConfig;
 
     @Mock
     private ManagedExecutorService managedExecutorService;
@@ -43,24 +42,17 @@ class EventPublishingNotifierTest {
 
     @Test
     void shouldNotSubmitIfAlreadyStarted() {
-        // First wakeUp starts it
         eventPublishingNotifier.wakeUp(true);
         verify(managedExecutorService).submit(any(Runnable.class));
 
-        // Second wakeUp should not submit again
         eventPublishingNotifier.wakeUp(true);
         verify(managedExecutorService, times(1)).submit(any(Runnable.class));
     }
 
     @Test
     void shouldProcessEventsWhenRunning() {
-        when(eventPublishingWorkerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
-        when(eventPublishingWorkerConfig.getBackoffMultiplier()).thenReturn(1.5);
-        when(eventPublishingWorkerConfig.getBackoffMaxMilliseconds()).thenReturn(100L);
-
         when(linkedEventPublisher.publishNextNewEvent())
                 .thenReturn(true)
-                .thenReturn(false)
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
                     return false;
@@ -68,12 +60,40 @@ class EventPublishingNotifierTest {
 
         eventPublishingNotifier.wakeUp(true);
 
-        ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
+        final ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
         verify(managedExecutorService).submit(captor.capture());
-        Runnable runnable = captor.getValue();
+        captor.getValue().run();
 
-        runnable.run();
+        verify(linkedEventPublisher, times(2)).publishNextNewEvent();
+    }
 
-        verify(linkedEventPublisher, times(3)).publishNextNewEvent();
+    @Test
+    void shouldResetStartedFlagWhenThreadExits() {
+        when(linkedEventPublisher.publishNextNewEvent())
+                .thenAnswer(invocation -> {
+                    Thread.currentThread().interrupt();
+                    return false;
+                });
+
+        eventPublishingNotifier.wakeUp(true);
+
+        final ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
+        verify(managedExecutorService).submit(captor.capture());
+        captor.getValue().run();
+
+        eventPublishingNotifier.wakeUp(true);
+        verify(managedExecutorService, times(2)).submit(any(Runnable.class));
+    }
+
+    @Test
+    void shouldResetStartedFlagWhenSubmitFails() {
+        doThrow(new RejectedExecutionException("Pool full"))
+                .when(managedExecutorService).submit(any(Runnable.class));
+
+        eventPublishingNotifier.wakeUp(true);
+
+        verify(managedExecutorService).submit(any(Runnable.class));
+        eventPublishingNotifier.wakeUp(true);
+        verify(managedExecutorService, times(2)).submit(any(Runnable.class));
     }
 }

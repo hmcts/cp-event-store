@@ -1,7 +1,5 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.prepublish;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -17,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import uk.gov.justice.services.eventsourcing.publishedevent.publish.PublishedEventDeQueuerAndPublisher;
 import uk.gov.justice.services.eventsourcing.publishedevent.publishing.EventPublishingNotifier;
-import uk.gov.justice.services.eventsourcing.publishedevent.publishing.PublisherTimerConfig;
 
 import javax.enterprise.concurrent.ManagedExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -27,9 +24,6 @@ class EventPublishingNotifierTest {
 
     @Mock
     private PublishedEventDeQueuerAndPublisher publishedEventDeQueuerAndPublisher;
-
-    @Mock
-    private PublisherTimerConfig publisherTimerConfig;
 
     @Mock
     private ManagedExecutorService managedExecutorService;
@@ -58,13 +52,8 @@ class EventPublishingNotifierTest {
 
     @Test
     void shouldProcessEventsWhenRunning() {
-        when(publisherTimerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
-        when(publisherTimerConfig.getBackoffMultiplier()).thenReturn(1.5);
-        when(publisherTimerConfig.getBackoffMaxMilliseconds()).thenReturn(100L);
-
         when(publishedEventDeQueuerAndPublisher.deQueueAndPublish())
                 .thenReturn(true)
-                .thenReturn(false)
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
                     return false;
@@ -74,17 +63,13 @@ class EventPublishingNotifierTest {
 
         final ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
         verify(managedExecutorService).submit(captor.capture());
-        final Runnable runnable = captor.getValue();
+        captor.getValue().run();
 
-        runnable.run();
-
-        verify(publishedEventDeQueuerAndPublisher, times(3)).deQueueAndPublish();
+        verify(publishedEventDeQueuerAndPublisher, times(2)).deQueueAndPublish();
     }
 
     @Test
     void shouldResetStartedFlagWhenThreadExits() {
-        when(publisherTimerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
-
         when(publishedEventDeQueuerAndPublisher.deQueueAndPublish())
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
@@ -97,7 +82,6 @@ class EventPublishingNotifierTest {
         verify(managedExecutorService).submit(captor.capture());
         captor.getValue().run();
 
-        // started should be reset to false, so next wakeUp(true) should submit again
         eventPublishingNotifier.wakeUp(true);
         verify(managedExecutorService, times(2)).submit(any(Runnable.class));
     }
@@ -109,7 +93,8 @@ class EventPublishingNotifierTest {
 
         eventPublishingNotifier.wakeUp(true);
 
-        // started should be reset, so no exception propagated
-        assertThat(true, is(true));
+        verify(managedExecutorService).submit(any(Runnable.class));
+        eventPublishingNotifier.wakeUp(true);
+        verify(managedExecutorService, times(2)).submit(any(Runnable.class));
     }
 }

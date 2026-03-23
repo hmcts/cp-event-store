@@ -75,4 +75,14 @@ public class PublisherTimerConfigTest {
         publisherTimerConfig.setDisabled(true);
         assertThat(publisherTimerConfig.isDisabled(), is(true));
     }
+
+    @Test
+    public void shouldReturnTrueIfWorkerNotified() throws Exception {
+
+        setField(publisherTimerConfig, "eventPublisherNotified", "true");
+        assertThat(publisherTimerConfig.shouldWorkerNotified(), is(true));
+
+        setField(publisherTimerConfig, "eventPublisherNotified", "false");
+        assertThat(publisherTimerConfig.shouldWorkerNotified(), is(false));
+    }
 }

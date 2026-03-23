@@ -9,10 +9,13 @@ import javax.ejb.Singleton;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class PrePublishNotifier {
+
+    private static final Object SIGNAL = new Object();
 
     @Inject
     private Logger logger;
@@ -21,23 +24,19 @@ public class PrePublishNotifier {
     private PrePublishProcessor prePublishProcessor;
 
     @Inject
-    private PrePublisherTimerConfig prePublisherTimerConfig;
-
-    @Inject
     private EventPublishingNotifier eventPublishingNotifier;
 
     @Resource
     private ManagedExecutorService managedExecutorService;
 
     private final AtomicBoolean started = new AtomicBoolean(false);
-    private final Object monitor = new Object();
-
+    private final ArrayBlockingQueue<Object> workSignal = new ArrayBlockingQueue<>(1);
 
     public void onEventAppendedEvent(@Observes final EventAppendedEvent eventAppendedEvent) {
-        this.wakeUp(false);
+        wakeUp(false);
     }
 
-    public void wakeUp(boolean startIfStopped) {
+    public void wakeUp(final boolean startIfStopped) {
         if (startIfStopped && started.compareAndSet(false, true)) {
             try {
                 managedExecutorService.submit(this::runWithInterruptable);
@@ -46,46 +45,22 @@ public class PrePublishNotifier {
                 logger.error("Failed to start pre-publish notifier thread", e);
             }
         }
-        synchronized (monitor) {
-            monitor.notifyAll();
-        }
+        workSignal.offer(SIGNAL);
     }
 
     private void runWithInterruptable() {
         try {
-            long currentBackoff = prePublisherTimerConfig.getBackoffMinMilliseconds();
-
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     if (prePublishProcessor.prePublishNextEvent()) {
-                        currentBackoff = prePublisherTimerConfig.getBackoffMinMilliseconds();
                         eventPublishingNotifier.wakeUp(false);
                     } else {
-                        synchronized (monitor) {
-                            monitor.wait(currentBackoff);
-                        }
-                        currentBackoff = Math.min(
-                                (long) (currentBackoff * prePublisherTimerConfig.getBackoffMultiplier()),
-                                prePublisherTimerConfig.getBackoffMaxMilliseconds()
-                        );
+                        workSignal.take();
                     }
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    break;
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.error("Error in pre-publish notifier loop", e);
-                    try {
-                        synchronized (monitor) {
-                            monitor.wait(currentBackoff);
-                        }
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                    currentBackoff = Math.min(
-                            (long) (currentBackoff * prePublisherTimerConfig.getBackoffMultiplier()),
-                            prePublisherTimerConfig.getBackoffMaxMilliseconds()
-                    );
                 }
             }
         } finally {

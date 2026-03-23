@@ -1,17 +1,14 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.prepublish;
 
 import static java.lang.Boolean.parseBoolean;
-import static java.lang.Double.parseDouble;
 import static java.lang.Long.parseLong;
 
 import uk.gov.justice.services.common.configuration.GlobalValue;
 import uk.gov.justice.services.common.configuration.Value;
-import uk.gov.justice.services.eventsourcing.publishedevent.NotifierWorkerConfig;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
-public class PrePublisherTimerConfig extends NotifierWorkerConfig {
+public class PrePublisherTimerConfig {
 
     @Inject
     @GlobalValue(key = "pre.publish.start.wait.milliseconds", defaultValue = "7250")
@@ -33,18 +30,6 @@ public class PrePublisherTimerConfig extends NotifierWorkerConfig {
     @Value(key = "pre.publish.worker.notified", defaultValue = "false")
     private String eventLinkerNotified;
 
-    @Inject
-    @Value(key = "pre.publish.worker.backoff.min.milliseconds", defaultValue = "5")
-    private String backoffMinMilliseconds;
-
-    @Inject
-    @Value(key = "pre.publish.worker.backoff.max.milliseconds", defaultValue = "100")
-    private String backoffMaxMilliseconds;
-
-    @Inject
-    @Value(key = "pre.publish.worker.backoff.multiplier", defaultValue = "1.5")
-    private String backoffMultiplier;
-
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);
     }
@@ -65,11 +50,7 @@ public class PrePublisherTimerConfig extends NotifierWorkerConfig {
         this.disablePrePublish = Boolean.toString(disable);
     }
 
-    @PostConstruct
-    public void postConstruct() {
-        this.setShouldWorkerNotified(parseBoolean(eventLinkerNotified));
-        this.setBackoffMinMilliseconds(parseLong(backoffMinMilliseconds));
-        this.setBackoffMaxMilliseconds(parseLong(backoffMaxMilliseconds));
-        this.setBackoffMultiplier(parseDouble(backoffMultiplier));
+    public boolean shouldWorkerNotified() {
+        return parseBoolean(eventLinkerNotified);
     }
 }

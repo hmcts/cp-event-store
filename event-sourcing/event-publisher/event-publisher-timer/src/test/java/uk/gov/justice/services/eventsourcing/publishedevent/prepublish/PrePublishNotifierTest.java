@@ -1,7 +1,5 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.prepublish;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -28,9 +26,6 @@ class PrePublishNotifierTest {
 
     @Mock
     private PrePublishProcessor prePublishProcessor;
-
-    @Mock
-    private PrePublisherTimerConfig prePublisherTimerConfig;
 
     @Mock
     private EventPublishingNotifier eventPublishingNotifier;
@@ -64,13 +59,8 @@ class PrePublishNotifierTest {
 
     @Test
     void shouldProcessEventsWhenRunning() {
-        when(prePublisherTimerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
-        when(prePublisherTimerConfig.getBackoffMultiplier()).thenReturn(1.5);
-        when(prePublisherTimerConfig.getBackoffMaxMilliseconds()).thenReturn(100L);
-
         when(prePublishProcessor.prePublishNextEvent())
                 .thenReturn(true)
-                .thenReturn(false)
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
                     return false;
@@ -80,18 +70,14 @@ class PrePublishNotifierTest {
 
         final ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
         verify(managedExecutorService).submit(captor.capture());
-        final Runnable runnable = captor.getValue();
+        captor.getValue().run();
 
-        runnable.run();
-
-        verify(prePublishProcessor, times(3)).prePublishNextEvent();
+        verify(prePublishProcessor, times(2)).prePublishNextEvent();
         verify(eventPublishingNotifier, times(1)).wakeUp(false);
     }
 
     @Test
     void shouldResetStartedFlagWhenThreadExits() {
-        when(prePublisherTimerConfig.getBackoffMinMilliseconds()).thenReturn(10L);
-
         when(prePublishProcessor.prePublishNextEvent())
                 .thenAnswer(invocation -> {
                     Thread.currentThread().interrupt();
@@ -104,7 +90,6 @@ class PrePublishNotifierTest {
         verify(managedExecutorService).submit(captor.capture());
         captor.getValue().run();
 
-        // started should be reset to false, so next wakeUp(true) should submit again
         prePublishNotifier.wakeUp(true);
         verify(managedExecutorService, times(2)).submit(any(Runnable.class));
     }
@@ -116,7 +101,8 @@ class PrePublishNotifierTest {
 
         prePublishNotifier.wakeUp(true);
 
-        // started should be reset, so a subsequent wakeUp(true) should try to submit again
-        assertThat(true, is(true)); // no exception thrown
+        verify(managedExecutorService).submit(any(Runnable.class));
+        prePublishNotifier.wakeUp(true);
+        verify(managedExecutorService, times(2)).submit(any(Runnable.class));
     }
 }

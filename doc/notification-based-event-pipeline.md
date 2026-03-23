@@ -10,14 +10,21 @@ CDI event notifications trigger the linking and publishing workers immediately w
 
 ### How It Works
 
-Two new notifier beans observe CDI events fired after an event is committed to `event_log`:
+Two notifier beans observe CDI events fired after an event is committed to `event_log`:
 
 | Notifier | Fires on | Wakes | Effect |
 |----------|----------|-------|--------|
-| `EventLinkingNotifier` | New event committed | `EventLinkingTimerBean` | Links events immediately via `EventNumberLinker.findAndLinkEventsInBatch()` |
-| `EventPublishingNotifier` | Events linked | `EventPublishingTimerBean` | Publishes events immediately (publish_queue drain) |
+| `EventLinkingNotifier` | New event committed | Linking background thread | Links events immediately via `EventNumberLinker.findAndLinkEventsInBatch()` |
+| `EventPublishingNotifier` | Events linked | Publishing background thread | Publishes events immediately (publish_queue drain) |
 
-Each notifier runs a single background thread that calls the same processing method as the timer. A `started` AtomicBoolean prevents concurrent executions. The existing timer continues as a safety net (unchanged interval).
+Each notifier runs a single background thread managed by `ManagedExecutorService`. An `AtomicBoolean started` prevents concurrent executions. The existing timer continues as a safety net.
+
+### Signaling: ArrayBlockingQueue(1)
+
+Each notifier uses an `ArrayBlockingQueue<Object>(1)` as a coalescing signal:
+
+- **Producer** (`wakeUp`): `workSignal.offer(SIGNAL)` — non-blocking. If the queue already has a signal (consumer is processing), the offer silently drops. The consumer drains all available work via an inner loop, so duplicate signals are unnecessary.
+- **Consumer** (background thread): `workSignal.take()` — blocks until a signal arrives, then enters `while (findAndLinkEventsInBatch() > 0)` to drain all accumulated work before blocking again.
 
 ### CDI Event Flow
 
@@ -28,11 +35,12 @@ EventStreamManager.append()
   → EventAppendSynchronization.afterCompletion(STATUS_COMMITTED)
   → CDI fire(new EventAppendedEvent())
   → EventLinkingNotifier.onEventAppendedEvent(@Observes)
-  → wakeUp(false) → monitor.notifyAll()
-  → [background thread wakes]
-  → eventNumberLinker.findAndLinkEventsInBatch()  ← advisory lock 42, batch mode
-  → [on success] eventPublishingNotifier.wakeUp(false)
-  → linkedEventPublisher.publishNextNewEvent()
+  → wakeUp(false) → workSignal.offer(SIGNAL)
+  → [background thread wakes from take()]
+  → while (eventNumberLinker.findAndLinkEventsInBatch() > 0):
+      → eventPublishingNotifier.wakeUp(false)  → workSignal.offer(SIGNAL)
+      → [publishing thread wakes from take()]
+      → while (linkedEventPublisher.publishNextNewEvent()) { }
 ```
 
 ### JNDI Configuration
@@ -41,14 +49,8 @@ EventStreamManager.append()
 |----------|---------|--------|
 | `java:global/event.linking.worker.notified` | `false` | Enables EventLinkingNotifier |
 | `java:global/event.publishing.worker.notified` | `false` | Enables EventPublishingNotifier |
-| `java:global/event.linking.worker.backoff.min.milliseconds` | `5` | Min backoff when idle (linking) |
-| `java:global/event.linking.worker.backoff.max.milliseconds` | `100` | Max backoff cap (linking) |
-| `java:global/event.linking.worker.backoff.multiplier` | `1.5` | Backoff growth factor (linking) |
-| `java:global/event.publishing.worker.backoff.min.milliseconds` | `5` | Min backoff when idle (publishing) |
-| `java:global/event.publishing.worker.backoff.max.milliseconds` | `100` | Max backoff cap (publishing) |
-| `java:global/event.publishing.worker.backoff.multiplier` | `1.5` | Backoff growth factor (publishing) |
 
-Both notification flags default to OFF. Enabling them is purely additive — the timer remains active as a fallback.
+Both flags default to OFF. Enabling them is purely additive — the timer remains active as a fallback. With notification enabled, consider relaxing safety-net timer intervals (e.g., 500ms–1000ms) to reduce idle polling.
 
 ## Difference from Framework D
 

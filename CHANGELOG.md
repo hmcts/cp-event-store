@@ -5,6 +5,14 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+### [17.105.0-M16]  - 2026-03-24
+### Added
+- Notification-based event linking and publishing via CDI events, enabled via JNDI:
+  - event.linking.worker.notified (linking)
+  - event.publishing.worker.notified (publishing)
+  - event.discovery.notified (discovery)
+  - stream.processing.discovery.notified (processing)
+
 ### [17.105.0-M15]  - 2026-03-18
 ### Changed
 - Batch event linking: `EventNumberLinker` now links N events per JTA transaction using JDBC `executeBatch()`,

@@ -88,7 +88,7 @@ public class EventDiscoveryTimerBeanTest {
         when(eventPullConfiguration.shouldProcessEventsByPullMechanism()).thenReturn(false);
 
         eventDiscoveryTimerBean.startTimerService();
-        
+
         verifyNoInteractions(subscriptionSourceComponentFinder);
         verifyNoInteractions(timerConfigFactory);
         verifyNoInteractions(timerService);

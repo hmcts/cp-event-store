@@ -58,11 +58,11 @@ public class EventDiscoveryNotifierTest {
     @Test
     public void shouldDoNothingIfDiscoveryNotifiedIsDisabled() {
 
-        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(randomUUID(), 5L)));
+        final EventsLinkedEvent event = new EventsLinkedEvent(List.of(new StreamPosition(randomUUID(), 5L)));
 
         when(eventDiscoveryTimerConfig.shouldDiscoveryNotified()).thenReturn(false);
 
-        eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
+        eventDiscoveryNotifier.onEventsLinked(event);
 
         verify(subscriptionSourceComponentFinder, never()).findListenerOrIndexerPairs();
         verify(streamStatusAdvancedFirer, never()).fireAsync(any());
@@ -76,7 +76,7 @@ public class EventDiscoveryNotifierTest {
         final ZonedDateTime now = new UtcClock().now();
 
         final SourceComponentPair pair = mock(SourceComponentPair.class);
-        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(streamId, position)));
+        final EventsLinkedEvent event = new EventsLinkedEvent(List.of(new StreamPosition(streamId, position)));
 
         when(pair.source()).thenReturn("MY_SOURCE");
         when(pair.component()).thenReturn("EVENT_LISTENER");
@@ -87,7 +87,7 @@ public class EventDiscoveryNotifierTest {
                 streamId, "MY_SOURCE", "EVENT_LISTENER", position, now))
                 .thenReturn(true);
 
-        eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
+        eventDiscoveryNotifier.onEventsLinked(event);
 
         verify(streamStatusAdvancedFirer).fireAsync(any(StreamStatusAdvancedEvent.class));
     }
@@ -100,7 +100,7 @@ public class EventDiscoveryNotifierTest {
         final ZonedDateTime now = new UtcClock().now();
 
         final SourceComponentPair pair = mock(SourceComponentPair.class);
-        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(streamId, position)));
+        final EventsLinkedEvent event = new EventsLinkedEvent(List.of(new StreamPosition(streamId, position)));
 
         when(pair.source()).thenReturn("MY_SOURCE");
         when(pair.component()).thenReturn("EVENT_LISTENER");
@@ -111,7 +111,7 @@ public class EventDiscoveryNotifierTest {
                 streamId, "MY_SOURCE", "EVENT_LISTENER", position, now))
                 .thenReturn(false);
 
-        eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
+        eventDiscoveryNotifier.onEventsLinked(event);
 
         verify(streamStatusAdvancedFirer, never()).fireAsync(any());
     }
@@ -125,7 +125,7 @@ public class EventDiscoveryNotifierTest {
 
         final SourceComponentPair pair1 = mock(SourceComponentPair.class);
         final SourceComponentPair pair2 = mock(SourceComponentPair.class);
-        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(streamId, position)));
+        final EventsLinkedEvent event = new EventsLinkedEvent(List.of(new StreamPosition(streamId, position)));
 
         when(pair1.source()).thenReturn("SOURCE_1");
         when(pair1.component()).thenReturn("EVENT_LISTENER");
@@ -141,21 +141,20 @@ public class EventDiscoveryNotifierTest {
                 streamId, "SOURCE_2", "EVENT_INDEXER", position, now))
                 .thenReturn(false);
 
-        eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
+        eventDiscoveryNotifier.onEventsLinked(event);
 
-        // Only the pair that actually advanced is notified
         verify(streamStatusAdvancedFirer, times(1)).fireAsync(any(StreamStatusAdvancedEvent.class));
     }
 
     @Test
     public void shouldHandleEmptySourceComponentPairList() {
 
-        final EventsLinkedEvent eventLinkedEvent = new EventsLinkedEvent(List.of(new StreamPosition(randomUUID(), 1L)));
+        final EventsLinkedEvent event = new EventsLinkedEvent(List.of(new StreamPosition(randomUUID(), 1L)));
 
         when(eventDiscoveryTimerConfig.shouldDiscoveryNotified()).thenReturn(true);
         when(subscriptionSourceComponentFinder.findListenerOrIndexerPairs()).thenReturn(emptyList());
 
-        eventDiscoveryNotifier.onEventLinkedEvent(eventLinkedEvent);
+        eventDiscoveryNotifier.onEventsLinked(event);
 
         verify(streamStatusAdvancedFirer, never()).fireAsync(any());
     }

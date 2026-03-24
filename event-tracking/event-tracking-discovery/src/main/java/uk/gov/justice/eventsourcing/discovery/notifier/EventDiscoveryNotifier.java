@@ -9,11 +9,16 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamStatusA
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
+import static javax.ejb.ConcurrencyManagementType.BEAN;
+import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.ejb.ConcurrencyManagement;
 import javax.ejb.Singleton;
+import javax.ejb.TransactionAttribute;
 import javax.enterprise.event.Event;
 import javax.enterprise.event.ObservesAsync;
 import javax.inject.Inject;
@@ -21,6 +26,8 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 
 @Singleton
+@ConcurrencyManagement(BEAN)
+@TransactionAttribute(NOT_SUPPORTED)
 public class EventDiscoveryNotifier {
 
     @Inject
@@ -41,7 +48,7 @@ public class EventDiscoveryNotifier {
     @Inject
     private Logger logger;
 
-    public void onEventLinkedEvent(@ObservesAsync final EventsLinkedEvent eventLinkedEvent) {
+    public void onEventsLinked(@ObservesAsync final EventsLinkedEvent eventsLinkedEvent) {
 
         if (!eventDiscoveryTimerConfig.shouldDiscoveryNotified()) {
             return;
@@ -50,7 +57,7 @@ public class EventDiscoveryNotifier {
         final List<SourceComponentPair> pairs = subscriptionSourceComponentFinder.findListenerOrIndexerPairs();
         final Set<SourceComponentPair> advancedPairs = new HashSet<>();
 
-        for (final StreamPosition streamPosition : eventLinkedEvent.streamPositions()) {
+        for (final StreamPosition streamPosition : eventsLinkedEvent.streamPositions()) {
             for (final SourceComponentPair pair : pairs) {
                 if (newStreamStatusRepository.upsertLatestKnownPositionIfIncreased(
                         streamPosition.streamId(), pair.source(), pair.component(), streamPosition.positionInStream(), clock.now())) {

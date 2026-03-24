@@ -136,6 +136,22 @@ public class NewStreamStatusRepository {
                     is_up_to_date = EXCLUDED.is_up_to_date
             """;
 
+    private static final String UPSERT_LATEST_KNOWN_POSITION_IF_INCREASED = """
+              INSERT INTO stream_status (
+                stream_id,
+                position,
+                source,
+                component,
+                discovered_at,
+                latest_known_position,
+                is_up_to_date
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (stream_id, source, component) DO UPDATE SET
+                    latest_known_position = EXCLUDED.latest_known_position,
+                    is_up_to_date = false
+            WHERE stream_status.latest_known_position < EXCLUDED.latest_known_position
+            """;
+
     private static final String SET_IS_UP_TO_DATE_SQL = """
             UPDATE stream_status
             SET is_up_to_date = ?
@@ -368,6 +384,34 @@ public class NewStreamStatusRepository {
             preparedStatement.setBoolean(7, false);
 
             preparedStatement.executeUpdate();
+        } catch (final SQLException e) {
+            throw new StreamStatusException(format(
+                    "Failed to upsert stream_status latest_known_position; stream_id '%s', source '%s', component '%s', latestKnownPosition '%d'",
+                    streamId,
+                    source,
+                    componentName,
+                    latestKnownPosition),
+                    e);
+        }
+    }
+
+    public boolean upsertLatestKnownPositionIfIncreased(final UUID streamId, final String source, final String componentName,
+                                                        final long latestKnownPosition, final ZonedDateTime discoveredAt) {
+
+        final Timestamp discoveredAtTimestamp = toSqlTimestamp(discoveredAt);
+
+        try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
+             final PreparedStatement preparedStatement = connection.prepareStatement(UPSERT_LATEST_KNOWN_POSITION_IF_INCREASED)) {
+
+            preparedStatement.setObject(1, streamId);
+            preparedStatement.setLong(2, INITIAL_POSITION_IN_STREAM);
+            preparedStatement.setString(3, source);
+            preparedStatement.setString(4, componentName);
+            preparedStatement.setTimestamp(5, discoveredAtTimestamp);
+            preparedStatement.setLong(6, latestKnownPosition);
+            preparedStatement.setBoolean(7, false);
+
+            return preparedStatement.executeUpdate() > 0;
         } catch (final SQLException e) {
             throw new StreamStatusException(format(
                     "Failed to upsert stream_status latest_known_position; stream_id '%s', source '%s', component '%s', latestKnownPosition '%d'",

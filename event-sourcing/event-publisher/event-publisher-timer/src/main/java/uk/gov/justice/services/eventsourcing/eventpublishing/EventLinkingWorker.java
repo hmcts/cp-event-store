@@ -12,8 +12,7 @@ public class EventLinkingWorker {
     public void linkNewEvents(final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator) {
 
         while (sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()) {
-            final int linked = eventNumberLinker.findAndLinkEventsInBatch();
-            if (linked == 0) {
+            if (eventNumberLinker.findAndLinkEventsInBatch().isEmpty()) {
                 break;
             }
         }

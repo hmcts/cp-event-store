@@ -1,16 +1,21 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing;
 
+import static java.util.Collections.emptyList;
+import static java.util.UUID.randomUUID;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventDetailsToLink;
 import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,9 +31,10 @@ public class EventLinkingWorkerTest {
     public void shouldLinkBatchesUntilNoneLinked() throws Exception {
 
         final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = mock(SufficientTimeRemainingCalculator.class);
+        final List<EventDetailsToLink> batch = List.of(new EventDetailsToLink(randomUUID(), randomUUID(), 1));
 
         when(sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()).thenReturn(true);
-        when(eventNumberLinker.findAndLinkEventsInBatch()).thenReturn(10, 5, 0);
+        when(eventNumberLinker.findAndLinkEventsInBatch()).thenReturn(batch, batch, emptyList());
 
         eventLinkingWorker.linkNewEvents(sufficientTimeRemainingCalculator);
 
@@ -39,9 +45,10 @@ public class EventLinkingWorkerTest {
     public void shouldStopLinkingWhenTimeIsExceeded() throws Exception {
 
         final SufficientTimeRemainingCalculator sufficientTimeRemainingCalculator = mock(SufficientTimeRemainingCalculator.class);
+        final List<EventDetailsToLink> batch = List.of(new EventDetailsToLink(randomUUID(), randomUUID(), 1));
 
         when(sufficientTimeRemainingCalculator.hasSufficientProcessingTimeRemaining()).thenReturn(true, true, false);
-        when(eventNumberLinker.findAndLinkEventsInBatch()).thenReturn(10);
+        when(eventNumberLinker.findAndLinkEventsInBatch()).thenReturn(batch);
 
         eventLinkingWorker.linkNewEvents(sufficientTimeRemainingCalculator);
 

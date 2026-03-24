@@ -17,32 +17,28 @@ public class EventPublishingWorkerConfigTest {
 
     @Test
     public void shouldGetTheStartWaitTime() throws Exception {
-
-        final long milliseconds = 982374L;
-
-        setField(eventPublishingWorkerConfig, "timerStartWaitMilliseconds", "" + milliseconds);
-
-        assertThat(eventPublishingWorkerConfig.getTimerStartWaitMilliseconds(), is(milliseconds));
+        setField(eventPublishingWorkerConfig, "timerStartWaitMilliseconds", "982374");
+        assertThat(eventPublishingWorkerConfig.getTimerStartWaitMilliseconds(), is(982374L));
     }
 
     @Test
     public void shouldGetTheTimerInterval() throws Exception {
-
-        final long milliseconds = 2998734L;
-
-        setField(eventPublishingWorkerConfig, "timerIntervalMilliseconds", "" + milliseconds);
-
-        assertThat(eventPublishingWorkerConfig.getTimerIntervalMilliseconds(), is(milliseconds));
+        setField(eventPublishingWorkerConfig, "timerIntervalMilliseconds", "2998734");
+        assertThat(eventPublishingWorkerConfig.getTimerIntervalMilliseconds(), is(2998734L));
     }
 
     @Test
     public void shouldGetTheTimeBetweenRuns() throws Exception {
-
-        final long milliseconds = 28734L;
-
-        setField(eventPublishingWorkerConfig, "timeBetweenRunsMilliseconds", "" + milliseconds);
-
-        assertThat(eventPublishingWorkerConfig.getTimeBetweenRunsMilliseconds(), is(milliseconds));
+        setField(eventPublishingWorkerConfig, "timeBetweenRunsMilliseconds", "28734");
+        assertThat(eventPublishingWorkerConfig.getTimeBetweenRunsMilliseconds(), is(28734L));
     }
 
+    @Test
+    public void shouldGetEventPublisherNotified() throws Exception {
+        setField(eventPublishingWorkerConfig, "eventPublisherNotified", "true");
+        assertThat(eventPublishingWorkerConfig.shouldWorkerNotified(), is(true));
+
+        setField(eventPublishingWorkerConfig, "eventPublisherNotified", "false");
+        assertThat(eventPublishingWorkerConfig.shouldWorkerNotified(), is(false));
+    }
 }

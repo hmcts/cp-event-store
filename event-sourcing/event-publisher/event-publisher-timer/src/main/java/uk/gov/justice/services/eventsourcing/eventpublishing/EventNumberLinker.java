@@ -2,12 +2,14 @@ package uk.gov.justice.services.eventsourcing.eventpublishing;
 
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.transaction.UserTransaction;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.AdvisoryLockDataAccess;
+import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventDetailsToLink;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventNumberLinkingException;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkedEventData;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess;
@@ -15,7 +17,6 @@ import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEve
 public class EventNumberLinker {
 
     static final Long ADVISORY_LOCK_KEY = 42L;
-    public static final int NO_EVENT_LINKED = 0;
 
     @Inject
     private LinkEventsInEventLogDatabaseAccess linkEventsInEventLogDatabaseAccess;
@@ -29,7 +30,7 @@ public class EventNumberLinker {
     @Inject
     private UserTransaction userTransaction;
 
-    public int findAndLinkEventsInBatch() {
+    public List<EventDetailsToLink> findAndLinkEventsInBatch() {
 
         final int batchSize = eventLinkingWorkerConfig.getBatchSize();
 
@@ -43,23 +44,25 @@ public class EventNumberLinker {
 
             if (!advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(connection, ADVISORY_LOCK_KEY)) {
                 userTransaction.rollback();
-                return NO_EVENT_LINKED;
+                return Collections.emptyList();
             }
 
-            final List<UUID> eventIds = linkEventsInEventLogDatabaseAccess.findBatchOfNextEventIdsToLink(connection, batchSize);
+            final List<EventDetailsToLink> events = linkEventsInEventLogDatabaseAccess.findBatchOfNextEventsToLink(connection, batchSize);
 
-            if (eventIds.isEmpty()) {
+            if (events.isEmpty()) {
                 userTransaction.rollback();
-                return NO_EVENT_LINKED;
+                return Collections.emptyList();
             }
 
             long eventNumber = linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable(connection);
 
-            final List<LinkedEventData> linkDataList = new ArrayList<>(eventIds.size());
-            for (final UUID eventId : eventIds) {
+            final List<UUID> eventIds = new ArrayList<>(events.size());
+            final List<LinkedEventData> linkDataList = new ArrayList<>(events.size());
+            for (final EventDetailsToLink event : events) {
                 final long previousEventNumber = eventNumber;
                 eventNumber = previousEventNumber + 1;
-                linkDataList.add(new LinkedEventData(eventId, eventNumber, previousEventNumber));
+                linkDataList.add(new LinkedEventData(event.eventId(), eventNumber, previousEventNumber));
+                eventIds.add(event.eventId());
             }
 
             linkEventsInEventLogDatabaseAccess.linkEventsBatch(connection, linkDataList);
@@ -67,7 +70,7 @@ public class EventNumberLinker {
 
             userTransaction.commit();
 
-            return eventIds.size();
+            return events;
 
         } catch (final Exception e) {
             try {

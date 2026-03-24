@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.AdvisoryLockDataAccess;
+import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventDetailsToLink;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.EventNumberLinkingException;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkedEventData;
 import uk.gov.justice.services.eventsourcing.publishedevent.jdbc.LinkEventsInEventLogDatabaseAccess;
@@ -66,11 +67,19 @@ public class EventNumberLinkerTest {
         when(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds()).thenReturn(10);
         when(linkEventsInEventLogDatabaseAccess.getEventStoreConnection()).thenReturn(connection);
         when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(connection, ADVISORY_LOCK_KEY)).thenReturn(true);
-        when(linkEventsInEventLogDatabaseAccess.findBatchOfNextEventIdsToLink(connection, 10))
-                .thenReturn(List.of(eventId1, eventId2, eventId3));
+        final UUID streamId1 = randomUUID();
+        final UUID streamId2 = randomUUID();
+        final UUID streamId3 = randomUUID();
+        final List<EventDetailsToLink> batch = List.of(
+                new EventDetailsToLink(eventId1, streamId1, 1),
+                new EventDetailsToLink(eventId2, streamId2, 1),
+                new EventDetailsToLink(eventId3, streamId3, 1));
+
+        when(linkEventsInEventLogDatabaseAccess.findBatchOfNextEventsToLink(connection, 10)).thenReturn(batch);
         when(linkEventsInEventLogDatabaseAccess.findCurrentHighestEventNumberInEventLogTable(connection)).thenReturn(22L);
 
-        assertThat(eventNumberLinker.findAndLinkEventsInBatch(), is(3));
+        final List<EventDetailsToLink> result = eventNumberLinker.findAndLinkEventsInBatch();
+        assertThat(result.size(), is(3));
 
         final InOrder inOrder = inOrder(userTransaction, linkEventsInEventLogDatabaseAccess, advisoryLockDataAccess);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).getEventStoreConnection();
@@ -78,7 +87,7 @@ public class EventNumberLinkerTest {
         inOrder.verify(userTransaction).begin();
         inOrder.verify(linkEventsInEventLogDatabaseAccess).setStatementTimeoutOnCurrentTransaction(connection, 10);
         inOrder.verify(advisoryLockDataAccess).tryNonBlockingTransactionLevelAdvisoryLock(connection, ADVISORY_LOCK_KEY);
-        inOrder.verify(linkEventsInEventLogDatabaseAccess).findBatchOfNextEventIdsToLink(connection, 10);
+        inOrder.verify(linkEventsInEventLogDatabaseAccess).findBatchOfNextEventsToLink(connection, 10);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).findCurrentHighestEventNumberInEventLogTable(connection);
         inOrder.verify(linkEventsInEventLogDatabaseAccess).linkEventsBatch(org.mockito.ArgumentMatchers.eq(connection), linkDataCaptor.capture());
         inOrder.verify(linkEventsInEventLogDatabaseAccess).insertBatchIntoPublishQueue(connection, List.of(eventId1, eventId2, eventId3));
@@ -100,23 +109,23 @@ public class EventNumberLinkerTest {
         when(linkEventsInEventLogDatabaseAccess.getEventStoreConnection()).thenReturn(connection);
         when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(connection, ADVISORY_LOCK_KEY)).thenReturn(false);
 
-        assertThat(eventNumberLinker.findAndLinkEventsInBatch(), is(0));
+        assertThat(eventNumberLinker.findAndLinkEventsInBatch(), is(emptyList()));
 
         verify(userTransaction).rollback();
-        verify(linkEventsInEventLogDatabaseAccess, never()).findBatchOfNextEventIdsToLink(connection, 10);
+        verify(linkEventsInEventLogDatabaseAccess, never()).findBatchOfNextEventsToLink(connection, 10);
     }
 
     @Test
-    public void shouldReturnZeroIfNoUnlinkedEvents() throws Exception {
+    public void shouldReturnEmptyIfNoUnlinkedEvents() throws Exception {
 
         when(eventLinkingWorkerConfig.getBatchSize()).thenReturn(10);
         when(eventLinkingWorkerConfig.getTransactionTimeoutSeconds()).thenReturn(300);
         when(eventLinkingWorkerConfig.getLocalStatementTimeoutSeconds()).thenReturn(10);
         when(linkEventsInEventLogDatabaseAccess.getEventStoreConnection()).thenReturn(connection);
         when(advisoryLockDataAccess.tryNonBlockingTransactionLevelAdvisoryLock(connection, ADVISORY_LOCK_KEY)).thenReturn(true);
-        when(linkEventsInEventLogDatabaseAccess.findBatchOfNextEventIdsToLink(connection, 10)).thenReturn(emptyList());
+        when(linkEventsInEventLogDatabaseAccess.findBatchOfNextEventsToLink(connection, 10)).thenReturn(emptyList());
 
-        assertThat(eventNumberLinker.findAndLinkEventsInBatch(), is(0));
+        assertThat(eventNumberLinker.findAndLinkEventsInBatch(), is(emptyList()));
 
         verify(userTransaction).rollback();
         verify(linkEventsInEventLogDatabaseAccess, never()).findCurrentHighestEventNumberInEventLogTable(connection);

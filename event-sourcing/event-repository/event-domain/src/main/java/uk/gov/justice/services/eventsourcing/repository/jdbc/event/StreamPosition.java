@@ -1,4 +1,4 @@
-package uk.gov.justice.services.eventsourcing.repository.jdbc.discovery;
+package uk.gov.justice.services.eventsourcing.repository.jdbc.event;
 
 import java.util.UUID;
 

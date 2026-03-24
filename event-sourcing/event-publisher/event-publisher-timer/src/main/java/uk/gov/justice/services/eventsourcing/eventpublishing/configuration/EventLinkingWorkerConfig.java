@@ -1,8 +1,10 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 
 import javax.inject.Inject;
+
 import uk.gov.justice.services.common.configuration.Value;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 
@@ -33,6 +35,14 @@ public class EventLinkingWorkerConfig {
     @Inject
     @Value(key = "event.linking.worker.transaction.statement.timeout.seconds", defaultValue = DEFAULT_TIMEOUT_SECONDS)
     private String transactionStatementTimeoutSeconds;
+
+    @Inject
+    @Value(key = "event.linking.worker.notified", defaultValue = "false")
+    private String eventLinkerNotified;
+
+    public boolean shouldWorkerNotified() {
+        return parseBoolean(eventLinkerNotified);
+    }
 
     public long getTimerStartWaitMilliseconds() {
         return parseLong(timerStartWaitMilliseconds);

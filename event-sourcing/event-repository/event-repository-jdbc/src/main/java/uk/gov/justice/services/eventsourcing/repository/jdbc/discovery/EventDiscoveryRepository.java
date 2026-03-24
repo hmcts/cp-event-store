@@ -3,6 +3,7 @@ package uk.gov.justice.services.eventsourcing.repository.jdbc.discovery;
 import static java.lang.String.format;
 import static javax.transaction.Transactional.TxType.REQUIRED;
 
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 
 import java.sql.Connection;

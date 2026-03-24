@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventDiscoveryRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventIdNumber;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 
 import java.util.UUID;
 

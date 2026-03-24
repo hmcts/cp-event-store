@@ -6,6 +6,7 @@ import uk.gov.justice.services.event.sourcing.subscription.manager.task.PollerCi
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerFactory;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.StreamProcessingWorkerTask;
 import uk.gov.justice.services.event.sourcing.subscription.manager.task.WorkerActivityTracker;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamStatusAdvancedEvent;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
@@ -24,6 +25,7 @@ import javax.ejb.TimerService;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.concurrent.ManagedExecutorService;
+import javax.enterprise.event.ObservesAsync;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -112,6 +114,19 @@ public class StreamProcessingCoordinator {
         } catch (final Exception e) {
             logger.error("Failed to coordinate workers for source: {}, component: {}",
                     pair.source(), pair.component(), e);
+        }
+    }
+
+    public void onStreamStatusAdvanced(@ObservesAsync final StreamStatusAdvancedEvent event) {
+
+        if (!streamProcessingConfig.shouldDiscoveryNotified()) {
+            return;
+        }
+
+        final SourceComponentPair pair = new SourceComponentPair(event.source(), event.component());
+
+        if (workerActivityTracker.getActiveCount(pair) == 0) {
+            spawnWorkers(pair, 1);
         }
     }
 

@@ -31,8 +31,8 @@ public class LinkEventsInEventLogDatabaseAccess {
                 FROM event_log
                 """;
 
-    static final String SELECT_BATCH_OF_UNLINKED_EVENT_IDS = """
-                SELECT id
+    static final String SELECT_BATCH_OF_UNLINKED_EVENTS = """
+                SELECT id, stream_id, position_in_stream
                 FROM event_log
                 WHERE event_number IS NULL
                 ORDER BY date_created
@@ -85,19 +85,22 @@ public class LinkEventsInEventLogDatabaseAccess {
         }
     }
 
-    public List<UUID> findBatchOfNextEventIdsToLink(final Connection connection, final int batchSize) {
-        try (final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BATCH_OF_UNLINKED_EVENT_IDS)) {
+    public List<EventDetailsToLink> findBatchOfNextEventsToLink(final Connection connection, final int batchSize) {
+        try (final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_BATCH_OF_UNLINKED_EVENTS)) {
             preparedStatement.setInt(1, batchSize);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                final List<UUID> eventIds = new ArrayList<>(batchSize);
+                final List<EventDetailsToLink> events = new ArrayList<>(batchSize);
                 while (resultSet.next()) {
-                    eventIds.add(resultSet.getObject(1, UUID.class));
+                    events.add(new EventDetailsToLink(
+                            resultSet.getObject("id", UUID.class),
+                            resultSet.getObject("stream_id", UUID.class),
+                            resultSet.getLong("position_in_stream")));
                 }
-                return eventIds;
+                return events;
             }
         } catch (final SQLException e) {
-            throw new EventPublishingException("Failed to find batch of event ids to link", e);
+            throw new EventPublishingException("Failed to find batch of events to link", e);
         }
     }
 

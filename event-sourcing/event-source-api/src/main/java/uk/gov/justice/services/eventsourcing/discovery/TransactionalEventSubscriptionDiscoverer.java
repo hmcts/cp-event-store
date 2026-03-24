@@ -4,7 +4,7 @@ import static javax.ejb.TransactionAttributeType.REQUIRES_NEW;
 import static javax.ejb.TransactionManagementType.CONTAINER;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventDiscoveryRepository;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.StreamPosition;
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 
 import java.util.Collections;
 import java.util.List;

@@ -59,7 +59,7 @@ EventStreamManager.append()
 | Event | Fields | Fired By | Observed By | Type |
 |-------|--------|----------|-------------|------|
 | `EventAppendedEvent` | none (marker) | `EventAppendTriggerService` | `EventLinkingNotifier` | `@Observes` (sync) |
-| `EventsLinkedEvent` | `Map<UUID, Long>` (streamId → highest position) | `EventLinkingNotifier` | `EventDiscoveryNotifier` | `@ObservesAsync` |
+| `EventsLinkedEvent` | `List<StreamPosition>` (streamId, highest position per stream) | `EventLinkingNotifier` | `EventDiscoveryNotifier` | `@ObservesAsync` |
 | `StreamStatusAdvancedEvent` | `source`, `component` | `EventDiscoveryNotifier` | `StreamProcessingCoordinator` | `@ObservesAsync` |
 
 ### EventDiscoveryNotifier — Conditional UPSERT
@@ -99,27 +99,29 @@ All flags default to OFF. Enabling them is purely additive — timers remain act
 
 ### Latency
 
-Timer-based polling adds up to one timer interval of latency per pipeline stage. With four stages (linking, publishing, discovery, stream processing) and default intervals of 100-500ms, end-to-end latency from event append to handler execution is typically **200-1300ms**.
+Timer-based polling adds up to one timer interval of latency per pipeline stage. With four stages and default intervals of 100-500ms, end-to-end latency is dominated by timer wait times.
 
-Notification eliminates this timer-interval overhead. Each stage is triggered immediately by CDI event, reducing end-to-end latency to the time taken by the actual processing — expected **<50ms** under normal load, an order-of-magnitude improvement.
+Notification eliminates this overhead — each stage is triggered immediately by CDI event, reducing latency to the actual processing time. Discovery notification has the largest impact on the pull-based read path: without it, each event waits for both the discovery timer and coordinator timer before the listener processes it.
 
 ### Throughput
 
-Notification does not change the processing logic — the same linking, publishing, and stream processing code runs. Throughput (TPS) is therefore expected to be **comparable to timer-based** under sustained load, where the timer fires frequently enough to keep up.
-
-At scale (multiple replicas), notification can **improve effective throughput** by eliminating idle gaps between timer ticks across pipeline stages. The CDI chain triggers publishing immediately after linking completes, removing the delay that timers introduce between stages.
+Notification does not change the processing logic — the same linking, publishing, and stream processing code runs. During sustained burst load, discovery notification adds minor overhead due to concurrent `stream_status` UPSERTs. The trade-off is immediate stream discovery vs timer-based discovery which may lag behind under load.
 
 ### Idle CPU
 
-Timer-based polling executes database queries on every tick, even when no work exists. Notification replaces this with `ArrayBlockingQueue.take()` — the thread blocks with near-zero idle cost. Expected idle CPU reduction is **2-4x** for WildFly and Postgres compared to default timer intervals, and greater compared to aggressive (low-interval) timers.
-
-### Aggressive Timers vs Notification
-
-Reducing timer intervals (e.g. to 5-20ms) can approximate notification latency but at significant cost: higher idle CPU, more database load, and with batch linking, intervals below ~20ms are ineffective because `SufficientTimeRemainingCalculator` doesn't have enough budget for even one batch. Notification achieves the same latency benefit without these trade-offs.
+Timer-based polling executes database queries on every tick, even when no work exists. Notification replaces this with `ArrayBlockingQueue.take()` — the thread blocks with near-zero idle cost.
 
 ### Crash Recovery
 
-Notification does not change crash safety. Event linking is serialized by advisory lock 42, so event_number chain integrity is maintained regardless of replica crashes. With Framework F's pull-based listeners, viewstore recovery after crashes is expected to be **complete** (100%), compared to push-based JMS listeners (D/E) where in-flight messages can be lost to Artemis DLQ during container failures.
+Notification does not change crash safety. Event linking is serialized by advisory lock 42, so event_number chain integrity is maintained regardless of replica crashes. With Framework F's pull-based listeners, viewstore recovery after crashes is expected to be complete, compared to push-based JMS listeners (D/E) where in-flight messages can be lost to Artemis DLQ during container failures.
+
+## EventDiscoveryNotifier — Concurrency Design
+
+`EventDiscoveryNotifier` requires `@ConcurrencyManagement(BEAN)` and `@TransactionAttribute(NOT_SUPPORTED)`:
+
+- **`@ConcurrencyManagement(BEAN)`**: Default container-managed concurrency serializes all `@ObservesAsync` calls through a singleton lock. Under burst load, CDI async threads queue up and hit the `@AccessTimeout`, causing `ConcurrentAccessTimeoutException`. Bean-managed concurrency allows concurrent execution — the method only does independent per-stream UPSERTs, safe for concurrent access.
+
+- **`@TransactionAttribute(NOT_SUPPORTED)`**: Without this, the EJB container wraps the entire method in a JTA transaction. All `getConnection()` calls inside the loop enlist in the same JTA transaction (IronJacamar auto-enlistment), accumulating row locks across multiple streams. When the timer-based `EventDiscoveryWorker` runs concurrently and UPSERTs the same streams in different order, PostgreSQL detects a deadlock. With `NOT_SUPPORTED`, each UPSERT auto-commits independently — single-statement transactions cannot deadlock.
 
 ## Safety Nets
 

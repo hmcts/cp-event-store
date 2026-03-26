@@ -29,16 +29,21 @@ public class StreamSessionLockManager {
     public StreamSessionLock lockStream(final UUID streamId, final String source, final String component) {
         final Connection connection = getAdvisoryConnection();
 
+        StreamSessionLock streamSessionLock = null;
         try {
             final int sourceComponentKey = Objects.hash(source, component);
             final int streamKey = (int) streamId.getLeastSignificantBits();
-            final boolean acquired = tryLockStream(connection, sourceComponentKey, streamKey);
-            if (!acquired) {
+            streamSessionLock = tryLockStream(connection, sourceComponentKey, streamKey, streamId);
+            if (!streamSessionLock.acquired) {
                 logger.warn("Advisory lock contention detected for stream '{}', source '{}', component '{}'", streamId, source, component);
             }
-            return new StreamSessionLock(connection, sourceComponentKey, streamKey, streamId, acquired);
+            return streamSessionLock;
         } catch (final Exception e) {
-            closeQuietly(connection);
+            if(streamSessionLock != null) {
+                streamSessionLock.close();
+            } else {
+                closeQuietly(connection);
+            }
             throw e;
         }
     }
@@ -51,14 +56,14 @@ public class StreamSessionLockManager {
         }
     }
 
-    private boolean tryLockStream(final Connection connection, final int sourceComponentKey, final int streamKey) {
+    private StreamSessionLock tryLockStream(final Connection connection, final int sourceComponentKey, final int streamKey, final UUID streamId) {
         try (final PreparedStatement preparedStatement = connection.prepareStatement(TRY_SESSION_ADVISORY_LOCK_SQL)) {
             preparedStatement.setInt(1, sourceComponentKey);
             preparedStatement.setInt(2, streamKey);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    return resultSet.getBoolean(1);
+                    return new StreamSessionLock(connection, sourceComponentKey, streamKey, streamId, resultSet.getBoolean(1));
                 }
                 throw new StreamSessionLockException(format("No result returned when acquiring advisory lock for sourceComponentKey %d, streamKey %d", sourceComponentKey, streamKey));
             }

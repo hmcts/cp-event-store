@@ -93,6 +93,7 @@ public class StreamSessionLockManagerTest {
         assertThrows(StreamSessionLockException.class, () -> streamSessionLockManager.lockStream(streamId, SOURCE, COMPONENT));
 
         verify(connection).close();
+        verify(connection, never()).prepareStatement(StreamSessionLockManager.SESSION_ADVISORY_UNLOCK_SQL);
     }
 
     @Test

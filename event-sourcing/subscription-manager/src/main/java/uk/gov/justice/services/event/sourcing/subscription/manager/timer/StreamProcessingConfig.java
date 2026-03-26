@@ -50,15 +50,15 @@ public class StreamProcessingConfig {
     private String idleThresholdMilliseconds;
 
     @Inject
-    @Value(key = "event.publishing.stream.processing.max.event.retries", defaultValue = "7")
+    @Value(key = "stream.processing.max.event.retries", defaultValue = "7")
     private String maxRetries;
 
     @Inject
-    @Value(key = "event.publishing.stream.processing.retry.delay.milliseconds", defaultValue = "1000")
+    @Value(key = "stream.processing.retry.delay.milliseconds", defaultValue = "1000")
     private String retryDelayMilliseconds;
 
     @Inject
-    @Value(key = "event.publishing.stream.processing.retry.delay.multiplier", defaultValue = "1.0")
+    @Value(key = "stream.processing.retry.delay.multiplier", defaultValue = "1.0")
     private String retryDelayMultiplier;
 
     @Inject

@@ -12,7 +12,7 @@ import uk.gov.justice.services.resources.rest.model.ResetStreamRetryCountRespons
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -30,7 +30,7 @@ public class ResetStreamRetryCountResource {
     @Inject
     private Logger logger;
 
-    @GET
+    @PUT
     public Response resetStreamRetryCount(
             @QueryParam("streamId") final UUID streamId,
             @QueryParam("source") final String source,

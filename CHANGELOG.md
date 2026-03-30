@@ -5,6 +5,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+### [17.105.0-M17]  - 2026-03-30
 ### Changed
 - Renamed JNDI properties 
   - `stream.processing.max.event.retries`

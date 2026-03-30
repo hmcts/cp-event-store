@@ -10,6 +10,7 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
   - `stream.processing.max.event.retries`
   - `stream.processing.retry.delay.milliseconds`
   - `stream.processing.retry.delay.multiplier`
+- Changed the new `catchup` rest endpoint on `<context-name>/internal/reset-stream-retry-count` from an http `GET` to an http `PUT` 
 
 ### [17.105.0-M16]  - 2026-03-24
 ### Added

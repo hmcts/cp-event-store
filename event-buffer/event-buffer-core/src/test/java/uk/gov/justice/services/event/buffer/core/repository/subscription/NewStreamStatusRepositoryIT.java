@@ -2,6 +2,8 @@ package uk.gov.justice.services.event.buffer.core.repository.subscription;
 
 import java.sql.Connection;
 import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -409,7 +411,7 @@ public class NewStreamStatusRepositoryIT {
         }
 
         @Test
-        public void shouldExcludeErroredStreamWhenNoRetryRecordExists() throws Exception {
+        public void shouldIncludeErroredStreamWhenNoRetryRecordExists() throws Exception {
 
             final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
             when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
@@ -454,7 +456,9 @@ public class NewStreamStatusRepositoryIT {
             final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
 
             assertThat(result.isPresent(), is(true));
-            assertThat(result.get().streamId(), is(streamId2));
+            assertThat(result.get().streamId(), is(streamId1));
+            assertThat(result.get().streamErrorId().isPresent(), is(true));
+            assertThat(result.get().streamErrorId().get(), is(streamErrorId));
         }
 
         @Test
@@ -668,6 +672,92 @@ public class NewStreamStatusRepositoryIT {
                     streamErrorOccurrence,
                     streamErrorHash
             );
+        }
+
+        @Test
+        public void shouldPickUpAndSkipStreamsAccordingToErrorRetryTruthTable() throws Exception {
+
+            final DataSource viewStoreDataSource = new TestJdbcDataSourceProvider().getViewStoreDataSource(FRAMEWORK);
+            when(viewStoreJdbcDataSourceProvider.getDataSource()).thenReturn(viewStoreDataSource);
+
+            final StreamErrorRetryRepository streamErrorRetryRepository = new StreamErrorRetryRepository();
+            setField(streamErrorRetryRepository, "viewStoreJdbcDataSourceProvider", viewStoreJdbcDataSourceProvider);
+
+            final String source = "listing";
+            final String componentName = "event-listener";
+            final ZonedDateTime now = new UtcClock().now();
+            final long position = 5L;
+            final long latestKnownPosition = 10L;
+
+            // Truth table streams ordered by discovered_at (oldest first):
+            // Row 1: healthy, no retry entry              → PICKED UP
+            // Row 2: healthy, leftover retry entry         → PICKED UP
+            // Row 3: errored, no retry entry               → PICKED UP
+            // Row 4: errored, retry eligible (count<max, time past)  → PICKED UP
+            // Row 5: errored, retry not yet (count<max, time future) → SKIPPED
+            // Row 6: errored, retries exhausted (count>=max)         → SKIPPED
+
+            final UUID streamA = randomUUID();
+            final UUID streamB = randomUUID();
+            final UUID streamC = randomUUID();
+            final UUID streamD = randomUUID();
+            final UUID streamE = randomUUID();
+            final UUID streamF = randomUUID();
+
+            final List<UUID> allStreams = List.of(streamA, streamB, streamC, streamD, streamE, streamF);
+
+            final UUID errorIdC = randomUUID();
+            final UUID errorIdD = randomUUID();
+            final UUID errorIdE = randomUUID();
+            final UUID errorIdF = randomUUID();
+
+            // Create all 6 streams with staggered discovered_at, all behind
+            for (int i = 0; i < allStreams.size(); i++) {
+                final UUID streamId = allStreams.get(i);
+                newStreamStatusRepository.insertIfNotExists(streamId, source, componentName, now.minusDays(6 - i), false);
+                newStreamStatusRepository.updateCurrentPosition(streamId, source, componentName, position);
+                newStreamStatusRepository.upsertLatestKnownPosition(streamId, source, componentName, latestKnownPosition, now);
+            }
+
+            // Row 2: leftover retry entry on healthy stream (no error set)
+            streamErrorRetryRepository.upsert(new StreamErrorRetry(streamB, source, componentName, 1L, now.minusHours(1)));
+
+            // Rows 3-6: mark as errored
+            final Map<UUID, UUID> erroredStreams = Map.of(streamC, errorIdC, streamD, errorIdD, streamE, errorIdE, streamF, errorIdF);
+            try (final Connection connection = viewStoreDataSource.getConnection()) {
+                for (final var entry : erroredStreams.entrySet()) {
+                    streamErrorPersistence.save(aStreamError(entry.getValue(), randomUUID(), entry.getKey(), 6L, componentName, source), connection);
+                    streamStatusErrorPersistence.markStreamAsErrored(entry.getKey(), entry.getValue(), 6L, componentName, source, connection);
+                }
+            }
+
+            // Row 4: eligible retry (count below max, time in past)
+            streamErrorRetryRepository.upsert(new StreamErrorRetry(streamD, source, componentName, 2L, now.minusHours(1)));
+            // Row 5: retry not yet due (count below max, time in future)
+            streamErrorRetryRepository.upsert(new StreamErrorRetry(streamE, source, componentName, 2L, now.plusHours(2)));
+            // Row 6: retries exhausted (count >= max)
+            streamErrorRetryRepository.upsert(new StreamErrorRetry(streamF, source, componentName, 10L, now.minusHours(1)));
+
+            // Verify total eligible count = 4
+            assertThat(newStreamStatusRepository.countStreamsHavingEventsToProcess(source, componentName, MAX_RETRIES, 50), is(4));
+
+            // Consume eligible streams in discovered_at order, verify each, then confirm skipped streams leave empty
+            for (final var expected : List.of(
+                    Map.entry(streamA, Optional.<UUID>empty()),
+                    Map.entry(streamB, Optional.<UUID>empty()),
+                    Map.entry(streamC, Optional.of(errorIdC)),
+                    Map.entry(streamD, Optional.of(errorIdD)))) {
+
+                final Optional<LockedStreamStatus> result = newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES);
+                assertThat(result.isPresent(), is(true));
+                assertThat(result.get().streamId(), is(expected.getKey()));
+                assertThat(result.get().streamErrorId(), is(expected.getValue()));
+                newStreamStatusRepository.updateCurrentPosition(expected.getKey(), source, componentName, latestKnownPosition);
+            }
+
+            // streamE (future retry) and streamF (exhausted) both skipped
+            assertThat(newStreamStatusRepository.findOldestStreamToProcessByAcquiringLock(source, componentName, MAX_RETRIES), is(empty()));
+            assertThat(newStreamStatusRepository.countStreamsHavingEventsToProcess(source, componentName, MAX_RETRIES, 50), is(0));
         }
 
         @Test

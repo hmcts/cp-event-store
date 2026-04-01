@@ -67,14 +67,13 @@ public class NewStreamStatusRepository {
                  ON ser.stream_id = ss.stream_id
                  AND ser.source = ss.source
                  AND ser.component = ss.component
-                 AND ser.retry_count < ?
-                 AND ser.next_retry_time <= now()
              WHERE ss.source = ?
                AND ss.component = ?
                AND ss.position < ss.latest_known_position
                AND (
                  ss.stream_error_id IS NULL
-                 OR ser.stream_id IS NOT NULL
+                 OR ser.stream_id IS NULL
+                 OR (ser.retry_count < ? AND ser.next_retry_time <= now())
                )
              ORDER BY ss.discovered_at ASC
              LIMIT 1
@@ -167,14 +166,13 @@ public class NewStreamStatusRepository {
                     ON  ser.stream_id = ss.stream_id
                     AND ser.source    = ss.source
                     AND ser.component = ss.component
-                    AND ser.retry_count < ? 
-                    AND ser.next_retry_time <= now()
                 WHERE ss.source = ?
                   AND ss.component = ?
                   AND ss.position < ss.latest_known_position
                   AND (
                       ss.stream_error_id IS NULL
-                      OR ser.stream_id IS NOT NULL
+                      OR ser.stream_id IS NULL
+                      OR (ser.retry_count < ? AND ser.next_retry_time <= now())
                   )
                 LIMIT ?
             ) pending
@@ -246,9 +244,9 @@ public class NewStreamStatusRepository {
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(SELECT_OLDEST_HEALTHY_STREAM_SQL)) {
 
-            preparedStatement.setInt(1, maxRetries);
-            preparedStatement.setString(2, source);
-            preparedStatement.setString(3, component);
+            preparedStatement.setString(1, source);
+            preparedStatement.setString(2, component);
+            preparedStatement.setInt(3, maxRetries);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
 
@@ -472,9 +470,9 @@ public class NewStreamStatusRepository {
         try (final Connection connection = viewStoreJdbcDataSourceProvider.getDataSource().getConnection();
              final PreparedStatement preparedStatement = connection.prepareStatement(COUNT_STREAMS_HAVING_EVENTS_TO_PROCESS_SQL)) {
 
-            preparedStatement.setInt(1, maxRetries);
-            preparedStatement.setString(2, source);
-            preparedStatement.setString(3, component);
+            preparedStatement.setString(1, source);
+            preparedStatement.setString(2, component);
+            preparedStatement.setInt(3, maxRetries);
             preparedStatement.setInt(4, maxWorkers);
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {

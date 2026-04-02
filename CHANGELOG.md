@@ -4,6 +4,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+### [17.105.0-M19]  - 2026-04-02
 ### Fixed
 - Stream selection queries now pick up errored streams that have no `stream_error_retry` entry instead of leaving them permanently stuck
 

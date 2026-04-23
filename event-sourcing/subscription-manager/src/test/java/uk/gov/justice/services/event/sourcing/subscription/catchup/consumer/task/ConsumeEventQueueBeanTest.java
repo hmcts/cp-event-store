@@ -19,7 +19,7 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import javax.enterprise.event.Event;
+import jakarta.enterprise.event.Event;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,7 +69,7 @@ public class ConsumeEventQueueBeanTest {
     public void shouldCatchTheHiddenExceptionAndClearTheEventQueueIfTheTransactionFails() throws Exception {
 
         final RuntimeException runtimeException = new RuntimeException(
-                "In reality this will be a javax.transaction.RollbackException"
+                "In reality this will be a jakarta.transaction.RollbackException"
         );
 
         final UUID commandId = randomUUID();

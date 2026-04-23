@@ -7,7 +7,7 @@ import uk.gov.justice.subscription.registry.EventSourceDefinitionRegistry;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @RestReader
 public class RestNextEventReader implements NextEventReader {

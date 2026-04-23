@@ -15,7 +15,7 @@ import uk.gov.justice.services.resources.application.version.rest.model.ProjectV
 import java.time.ZonedDateTime;
 import java.util.List;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

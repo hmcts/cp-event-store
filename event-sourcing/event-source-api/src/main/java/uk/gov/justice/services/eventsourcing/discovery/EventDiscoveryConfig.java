@@ -7,7 +7,7 @@ import static java.lang.String.format;
 import uk.gov.justice.services.common.configuration.Value;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventStoreEventDiscoveryException;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class EventDiscoveryConfig {
 

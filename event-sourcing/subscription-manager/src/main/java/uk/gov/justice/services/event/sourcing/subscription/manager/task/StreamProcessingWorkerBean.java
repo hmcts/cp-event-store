@@ -1,18 +1,18 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.task;
 
-import static javax.ejb.TransactionAttributeType.NEVER;
-import static javax.ejb.TransactionManagementType.CONTAINER;
+import static jakarta.ejb.TransactionAttributeType.NEVER;
+import static jakarta.ejb.TransactionManagementType.CONTAINER;
 import static uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus.EVENT_FOUND;
 
 import uk.gov.justice.services.event.sourcing.subscription.error.StreamProcessingException;
 import uk.gov.justice.services.event.sourcing.subscription.manager.EventProcessingStatus;
 import uk.gov.justice.services.event.sourcing.subscription.manager.StreamEventProcessor;
 
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionManagement;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionManagement;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 import org.slf4j.Logger;
 

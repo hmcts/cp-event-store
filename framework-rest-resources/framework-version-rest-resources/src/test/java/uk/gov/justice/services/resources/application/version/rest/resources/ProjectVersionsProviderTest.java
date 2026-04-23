@@ -12,6 +12,7 @@ import uk.gov.justice.services.resources.application.version.rest.model.ProjectV
 import uk.gov.justice.services.resources.application.version.rest.model.ProjectVersionException;
 import uk.gov.justice.services.resources.application.version.rest.model.ProjectVersionSorter;
 
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 
@@ -77,17 +78,17 @@ public class ProjectVersionsProviderTest {
         assertThat(projectVersions.get(0).getProjectName(), is("Framework Libraries"));
         assertThat(projectVersions.get(0).getDisplayOrder(), is(20));
         assertThat(projectVersions.get(0).getProjectVersion(), is("17.104.1"));
-        assertThat(projectVersions.get(0).getBuildTimestamp(), is(ZonedDateTime.parse("2025-07-25T01:30:17Z[UTC]")));
+        assertThat(projectVersions.get(0).getBuildTimestamp().toInstant(), is(ZonedDateTime.of(2025, 7, 25, 1, 30, 17, 0, ZoneOffset.UTC).toInstant()));
 
         assertThat(projectVersions.get(1).getProjectName(), is("Microservices Framework"));
         assertThat(projectVersions.get(1).getDisplayOrder(), is(40));
         assertThat(projectVersions.get(1).getProjectVersion(), is("17.104.2"));
-        assertThat(projectVersions.get(1).getBuildTimestamp(), is(ZonedDateTime.parse("2025-07-25T02:30:17Z[UTC]")));
+        assertThat(projectVersions.get(1).getBuildTimestamp().toInstant(), is(ZonedDateTime.of(2025, 7, 25, 2, 30, 17, 0, ZoneOffset.UTC).toInstant()));
 
         assertThat(projectVersions.get(2).getProjectName(), is("Event Store"));
         assertThat(projectVersions.get(2).getDisplayOrder(), is(50));
         assertThat(projectVersions.get(2).getProjectVersion(), is("17.104.3"));
-        assertThat(projectVersions.get(2).getBuildTimestamp(), is(ZonedDateTime.parse("2025-07-25T03:30:17Z[UTC]")));
+        assertThat(projectVersions.get(2).getBuildTimestamp().toInstant(), is(ZonedDateTime.of(2025, 7, 25, 3, 30, 17, 0, ZoneOffset.UTC).toInstant()));
     }
 
     @Test

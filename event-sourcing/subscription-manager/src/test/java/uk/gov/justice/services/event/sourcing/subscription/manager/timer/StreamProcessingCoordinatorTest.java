@@ -21,10 +21,10 @@ import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
 import java.util.List;
 
-import javax.ejb.Timer;
-import javax.ejb.TimerConfig;
-import javax.ejb.TimerService;
-import javax.enterprise.concurrent.ManagedExecutorService;
+import jakarta.ejb.Timer;
+import jakarta.ejb.TimerConfig;
+import jakarta.ejb.TimerService;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

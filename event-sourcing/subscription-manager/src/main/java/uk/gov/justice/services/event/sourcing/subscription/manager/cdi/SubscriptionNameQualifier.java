@@ -5,7 +5,7 @@ import uk.gov.justice.services.subscription.annotation.SubscriptionName;
 
 import java.util.Objects;
 
-import javax.enterprise.util.AnnotationLiteral;
+import jakarta.enterprise.util.AnnotationLiteral;
 
 public class SubscriptionNameQualifier extends AnnotationLiteral<SubscriptionName> implements SubscriptionName {
 

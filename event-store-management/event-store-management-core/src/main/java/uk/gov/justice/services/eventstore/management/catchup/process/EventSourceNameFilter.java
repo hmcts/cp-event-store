@@ -5,7 +5,7 @@ import uk.gov.justice.subscription.domain.subscriptiondescriptor.Subscription;
 import java.util.List;
 import java.util.Optional;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class EventSourceNameFilter {
 

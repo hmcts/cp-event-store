@@ -2,7 +2,7 @@ package uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.man
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class EventsInProcessCounterProvider {
 

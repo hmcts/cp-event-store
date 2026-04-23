@@ -6,7 +6,7 @@ import uk.gov.justice.services.resources.rest.model.ResetStreamRetryCountRespons
 
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class ResetStreamRetryCountRequestHandler {
 

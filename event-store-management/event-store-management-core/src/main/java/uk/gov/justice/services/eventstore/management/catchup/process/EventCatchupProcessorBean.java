@@ -1,12 +1,12 @@
 package uk.gov.justice.services.eventstore.management.catchup.process;
 
-import static javax.ejb.TransactionAttributeType.NEVER;
-import static javax.ejb.TransactionManagementType.CONTAINER;
+import static jakarta.ejb.TransactionAttributeType.NEVER;
+import static jakarta.ejb.TransactionManagementType.CONTAINER;
 
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionManagement;
-import javax.inject.Inject;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionManagement;
+import jakarta.inject.Inject;
 
 @Stateless
 @TransactionManagement(CONTAINER)

@@ -5,8 +5,8 @@ import static uk.gov.justice.services.core.annotation.Component.EVENT_LISTENER;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 import uk.gov.justice.services.common.util.LazyValue;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Subscription;

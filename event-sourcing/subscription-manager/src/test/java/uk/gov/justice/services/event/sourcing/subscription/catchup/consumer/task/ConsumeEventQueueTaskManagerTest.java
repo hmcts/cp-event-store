@@ -12,7 +12,7 @@ import uk.gov.justice.services.eventstore.management.commands.EventCatchupComman
 import java.util.Queue;
 import java.util.UUID;
 
-import javax.enterprise.concurrent.ManagedExecutorService;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

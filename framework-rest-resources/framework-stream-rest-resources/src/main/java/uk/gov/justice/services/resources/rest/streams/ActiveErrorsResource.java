@@ -1,7 +1,7 @@
 package uk.gov.justice.services.resources.rest.streams;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.ActiveStreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.ActiveStreamErrorsRepository;
@@ -9,11 +9,11 @@ import uk.gov.justice.services.resources.rest.model.ErrorResponse;
 
 import java.util.List;
 
-import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Response;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Response;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;

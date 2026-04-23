@@ -6,8 +6,10 @@ import static java.util.Objects.requireNonNullElse;
 
 import uk.gov.justice.services.common.configuration.Value;
 
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
+@ApplicationScoped
 public class AggregateSnapshotGenerationCommandConfiguration {
 
     private static final String TWENTY_HOURS_IN_SECONDS = "" + 20 * 60 * 60;

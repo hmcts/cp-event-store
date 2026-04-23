@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.EventSourceNameQualifier;
 import uk.gov.justice.services.eventsourcing.source.api.service.core.LinkedEventSource;
 
-import javax.enterprise.inject.Instance;
+import jakarta.enterprise.inject.Instance;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

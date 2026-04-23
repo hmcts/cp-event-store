@@ -9,8 +9,8 @@ import uk.gov.justice.services.eventstore.management.commands.EventCatchupComman
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import javax.ejb.Singleton;
-import javax.inject.Inject;
+import jakarta.ejb.Singleton;
+import jakarta.inject.Inject;
 
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;

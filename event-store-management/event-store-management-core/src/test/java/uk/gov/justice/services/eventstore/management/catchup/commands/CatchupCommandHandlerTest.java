@@ -17,7 +17,7 @@ import uk.gov.justice.services.jmx.api.parameters.JmxCommandRuntimeParameters;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-import javax.enterprise.event.Event;
+import jakarta.enterprise.event.Event;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

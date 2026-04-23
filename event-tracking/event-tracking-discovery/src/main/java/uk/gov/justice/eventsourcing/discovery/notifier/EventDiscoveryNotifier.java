@@ -9,19 +9,19 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamStatusA
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
-import static javax.ejb.ConcurrencyManagementType.BEAN;
-import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
+import static jakarta.ejb.ConcurrencyManagementType.BEAN;
+import static jakarta.ejb.TransactionAttributeType.NOT_SUPPORTED;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.Singleton;
-import javax.ejb.TransactionAttribute;
-import javax.enterprise.event.Event;
-import javax.enterprise.event.ObservesAsync;
-import javax.inject.Inject;
+import jakarta.ejb.ConcurrencyManagement;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.enterprise.event.Event;
+import jakarta.enterprise.event.ObservesAsync;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

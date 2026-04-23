@@ -9,8 +9,8 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MissingEventN
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.messaging.spi.DefaultJsonEnvelopeProvider;
 
-import javax.inject.Inject;
-import javax.json.JsonObject;
+import jakarta.inject.Inject;
+import jakarta.json.JsonObject;
 
 public class LinkedEventMetadataUpdater {
 

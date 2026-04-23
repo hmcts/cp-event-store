@@ -8,8 +8,8 @@ import uk.gov.justice.subscription.registry.EventSourceDefinitionRegistry;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 @RestDiscoverer
 @ApplicationScoped

@@ -6,7 +6,7 @@ import static java.lang.Long.parseLong;
 import uk.gov.justice.services.common.configuration.Value;
 import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class EventDiscoveryTimerConfig {
 

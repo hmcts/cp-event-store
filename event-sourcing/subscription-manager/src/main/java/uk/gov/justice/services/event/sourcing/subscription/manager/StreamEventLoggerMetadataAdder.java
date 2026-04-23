@@ -10,9 +10,9 @@ import uk.gov.justice.services.messaging.logging.TraceLogger;
 
 import java.util.Optional;
 
-import javax.inject.Inject;
-import javax.json.Json;
-import javax.json.JsonObjectBuilder;
+import jakarta.inject.Inject;
+import jakarta.json.Json;
+import jakarta.json.JsonObjectBuilder;
 
 import org.slf4j.Logger;
 

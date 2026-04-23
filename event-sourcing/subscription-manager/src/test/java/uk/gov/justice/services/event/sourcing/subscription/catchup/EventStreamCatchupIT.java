@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Queue;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.openejb.jee.WebApp;

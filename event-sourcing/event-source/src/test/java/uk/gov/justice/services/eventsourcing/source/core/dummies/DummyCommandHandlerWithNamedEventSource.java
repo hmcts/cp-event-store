@@ -9,7 +9,7 @@ import uk.gov.justice.services.eventsourcing.source.core.annotation.EventSourceN
 import uk.gov.justice.services.eventsourcing.source.core.exception.EventStreamException;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @ServiceComponent(COMMAND_HANDLER)
 @EventSourceName("my-event-source")

@@ -3,7 +3,7 @@ package uk.gov.justice.services.event.sourcing.subscription.error;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorOccurrence;

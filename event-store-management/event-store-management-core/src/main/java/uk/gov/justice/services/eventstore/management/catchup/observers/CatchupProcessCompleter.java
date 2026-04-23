@@ -7,7 +7,7 @@ import uk.gov.justice.services.eventstore.management.commands.CatchupCommand;
 import java.util.List;
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class CatchupProcessCompleter {
 

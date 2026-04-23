@@ -4,9 +4,9 @@ import static java.lang.Integer.parseInt;
 
 import uk.gov.justice.services.common.configuration.GlobalValue;
 
-import javax.annotation.Priority;
-import javax.enterprise.inject.Alternative;
-import javax.inject.Inject;
+import jakarta.annotation.Priority;
+import jakarta.enterprise.inject.Alternative;
+import jakarta.inject.Inject;
 
 @Alternative
 @Priority(100)

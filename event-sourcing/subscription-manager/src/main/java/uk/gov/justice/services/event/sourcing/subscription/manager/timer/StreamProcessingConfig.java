@@ -1,8 +1,8 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager.timer;
 
 import java.math.BigDecimal;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import uk.gov.justice.services.common.configuration.Value;
 import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
 import uk.gov.justice.services.common.util.LazyValue;

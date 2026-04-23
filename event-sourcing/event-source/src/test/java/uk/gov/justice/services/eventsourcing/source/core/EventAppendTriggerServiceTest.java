@@ -10,10 +10,10 @@ import static uk.gov.justice.services.test.utils.core.reflection.ReflectionUtil.
 import org.junit.jupiter.api.BeforeEach;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
 
-import javax.enterprise.event.Event;
-import javax.transaction.Status;
-import javax.transaction.Synchronization;
-import javax.transaction.TransactionSynchronizationRegistry;
+import jakarta.enterprise.event.Event;
+import jakarta.transaction.Status;
+import jakarta.transaction.Synchronization;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

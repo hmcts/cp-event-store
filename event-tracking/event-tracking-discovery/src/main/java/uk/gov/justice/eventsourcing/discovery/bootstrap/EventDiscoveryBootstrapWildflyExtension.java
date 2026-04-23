@@ -2,10 +2,10 @@ package uk.gov.justice.eventsourcing.discovery.bootstrap;
 
 import uk.gov.justice.services.framework.utilities.cdi.CdiInstanceResolver;
 
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.spi.AfterDeploymentValidation;
-import javax.enterprise.inject.spi.BeanManager;
-import javax.enterprise.inject.spi.Extension;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.spi.AfterDeploymentValidation;
+import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.spi.Extension;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;

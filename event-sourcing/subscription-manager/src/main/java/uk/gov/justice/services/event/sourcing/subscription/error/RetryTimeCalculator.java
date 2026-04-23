@@ -7,7 +7,7 @@ import uk.gov.justice.services.event.sourcing.subscription.manager.timer.StreamP
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class RetryTimeCalculator {
 

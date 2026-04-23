@@ -1,7 +1,7 @@
 package uk.gov.justice.services.eventsourcing.discovery;
 
-import static javax.ejb.TransactionAttributeType.REQUIRES_NEW;
-import static javax.ejb.TransactionManagementType.CONTAINER;
+import static jakarta.ejb.TransactionAttributeType.REQUIRES_NEW;
+import static jakarta.ejb.TransactionManagementType.CONTAINER;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.discovery.EventDiscoveryRepository;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
@@ -12,10 +12,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionManagement;
-import javax.inject.Inject;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionManagement;
+import jakarta.inject.Inject;
 
 @Stateless
 @TransactionManagement(CONTAINER)

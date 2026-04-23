@@ -6,7 +6,7 @@ import uk.gov.justice.services.eventsourcing.util.messaging.EventSourceNameCalcu
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCounters;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @SuppressWarnings("java:S1192")
 public class NewSubscriptionManagerDelegate {

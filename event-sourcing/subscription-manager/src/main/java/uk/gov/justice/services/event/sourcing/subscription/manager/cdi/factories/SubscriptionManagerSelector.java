@@ -8,7 +8,7 @@ import uk.gov.justice.services.subscription.SubscriptionManager;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.Subscription;
 import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class SubscriptionManagerSelector {
 

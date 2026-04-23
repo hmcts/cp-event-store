@@ -5,6 +5,25 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ### [Unreleased]
 
+## [21.0.0-SNAPSHOT] - 2026-04-20
+### Changed
+- Removed `BaseTransactionalJunit4Test` helper class from `test-utils-persistence` — obsolete JUnit 4 utility superseded by `HibernateTestEntityManagerProvider`
+- Removed `junit:junit` (JUnit 4) dependency from `test-utils-persistence/pom.xml`
+- Replaced `javax:javaee-api` with `jakarta.platform:jakarta.jakartaee-api` in `test-utils-persistence/pom.xml`
+- Removed `org.hibernate:hibernate-entitymanager` from `test-utils-persistence/pom.xml` — merged into `hibernate-core` in Hibernate 6
+### Fixed
+- Updated `StreamErrorPersistenceTest`, `AdvisoryLockDataAccessTest`, `EventDiscoveryConfigTest`, `AccessControllerTest`, `ReplayEventToEventListenerProcessorBeanTest`, and `EventSubscriptionStatusRepositoryTest` to use Jakarta EE 10 APIs and Hibernate 6 compatible patterns
+
+## [21.0.0-SNAPSHOT] - 2026-03-26
+### Changed
+- Upgraded to Java 21 and Jakarta EE 10
+- Migrated aggregate service, snapshot service, and event source components from `javax.*` to `jakarta.*` namespaces (`SnapshotJdbcRepository`, `DefaultAggregateService`, `SnapshotAwareAggregateService`, `SnapshotAwareEventSourceProducer`, snapshot async observers)
+### Fixed
+- Corrected wrong CDI scope annotation in `SubscriptionsDescriptorsRegistryProducer`: replaced `jakarta.faces.bean.ApplicationScoped` (JSF — functional bug) with `jakarta.enterprise.context.ApplicationScoped`; also migrated remaining `javax.enterprise.inject.Produces` and `javax.inject.Inject` imports to Jakarta equivalents
+- Migrated `javax.interceptor.Interceptors` and `javax.inject.Inject` imports to `jakarta.*` in `EventStoreVerificationCommandHandler`
+- Migrated `javax.enterprise.*`, `javax.inject.Inject`, and `javax.interceptor.Interceptors` imports to `jakarta.*` in `CatchupObserver`
+- Removed redundant `net.bytebuddy:byte-buddy-agent` version override from root `dependencyManagement` — already managed at `${byte-buddy.version}` in `cp-maven-common-bom`
+
 ### [17.105.0-M19]  - 2026-04-02
 ### Fixed
 - Stream selection queries now pick up errored streams that have no `stream_error_retry` entry instead of leaving them permanently stuck

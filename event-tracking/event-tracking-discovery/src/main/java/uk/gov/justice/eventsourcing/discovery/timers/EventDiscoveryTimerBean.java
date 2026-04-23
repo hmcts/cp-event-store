@@ -1,6 +1,6 @@
 package uk.gov.justice.eventsourcing.discovery.timers;
 
-import static javax.ejb.TransactionAttributeType.NEVER;
+import static jakarta.ejb.TransactionAttributeType.NEVER;
 
 import uk.gov.justice.eventsourcing.discovery.workers.EventDiscoveryWorker;
 import uk.gov.justice.services.common.configuration.subscription.pull.EventPullConfiguration;
@@ -8,18 +8,18 @@ import uk.gov.justice.services.ejb.timer.TimerConfigFactory;
 import uk.gov.justice.subscription.SourceComponentPair;
 import uk.gov.justice.subscription.SubscriptionSourceComponentFinder;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
-import javax.ejb.Timeout;
-import javax.ejb.Timer;
-import javax.ejb.TimerConfig;
-import javax.ejb.TimerService;
-import javax.ejb.TransactionAttribute;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
+import jakarta.ejb.ConcurrencyManagement;
+import jakarta.ejb.ConcurrencyManagementType;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.Timer;
+import jakarta.ejb.TimerConfig;
+import jakarta.ejb.TimerService;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.inject.Inject;
 
 @Singleton
 @Startup

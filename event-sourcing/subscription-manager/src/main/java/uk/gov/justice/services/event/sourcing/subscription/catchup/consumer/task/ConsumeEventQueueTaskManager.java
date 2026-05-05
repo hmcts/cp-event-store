@@ -6,9 +6,9 @@ import uk.gov.justice.services.eventstore.management.commands.CatchupCommand;
 import java.util.Queue;
 import java.util.UUID;
 
-import javax.annotation.Resource;
-import javax.enterprise.concurrent.ManagedExecutorService;
-import javax.inject.Inject;
+import jakarta.annotation.Resource;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+import jakarta.inject.Inject;
 
 public class ConsumeEventQueueTaskManager {
 

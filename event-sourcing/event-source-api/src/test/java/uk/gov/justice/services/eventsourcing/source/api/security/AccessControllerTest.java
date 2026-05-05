@@ -2,7 +2,7 @@ package uk.gov.justice.services.eventsourcing.source.api.security;
 
 import static java.util.Arrays.asList;
 import static java.util.UUID.randomUUID;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.services.common.http.HeaderConstants.USER_ID;
 
@@ -12,7 +12,7 @@ import uk.gov.justice.services.core.dispatcher.SystemUserProvider;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import org.jboss.resteasy.specimpl.ResteasyHttpHeaders;
 import org.junit.jupiter.api.Test;

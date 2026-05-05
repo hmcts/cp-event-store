@@ -6,7 +6,7 @@ import uk.gov.justice.services.jmx.command.SystemCommandStore;
 
 import java.util.List;
 
-import javax.enterprise.inject.Default;
+import jakarta.enterprise.inject.Default;
 
 @Default
 public class DummySystemCommandStore implements SystemCommandStore {

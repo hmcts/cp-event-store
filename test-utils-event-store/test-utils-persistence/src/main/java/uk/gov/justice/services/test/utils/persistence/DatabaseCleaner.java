@@ -99,6 +99,7 @@ public class DatabaseCleaner {
             truncateTable("event_log", EVENT_STORE_DATABASE_NAME, connection);
             truncateTable("event_stream", EVENT_STORE_DATABASE_NAME, connection);
             truncateTable("publish_queue", EVENT_STORE_DATABASE_NAME, connection);
+            truncateTable("snapshot", EVENT_STORE_DATABASE_NAME, connection);
 
         } catch (SQLException e) {
             throw new DataAccessException("Failed to commit or close database connection", e);
@@ -160,6 +161,7 @@ public class DatabaseCleaner {
 
         try (final Connection connection = testJdbcConnectionProvider.getSystemConnection(contextName)) {
             truncateTable("stored_command", SYSTEM_DATABASE_NAME, connection);
+            truncateTable("system_command_status", SYSTEM_DATABASE_NAME, connection);
         } catch (SQLException e) {
             throw new DataAccessException("Failed to commit or close database connection", e);
         }

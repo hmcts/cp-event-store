@@ -1,6 +1,6 @@
 package uk.gov.justice.services.healthcheck.healthchecks.artemis;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 public class JndiContextNameProvider {
 

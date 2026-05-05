@@ -1,13 +1,13 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
-import static javax.transaction.Transactional.TxType.REQUIRED;
+import static jakarta.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.core.interceptor.InterceptorChainProcessor;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.services.subscription.SubscriptionManager;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 public class BackwardsCompatibleSubscriptionManager implements SubscriptionManager {
 

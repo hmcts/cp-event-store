@@ -3,7 +3,7 @@ package uk.gov.justice.services.eventstore.management.catchup.process;
 import uk.gov.justice.services.eventstore.management.commands.CatchupCommand;
 import uk.gov.justice.subscription.domain.subscriptiondescriptor.SubscriptionsDescriptor;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class CanCatchupFilter {
 

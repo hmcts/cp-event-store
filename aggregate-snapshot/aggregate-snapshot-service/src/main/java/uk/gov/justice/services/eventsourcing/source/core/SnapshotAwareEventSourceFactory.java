@@ -3,7 +3,7 @@ package uk.gov.justice.services.eventsourcing.source.core;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.EventRepository;
 import uk.gov.justice.services.eventsourcing.source.core.snapshot.SnapshotService;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class SnapshotAwareEventSourceFactory {
 

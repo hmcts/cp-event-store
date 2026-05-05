@@ -17,8 +17,8 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventsLinkedE
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 
-import javax.enterprise.concurrent.ManagedExecutorService;
-import javax.enterprise.event.Event;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+import jakarta.enterprise.event.Event;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -8,8 +8,8 @@ import uk.gov.justice.services.eventstore.management.events.catchup.CatchupProce
 
 import java.util.UUID;
 
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

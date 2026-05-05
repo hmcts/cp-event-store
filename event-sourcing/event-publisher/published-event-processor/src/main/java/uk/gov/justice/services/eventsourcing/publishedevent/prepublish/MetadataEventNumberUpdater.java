@@ -3,7 +3,7 @@ package uk.gov.justice.services.eventsourcing.publishedevent.prepublish;
 import uk.gov.justice.services.messaging.Metadata;
 import uk.gov.justice.services.messaging.spi.DefaultEnvelopeProvider;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class MetadataEventNumberUpdater {
 

@@ -2,7 +2,7 @@ package uk.gov.justice.services.eventsourcing.eventpublishing;
 
 import uk.gov.justice.services.eventsourcing.util.jee.timer.SufficientTimeRemainingCalculator;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class EventLinkingWorker {
 

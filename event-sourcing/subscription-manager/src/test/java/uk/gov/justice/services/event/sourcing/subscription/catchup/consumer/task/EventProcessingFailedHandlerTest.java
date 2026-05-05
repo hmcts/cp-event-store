@@ -15,7 +15,7 @@ import uk.gov.justice.services.eventstore.management.events.catchup.CatchupProce
 
 import java.util.UUID;
 
-import javax.enterprise.event.Event;
+import jakarta.enterprise.event.Event;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

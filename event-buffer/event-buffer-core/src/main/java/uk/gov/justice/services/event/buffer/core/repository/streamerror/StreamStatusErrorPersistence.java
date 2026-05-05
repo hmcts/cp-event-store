@@ -13,7 +13,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class StreamStatusErrorPersistence {
 

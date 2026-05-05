@@ -3,7 +3,7 @@ package uk.gov.justice.services.eventsourcing.eventpublishing;
 import java.sql.Connection;
 import java.util.List;
 import java.util.UUID;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

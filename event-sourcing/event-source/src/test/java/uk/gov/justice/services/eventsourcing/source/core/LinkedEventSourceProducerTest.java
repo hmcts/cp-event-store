@@ -18,8 +18,8 @@ import uk.gov.justice.subscription.registry.EventSourceDefinitionRegistry;
 
 import java.util.Optional;
 
-import javax.enterprise.inject.CreationException;
-import javax.enterprise.inject.spi.InjectionPoint;
+import jakarta.enterprise.inject.CreationException;
+import jakarta.enterprise.inject.spi.InjectionPoint;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

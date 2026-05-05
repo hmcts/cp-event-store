@@ -4,7 +4,7 @@ import uk.gov.justice.services.common.util.UtcClock;
 
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class ReplayEventToComponentRunner {
 

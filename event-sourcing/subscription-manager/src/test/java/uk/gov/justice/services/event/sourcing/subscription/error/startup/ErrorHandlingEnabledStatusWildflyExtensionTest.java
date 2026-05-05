@@ -7,8 +7,8 @@ import static org.mockito.Mockito.when;
 import uk.gov.justice.services.common.configuration.errors.event.EventErrorHandlingConfiguration;
 import uk.gov.justice.services.framework.utilities.cdi.CdiInstanceResolver;
 
-import javax.enterprise.inject.spi.AfterDeploymentValidation;
-import javax.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.spi.AfterDeploymentValidation;
+import jakarta.enterprise.inject.spi.BeanManager;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -12,15 +12,15 @@ import uk.gov.justice.services.eventsourcing.source.api.service.Page;
 import java.net.MalformedURLException;
 import java.util.UUID;
 
-import javax.inject.Inject;
-import javax.json.JsonValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.UriInfo;
+import jakarta.inject.Inject;
+import jakarta.json.JsonValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.UriInfo;
 
 @Path("event-streams/{streamId}/{position}/{direction}/{pageSize}")
 public class EventPageResource {

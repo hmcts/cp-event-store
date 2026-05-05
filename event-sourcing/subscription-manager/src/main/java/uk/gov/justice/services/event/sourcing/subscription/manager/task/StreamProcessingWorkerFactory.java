@@ -2,7 +2,7 @@ package uk.gov.justice.services.event.sourcing.subscription.manager.task;
 
 import uk.gov.justice.subscription.SourceComponentPair;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class StreamProcessingWorkerFactory {
 

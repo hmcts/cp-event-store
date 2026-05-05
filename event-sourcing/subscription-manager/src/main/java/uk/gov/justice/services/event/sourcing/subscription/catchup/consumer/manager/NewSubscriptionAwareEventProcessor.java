@@ -6,7 +6,7 @@ import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class NewSubscriptionAwareEventProcessor {
 

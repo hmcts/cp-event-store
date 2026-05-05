@@ -1,6 +1,6 @@
 package uk.gov.justice.services.eventsourcing.util.jee.timer;
 
-import javax.ejb.Timer;
+import jakarta.ejb.Timer;
 
 public class SufficientTimeRemainingCalculator {
 

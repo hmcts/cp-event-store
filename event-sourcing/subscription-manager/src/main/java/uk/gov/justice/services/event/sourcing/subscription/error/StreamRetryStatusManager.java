@@ -7,7 +7,7 @@ import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamEr
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class StreamRetryStatusManager {
 

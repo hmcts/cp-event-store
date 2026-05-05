@@ -7,7 +7,7 @@ import uk.gov.justice.services.eventstore.management.commands.CatchupCommand;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 @Singleton
 public class CatchupErrorStateManager {

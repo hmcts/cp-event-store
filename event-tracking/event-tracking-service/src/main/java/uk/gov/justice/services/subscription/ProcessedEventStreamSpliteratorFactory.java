@@ -1,6 +1,6 @@
 package uk.gov.justice.services.subscription;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class ProcessedEventStreamSpliteratorFactory {
 

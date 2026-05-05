@@ -2,7 +2,7 @@ package uk.gov.justice.services.test.utils.persistence;
 
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 import javax.sql.DataSource;
 
 @ApplicationScoped

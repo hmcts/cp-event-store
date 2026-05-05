@@ -7,7 +7,7 @@ import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
 
 import java.util.stream.Stream;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class EventSourceNameFinder {
 

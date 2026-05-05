@@ -1,7 +1,7 @@
 package uk.gov.justice.services.eventstore.management.verification.process;
 
 import java.util.List;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import uk.gov.justice.services.eventstore.management.commands.VerificationCommand;
 import uk.gov.justice.services.eventstore.management.verification.process.verifiers.ProcessedEventLinkVerifier;
 import uk.gov.justice.services.eventstore.management.verification.process.verifiers.PublishedEventLinkVerifier;

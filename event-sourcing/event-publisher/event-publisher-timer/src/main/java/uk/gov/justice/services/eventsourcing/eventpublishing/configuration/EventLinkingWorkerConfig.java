@@ -1,7 +1,6 @@
 package uk.gov.justice.services.eventsourcing.eventpublishing.configuration;
 
-import javax.inject.Inject;
-
+import jakarta.inject.Inject;
 import uk.gov.justice.services.common.configuration.Value;
 
 import static java.lang.Boolean.parseBoolean;

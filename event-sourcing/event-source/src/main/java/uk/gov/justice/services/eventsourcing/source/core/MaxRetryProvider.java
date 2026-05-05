@@ -2,7 +2,7 @@ package uk.gov.justice.services.eventsourcing.source.core;
 
 import uk.gov.justice.services.common.configuration.GlobalValue;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class MaxRetryProvider {
 

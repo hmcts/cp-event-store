@@ -1,7 +1,7 @@
 package uk.gov.justice.services.eventstore.management.catchup.process;
 
 import static java.lang.String.format;
-import static javax.transaction.Transactional.TxType.NEVER;
+import static jakarta.transaction.Transactional.TxType.NEVER;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.sourcing.subscription.catchup.consumer.manager.ConcurrentEventStreamConsumerManager;
@@ -14,12 +14,14 @@ import uk.gov.justice.services.eventstore.management.events.catchup.Subscription
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 import org.slf4j.Logger;
 
+@ApplicationScoped
 public class EventCatchupProcessor {
 
     @Inject

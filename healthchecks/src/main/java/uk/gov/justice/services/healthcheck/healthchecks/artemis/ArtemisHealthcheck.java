@@ -3,9 +3,9 @@ package uk.gov.justice.services.healthcheck.healthchecks.artemis;
 import uk.gov.justice.services.healthcheck.api.Healthcheck;
 import uk.gov.justice.services.healthcheck.api.HealthcheckResult;
 
-import javax.inject.Inject;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
+import jakarta.inject.Inject;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
 
 import org.slf4j.Logger;
 

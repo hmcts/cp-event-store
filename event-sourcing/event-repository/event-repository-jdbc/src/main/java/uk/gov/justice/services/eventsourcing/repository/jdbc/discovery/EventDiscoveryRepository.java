@@ -1,7 +1,7 @@
 package uk.gov.justice.services.eventsourcing.repository.jdbc.discovery;
 
 import static java.lang.String.format;
-import static javax.transaction.Transactional.TxType.REQUIRED;
+import static jakarta.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.StreamPosition;
 import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 public class EventDiscoveryRepository {
 

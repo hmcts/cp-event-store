@@ -104,9 +104,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
-import javax.annotation.Resource;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.annotation.Resource;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
 

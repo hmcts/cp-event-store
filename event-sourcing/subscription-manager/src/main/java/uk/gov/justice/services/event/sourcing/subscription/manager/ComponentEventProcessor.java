@@ -6,7 +6,7 @@ import uk.gov.justice.services.core.interceptor.InterceptorContext;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
 import uk.gov.justice.services.messaging.JsonEnvelope;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class ComponentEventProcessor {
 

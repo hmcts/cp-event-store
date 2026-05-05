@@ -5,7 +5,7 @@ import uk.gov.justice.services.event.sourcing.subscription.manager.NewSubscripti
 import uk.gov.justice.services.event.sourcing.subscription.manager.NewSubscriptionManagerDelegate;
 import uk.gov.justice.services.subscription.SubscriptionManager;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class NewSubscriptionManagerFactory {
 

@@ -7,7 +7,7 @@ import uk.gov.justice.services.subscription.ProcessedEventTrackingService;
 
 import java.util.stream.Stream;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class MissingEventStreamer {
 

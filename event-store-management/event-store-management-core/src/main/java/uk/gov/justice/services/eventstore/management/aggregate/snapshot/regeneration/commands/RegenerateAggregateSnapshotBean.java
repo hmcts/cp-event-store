@@ -12,12 +12,12 @@ import uk.gov.justice.services.messaging.JsonEnvelope;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import javax.ejb.Stateless;
-import javax.ejb.TransactionManagement;
-import javax.ejb.TransactionManagementType;
-import javax.inject.Inject;
-import javax.transaction.SystemException;
-import javax.transaction.UserTransaction;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionManagement;
+import jakarta.ejb.TransactionManagementType;
+import jakarta.inject.Inject;
+import jakarta.transaction.SystemException;
+import jakarta.transaction.UserTransaction;
 
 import org.slf4j.Logger;
 

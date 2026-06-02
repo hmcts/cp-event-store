@@ -1,6 +1,6 @@
 package uk.gov.justice.services.eventsourcing.source.core;
 
-import static javax.transaction.Transactional.TxType.REQUIRED;
+import static jakarta.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.LinkedEvent;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.MultipleDataSourceEventRepository;
@@ -11,7 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 public class DefaultLinkedEventSource implements LinkedEventSource {
 

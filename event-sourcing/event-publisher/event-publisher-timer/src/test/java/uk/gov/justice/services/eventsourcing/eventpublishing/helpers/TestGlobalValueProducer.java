@@ -5,8 +5,8 @@ import uk.gov.justice.services.common.configuration.GlobalValueProducer;
 
 import java.util.Optional;
 
-import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
+import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.spi.InjectionPoint;
 import javax.naming.NamingException;
 
 public class TestGlobalValueProducer extends  GlobalValueProducer {

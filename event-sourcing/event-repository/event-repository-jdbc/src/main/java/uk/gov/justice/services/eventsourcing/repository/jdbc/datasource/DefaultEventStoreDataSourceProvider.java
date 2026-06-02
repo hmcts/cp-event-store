@@ -5,8 +5,8 @@ import uk.gov.justice.services.jdbc.persistence.JdbcDataSourceProvider;
 import uk.gov.justice.subscription.domain.eventsource.EventSourceDefinition;
 import uk.gov.justice.subscription.registry.EventSourceDefinitionRegistry;
 
-import javax.ejb.Singleton;
-import javax.inject.Inject;
+import jakarta.ejb.Singleton;
+import jakarta.inject.Inject;
 import javax.sql.DataSource;
 
 @Singleton

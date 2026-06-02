@@ -1,7 +1,7 @@
 package uk.gov.justice.services.event.sourcing.subscription.error;
 
-import static javax.transaction.Transactional.TxType.MANDATORY;
-import static javax.transaction.Transactional.TxType.REQUIRED;
+import static jakarta.transaction.Transactional.TxType.MANDATORY;
+import static jakarta.transaction.Transactional.TxType.REQUIRED;
 
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamError;
 import uk.gov.justice.services.event.buffer.core.repository.streamerror.StreamErrorDetails;
@@ -19,8 +19,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 import org.slf4j.Logger;
 

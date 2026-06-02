@@ -2,11 +2,11 @@ package uk.gov.justice.services.eventsourcing.eventpublishing;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
 
-import javax.annotation.Resource;
-import javax.ejb.Singleton;
-import javax.enterprise.concurrent.ManagedExecutorService;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import jakarta.annotation.Resource;
+import jakarta.ejb.Singleton;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

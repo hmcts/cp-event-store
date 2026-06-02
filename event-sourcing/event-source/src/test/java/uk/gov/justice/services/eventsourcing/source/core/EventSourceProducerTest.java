@@ -15,7 +15,7 @@ import uk.gov.justice.subscription.domain.eventsource.EventSourceDefinition;
 import uk.gov.justice.subscription.domain.eventsource.Location;
 import uk.gov.justice.subscription.registry.EventSourceDefinitionRegistry;
 
-import javax.enterprise.inject.CreationException;
+import jakarta.enterprise.inject.CreationException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

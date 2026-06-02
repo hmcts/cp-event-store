@@ -31,7 +31,7 @@ import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCoun
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

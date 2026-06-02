@@ -5,7 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import javax.ejb.Timer;
+import jakarta.ejb.Timer;
 
 import org.junit.jupiter.api.Test;
 

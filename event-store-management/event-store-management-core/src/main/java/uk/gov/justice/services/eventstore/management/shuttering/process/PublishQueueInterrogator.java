@@ -4,7 +4,7 @@ import uk.gov.justice.services.common.polling.MultiIteratingPoller;
 import uk.gov.justice.services.common.polling.MultiIteratingPollerFactory;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueueRepository;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class PublishQueueInterrogator {
 

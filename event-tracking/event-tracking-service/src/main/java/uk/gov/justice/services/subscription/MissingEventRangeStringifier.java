@@ -6,7 +6,7 @@ import uk.gov.justice.services.eventsourcing.source.api.streams.MissingEventRang
 
 import java.util.List;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class MissingEventRangeStringifier {
 

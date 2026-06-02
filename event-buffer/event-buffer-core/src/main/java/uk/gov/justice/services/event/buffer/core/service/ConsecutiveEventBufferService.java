@@ -18,10 +18,10 @@ import uk.gov.justice.services.messaging.Metadata;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import javax.annotation.Priority;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
-import javax.inject.Inject;
+import jakarta.annotation.Priority;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Alternative;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

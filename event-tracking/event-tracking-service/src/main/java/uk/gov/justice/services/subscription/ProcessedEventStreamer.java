@@ -2,7 +2,7 @@ package uk.gov.justice.services.subscription;
 
 import java.util.stream.Stream;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class ProcessedEventStreamer {
 

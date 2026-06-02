@@ -2,7 +2,7 @@ package uk.gov.justice.services.eventsourcing.source.api.service.core;
 
 import java.util.UUID;
 
-import javax.json.JsonObject;
+import jakarta.json.JsonObject;
 
 public class EventEntry {
     private final String eventId;

@@ -1,7 +1,7 @@
 package uk.gov.justice.services.event.sourcing.subscription.manager;
 
 import static java.lang.String.format;
-import static javax.transaction.Transactional.TxType.NOT_SUPPORTED;
+import static jakarta.transaction.Transactional.TxType.NOT_SUPPORTED;
 
 import uk.gov.justice.services.common.util.UtcClock;
 import uk.gov.justice.services.event.buffer.core.repository.subscription.NewStreamStatusRepository;
@@ -16,9 +16,9 @@ import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCoun
 
 import java.util.UUID;
 
-import javax.inject.Inject;
-import javax.transaction.Transactional;
-import javax.transaction.UserTransaction;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import jakarta.transaction.UserTransaction;
 
 import org.slf4j.Logger;
 

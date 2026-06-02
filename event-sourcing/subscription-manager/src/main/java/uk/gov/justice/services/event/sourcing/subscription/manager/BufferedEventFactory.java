@@ -13,7 +13,7 @@ import uk.gov.justice.services.messaging.Metadata;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class BufferedEventFactory {
 

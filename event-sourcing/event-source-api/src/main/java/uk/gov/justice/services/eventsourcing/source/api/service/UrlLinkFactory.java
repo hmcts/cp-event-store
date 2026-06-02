@@ -13,8 +13,8 @@ import uk.gov.justice.services.eventsourcing.source.api.service.core.PositionVal
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import javax.inject.Inject;
-import javax.ws.rs.core.UriInfo;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.UriInfo;
 
 public class UrlLinkFactory {
 

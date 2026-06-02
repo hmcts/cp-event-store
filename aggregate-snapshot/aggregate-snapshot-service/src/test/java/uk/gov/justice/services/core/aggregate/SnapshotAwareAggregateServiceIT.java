@@ -105,11 +105,11 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import javax.naming.InitialContext;
-import javax.transaction.TransactionManager;
-import javax.transaction.TransactionSynchronizationRegistry;
+import jakarta.transaction.TransactionManager;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 
 import org.apache.openejb.jee.WebApp;
 import org.apache.openejb.junit5.RunWithApplicationComposer;

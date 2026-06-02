@@ -3,9 +3,9 @@ package uk.gov.justice.services.eventsourcing.source.core.snapshot.async;
 import uk.gov.justice.services.eventsourcing.source.core.snapshot.DefaultSnapshotService;
 import uk.gov.justice.services.eventsourcing.source.core.snapshot.async.event.SnapshotSaverRequestEvent;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.ObservesAsync;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.ObservesAsync;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

@@ -13,7 +13,7 @@ import uk.gov.justice.services.eventstore.management.verification.process.Verifi
 
 import java.util.List;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.sql.DataSource;
 
 import org.slf4j.Logger;

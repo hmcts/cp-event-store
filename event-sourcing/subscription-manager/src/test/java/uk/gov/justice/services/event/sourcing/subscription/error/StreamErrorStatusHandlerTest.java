@@ -20,7 +20,7 @@ import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

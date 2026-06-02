@@ -2,8 +2,8 @@ package uk.gov.justice.services.eventsourcing.source.core.snapshot;
 
 import uk.gov.justice.services.common.configuration.Value;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

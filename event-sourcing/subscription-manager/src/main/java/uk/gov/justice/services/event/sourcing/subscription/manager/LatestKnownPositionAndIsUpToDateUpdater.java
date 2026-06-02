@@ -5,7 +5,7 @@ import uk.gov.justice.services.event.buffer.core.repository.subscription.StreamU
 
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class LatestKnownPositionAndIsUpToDateUpdater {
 

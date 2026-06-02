@@ -7,13 +7,13 @@ import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
 import java.sql.Timestamp;
 import java.time.Instant;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
-import javax.ejb.Timeout;
-import javax.ejb.TimerService;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.TimerService;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

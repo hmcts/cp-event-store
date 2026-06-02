@@ -11,7 +11,7 @@ import uk.gov.justice.services.management.suspension.commands.SuspensionCommand;
 
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;

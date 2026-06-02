@@ -1,11 +1,17 @@
 package uk.gov.justice.services.eventsourcing.publishedevent.jdbc;
 
 import static java.lang.String.format;
+import static jakarta.transaction.Transactional.TxType.MANDATORY;
+
+import uk.gov.justice.services.eventsourcing.source.core.EventStoreDataSourceProvider;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 public class AdvisoryLockDataAccess {
 

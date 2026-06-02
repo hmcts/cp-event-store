@@ -26,12 +26,12 @@ import uk.gov.justice.services.eventsourcing.source.api.service.core.PositionFac
 import java.net.URL;
 import java.util.UUID;
 
-import javax.json.JsonObjectBuilder;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.UriInfo;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.UriInfo;
 
 import org.jboss.resteasy.specimpl.ResteasyHttpHeaders;
-import org.jboss.resteasy.spi.ResteasyUriInfo;
+import org.jboss.resteasy.specimpl.ResteasyUriInfo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -64,7 +64,7 @@ public class EventStreamPageResourceTest {
 
         final UUID streamId = randomUUID();
 
-        final UriInfo uriInfo = new ResteasyUriInfo("" + "/" + streamId, "", "");
+        final UriInfo uriInfo = new ResteasyUriInfo("/" + streamId, "");
 
         final URL fixedUrl = new URL("http://localhost:8080/rest/fixed");
 
@@ -103,7 +103,7 @@ public class EventStreamPageResourceTest {
 
         final String streamId = randomUUID().toString();
 
-        final UriInfo uriInfo = new ResteasyUriInfo("" + "/" + streamId, "", "");
+        final UriInfo uriInfo = new ResteasyUriInfo("/" + streamId, "");
 
         final URL fixedUrl = new URL("http://localhost:8080/rest/fixed");
 
@@ -117,7 +117,7 @@ public class EventStreamPageResourceTest {
 
         final String streamId = randomUUID().toString();
 
-        final UriInfo uriInfo = new ResteasyUriInfo("" + "/" + streamId, "", "");
+        final UriInfo uriInfo = new ResteasyUriInfo("/" + streamId, "");
 
         final URL fixedUrl = new URL("http://localhost:8080/rest/fixed");
 
@@ -132,7 +132,7 @@ public class EventStreamPageResourceTest {
         final ResteasyHttpHeaders requestHeaders = new ResteasyHttpHeaders(new MultivaluedHashMap<>());
 
         resource.headers = requestHeaders;
-        resource.events("3", FORWARD.toString(), PAGE_SIZE, new ResteasyUriInfo("", "", ""));
+        resource.events("3", FORWARD.toString(), PAGE_SIZE, new ResteasyUriInfo("", ""));
 
         verify(accessControlChecker).checkAccessControl(requestHeaders);
     }

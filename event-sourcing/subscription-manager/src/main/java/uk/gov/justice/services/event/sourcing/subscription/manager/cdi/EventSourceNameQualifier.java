@@ -4,7 +4,7 @@ import uk.gov.justice.services.eventsourcing.source.core.annotation.EventSourceN
 
 import java.util.Objects;
 
-import javax.enterprise.util.AnnotationLiteral;
+import jakarta.enterprise.util.AnnotationLiteral;
 
 public class EventSourceNameQualifier extends AnnotationLiteral<EventSourceName> implements EventSourceName {
 

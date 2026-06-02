@@ -4,7 +4,7 @@ import uk.gov.justice.services.messaging.JsonEnvelope;
 
 import java.util.Optional;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class EventBufferAwareSubscriptionEventProcessor {
 

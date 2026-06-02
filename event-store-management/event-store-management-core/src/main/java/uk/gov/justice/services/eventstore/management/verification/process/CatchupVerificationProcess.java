@@ -6,7 +6,7 @@ import uk.gov.justice.services.eventstore.management.commands.VerificationComman
 import java.util.List;
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class CatchupVerificationProcess {
 

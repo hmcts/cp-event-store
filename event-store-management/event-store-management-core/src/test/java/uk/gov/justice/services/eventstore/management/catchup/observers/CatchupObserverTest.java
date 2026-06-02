@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.enterprise.event.Event;
+import jakarta.enterprise.event.Event;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

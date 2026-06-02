@@ -5,15 +5,15 @@
     <parent>
         <artifactId>aggregate-snapshot</artifactId>
         <groupId>uk.gov.justice.event-store</groupId>
-        <version>17.104.2-SNAPSHOT</version>
+        <version>21.0.0-M1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>aggregate-snapshot-repository</artifactId>
     <dependencies>
         <dependency>
-            <groupId>javax</groupId>
-            <artifactId>javaee-api</artifactId>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -75,7 +75,6 @@
                     <execution>
                         <phase>pre-integration-test</phase>
                         <goals>
-                            <goal>dropAll</goal>
                             <goal>update</goal>
                         </goals>
                     </execution>

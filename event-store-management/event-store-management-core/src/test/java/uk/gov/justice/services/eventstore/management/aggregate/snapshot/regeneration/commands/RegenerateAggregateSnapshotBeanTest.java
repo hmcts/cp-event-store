@@ -20,7 +20,7 @@ import uk.gov.justice.services.eventsourcing.source.core.exception.EventStreamEx
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

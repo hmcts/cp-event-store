@@ -8,8 +8,8 @@ import static uk.gov.justice.services.eventsourcing.eventpublishing.EventLinking
 import uk.gov.justice.services.ejb.timer.TimerServiceManager;
 import uk.gov.justice.services.eventsourcing.eventpublishing.configuration.EventLinkingWorkerConfig;
 
-import javax.ejb.Timer;
-import javax.ejb.TimerService;
+import jakarta.ejb.Timer;
+import jakarta.ejb.TimerService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

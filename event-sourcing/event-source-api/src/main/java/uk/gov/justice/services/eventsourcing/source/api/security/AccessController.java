@@ -5,9 +5,9 @@ import static uk.gov.justice.services.common.http.HeaderConstants.USER_ID;
 import uk.gov.justice.services.core.accesscontrol.AccessControlViolationException;
 import uk.gov.justice.services.core.dispatcher.SystemUserProvider;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.core.HttpHeaders;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.HttpHeaders;
 
 @ApplicationScoped
 public class AccessController {

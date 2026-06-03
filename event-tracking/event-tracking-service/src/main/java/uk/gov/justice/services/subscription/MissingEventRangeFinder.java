@@ -1,6 +1,6 @@
 package uk.gov.justice.services.subscription;
 
-import static javax.transaction.Transactional.TxType.NEVER;
+import static jakarta.transaction.Transactional.TxType.NEVER;
 
 import uk.gov.justice.services.eventsourcing.source.api.streams.MissingEventRange;
 
@@ -8,8 +8,8 @@ import java.util.LinkedList;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 public class MissingEventRangeFinder {
 

@@ -7,12 +7,12 @@ import org.slf4j.Logger;
 import uk.gov.justice.services.common.configuration.Value;
 import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.transaction.Synchronization;
-import javax.transaction.TransactionSynchronizationRegistry;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.transaction.Synchronization;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 
 /**
  * Service that handles the creation of System level events.
@@ -67,7 +67,7 @@ public class EventAppendTriggerService {
         @Override
         public void afterCompletion(int status) {
             try {
-                if (status == javax.transaction.Status.STATUS_COMMITTED) {
+                if (status == jakarta.transaction.Status.STATUS_COMMITTED) {
                     eventAppendedEventFirer.fire(new EventAppendedEvent());
                 }
             } finally {

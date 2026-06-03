@@ -100,8 +100,8 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.UUID;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import com.jayway.jsonpath.JsonPath;
 import liquibase.Liquibase;

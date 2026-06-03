@@ -84,12 +84,13 @@ public class DatabaseCleanerTest {
 
         when(testJdbcConnectionProvider.getSystemConnection(contextName)).thenReturn(connection);
         when(connection.prepareStatement(format(SQL_PATTERN, "stored_command"))).thenReturn(preparedStatement);
+        when(connection.prepareStatement(format(SQL_PATTERN, "system_command_status"))).thenReturn(preparedStatement);
 
         databaseCleaner.cleanSystemTables(contextName);
 
-        verify(preparedStatement, times(1)).executeUpdate();
+        verify(preparedStatement, times(2)).executeUpdate();
         verify(connection).close();
-        verify(preparedStatement, times(1)).close();
+        verify(preparedStatement, times(2)).close();
     }
 
     @Test

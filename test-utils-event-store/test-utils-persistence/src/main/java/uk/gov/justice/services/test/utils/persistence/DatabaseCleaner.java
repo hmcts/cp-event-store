@@ -36,6 +36,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class DatabaseCleaner {
 
     private static final String SQL_PATTERN = "TRUNCATE TABLE %s CASCADE";
+    private static final String SET_LATEST_EVENT_ID_ON_EVENT_SUBSCRIPTION_STATUS_TABLE_TO_NULL_SQL = "UPDATE event_subscription_status SET latest_event_id = NULL";
 
     private final TestJdbcConnectionProvider testJdbcConnectionProvider;
 
@@ -161,6 +162,7 @@ public class DatabaseCleaner {
 
         try (final Connection connection = testJdbcConnectionProvider.getSystemConnection(contextName)) {
             truncateTable("stored_command", SYSTEM_DATABASE_NAME, connection);
+            truncateTable("system_command_status", SYSTEM_DATABASE_NAME, connection);
         } catch (SQLException e) {
             throw new DataAccessException("Failed to commit or close database connection", e);
         }
@@ -183,6 +185,16 @@ public class DatabaseCleaner {
             }
         } catch (SQLException e) {
             throw new DataAccessException("Failed to commit or close database connection", e);
+        }
+    }
+
+    public void resetEventSubscriptionStatusTable(final String contextName) {
+
+        try (final Connection connection = testJdbcConnectionProvider.getViewStoreConnection(contextName);
+             final PreparedStatement preparedStatement = connection.prepareStatement(SET_LATEST_EVENT_ID_ON_EVENT_SUBSCRIPTION_STATUS_TABLE_TO_NULL_SQL)) {
+            preparedStatement.executeUpdate();
+        } catch (final SQLException e) {
+            throw new DataAccessException("Failed to set 'event_subscription_status.latest_event_id' to NULL", e);
         }
     }
 

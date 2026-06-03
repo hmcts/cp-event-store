@@ -7,7 +7,7 @@ import uk.gov.justice.services.core.dispatcher.SystemUserProvider;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class TestSystemUserProvider implements SystemUserProvider {

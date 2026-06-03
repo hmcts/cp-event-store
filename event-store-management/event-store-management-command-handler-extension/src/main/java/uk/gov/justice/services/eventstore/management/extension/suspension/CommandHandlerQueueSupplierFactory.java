@@ -5,7 +5,7 @@ import uk.gov.justice.services.messaging.jms.JmsQueueBrowser;
 
 import java.util.function.BooleanSupplier;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class CommandHandlerQueueSupplierFactory {
 

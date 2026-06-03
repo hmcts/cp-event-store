@@ -13,9 +13,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.enterprise.inject.Produces;
-import javax.faces.bean.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

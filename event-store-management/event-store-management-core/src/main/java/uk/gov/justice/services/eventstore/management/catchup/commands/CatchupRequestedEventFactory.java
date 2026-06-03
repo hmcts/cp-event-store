@@ -8,7 +8,7 @@ import uk.gov.justice.services.jmx.api.parameters.JmxCommandRuntimeParameters;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class CatchupRequestedEventFactory {
 

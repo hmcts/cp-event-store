@@ -6,8 +6,8 @@ import uk.gov.justice.services.jmx.command.SystemCommandStore;
 
 import java.util.List;
 
-import javax.enterprise.inject.Default;
-import javax.faces.bean.ApplicationScoped;
+import jakarta.enterprise.inject.Default;
+import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 @Default

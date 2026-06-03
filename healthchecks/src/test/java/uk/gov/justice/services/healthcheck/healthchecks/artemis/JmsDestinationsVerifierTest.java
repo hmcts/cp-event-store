@@ -17,9 +17,9 @@ import uk.gov.justice.services.messaging.jms.exception.JmsEnvelopeSenderExceptio
 
 import java.util.List;
 
-import javax.jms.Destination;
-import javax.jms.MessageConsumer;
-import javax.jms.Session;
+import jakarta.jms.Destination;
+import jakarta.jms.MessageConsumer;
+import jakarta.jms.Session;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;

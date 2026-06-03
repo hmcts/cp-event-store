@@ -10,8 +10,8 @@ import uk.gov.justice.services.metrics.micrometer.counters.MicrometerMetricsCoun
 import java.util.Objects;
 import java.util.Optional;
 
-import javax.inject.Inject;
-import javax.transaction.UserTransaction;
+import jakarta.inject.Inject;
+import jakarta.transaction.UserTransaction;
 
 import org.slf4j.Logger;
 

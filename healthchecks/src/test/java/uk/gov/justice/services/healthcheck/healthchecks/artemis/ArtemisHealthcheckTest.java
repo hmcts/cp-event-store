@@ -10,10 +10,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.Session;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
+import jakarta.jms.Session;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,7 +64,7 @@ public class ArtemisHealthcheckTest {
         var healthcheckResult = artemisHealthcheck.runHealthcheck();
 
         assertFalse(healthcheckResult.isPassed());
-        assertThat(healthcheckResult.getErrorMessage().get(), is("Exception thrown while accessing artemis broker. javax.jms.JMSException: Ex message"));
+        assertThat(healthcheckResult.getErrorMessage().get(), is("Exception thrown while accessing artemis broker. jakarta.jms.JMSException: Ex message"));
         verify(logger).error("Healthcheck for artemis failed.", ex);
     }
 

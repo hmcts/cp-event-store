@@ -5,7 +5,7 @@ import uk.gov.justice.services.core.interceptor.InterceptorChainProcessorProduce
 import uk.gov.justice.services.event.sourcing.subscription.manager.BackwardsCompatibleSubscriptionManager;
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class BackwardsCompatibleSubscriptionManagerFactory {
 

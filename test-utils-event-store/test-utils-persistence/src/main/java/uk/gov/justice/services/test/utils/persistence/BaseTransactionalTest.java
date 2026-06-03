@@ -1,14 +1,13 @@
 package uk.gov.justice.services.test.utils.persistence;
 
-import javax.inject.Inject;
-import javax.transaction.UserTransaction;
+import jakarta.inject.Inject;
+import jakarta.transaction.UserTransaction;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 /**
- * This class should be extended by any test which require managed persistence/transactions provided
- * by deltaspike via JPA.
+ * Base class for tests that require managed persistence/transactions via JPA.
  */
 public abstract class BaseTransactionalTest {
 

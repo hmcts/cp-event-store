@@ -10,8 +10,8 @@ import uk.gov.justice.services.jmx.logging.MdcLoggerInterceptor;
 
 import java.util.UUID;
 
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
+import jakarta.inject.Inject;
+import jakarta.interceptor.Interceptors;
 
 public class EventStoreVerificationCommandHandler {
 

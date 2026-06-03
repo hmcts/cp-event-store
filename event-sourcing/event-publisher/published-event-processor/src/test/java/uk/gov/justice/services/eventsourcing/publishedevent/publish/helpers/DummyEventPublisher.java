@@ -6,7 +6,7 @@ import uk.gov.justice.services.messaging.JsonEnvelope;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class DummyEventPublisher implements EventPublisher {

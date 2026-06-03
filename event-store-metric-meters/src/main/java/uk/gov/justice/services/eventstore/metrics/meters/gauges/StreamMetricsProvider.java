@@ -7,7 +7,7 @@ import uk.gov.justice.services.event.buffer.core.repository.metrics.StreamMetric
 
 import java.util.Optional;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 

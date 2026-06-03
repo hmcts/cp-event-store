@@ -8,6 +8,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
+
+import java.util.concurrent.RejectedExecutionException;
+
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -15,10 +21,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
-import uk.gov.justice.services.eventsourcing.repository.jdbc.event.EventAppendedEvent;
-
-import javax.enterprise.concurrent.ManagedExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 
 @ExtendWith(MockitoExtension.class)
 class EventLinkingNotifierTest {

@@ -2,7 +2,7 @@ package uk.gov.justice.services.event.sourcing.subscription.error;
 
 import java.util.Optional;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class ExceptionHashGenerator {
 

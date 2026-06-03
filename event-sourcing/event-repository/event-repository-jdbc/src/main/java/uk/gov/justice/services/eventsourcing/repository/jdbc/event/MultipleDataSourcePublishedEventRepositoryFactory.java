@@ -3,7 +3,7 @@ package uk.gov.justice.services.eventsourcing.repository.jdbc.event;
 import uk.gov.justice.services.jdbc.persistence.JdbcResultSetStreamer;
 import uk.gov.justice.services.jdbc.persistence.PreparedStatementWrapperFactory;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.sql.DataSource;
 
 public class MultipleDataSourcePublishedEventRepositoryFactory {

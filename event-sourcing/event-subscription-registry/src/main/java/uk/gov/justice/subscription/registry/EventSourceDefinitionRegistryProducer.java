@@ -10,9 +10,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.stream.Stream;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 /**
  * Producer for the {@link EventSourceDefinitionRegistry} creates a single instance and returns the

@@ -7,8 +7,8 @@ import uk.gov.justice.services.eventsourcing.publisher.jms.EventDestinationResol
 import uk.gov.justice.services.eventsourcing.publisher.jms.JmsEventPublisher;
 import uk.gov.justice.services.messaging.context.ContextName;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * Provides Listener endpoint name to {@link JmsEventPublisher}.

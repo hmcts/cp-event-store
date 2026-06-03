@@ -25,12 +25,12 @@ import uk.gov.justice.services.eventsourcing.source.api.service.core.EventEntry;
 import java.net.URL;
 import java.util.UUID;
 
-import javax.json.JsonObjectBuilder;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.UriInfo;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.UriInfo;
 
 import org.jboss.resteasy.specimpl.ResteasyHttpHeaders;
-import org.jboss.resteasy.spi.ResteasyUriInfo;
+import org.jboss.resteasy.specimpl.ResteasyUriInfo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -60,7 +60,7 @@ public class EventPageResourceTest {
         final String positionValue = "2";
         final int pageSize = 10;
 
-        final UriInfo uriInfo = new ResteasyUriInfo("" + "/" + streamId, "", "");
+        final UriInfo uriInfo = new ResteasyUriInfo("/" + streamId, "");
 
         final URL fixedUrl = new URL("http://localhost:8080/rest/fixed");
 
@@ -99,7 +99,7 @@ public class EventPageResourceTest {
 
         final String streamId = randomUUID().toString();
 
-        final UriInfo uriInfo = new ResteasyUriInfo("" + "/" + streamId, "", "");
+        final UriInfo uriInfo = new ResteasyUriInfo("/" + streamId, "");
 
         final URL fixedUrl = new URL("http://localhost:8080/rest/fixed");
 
@@ -113,7 +113,7 @@ public class EventPageResourceTest {
 
         final String streamId = randomUUID().toString();
 
-        final UriInfo uriInfo = new ResteasyUriInfo("" + "/" + streamId, "", "");
+        final UriInfo uriInfo = new ResteasyUriInfo("/" + streamId, "");
 
         final URL fixedUrl = new URL("http://localhost:8080/rest/fixed");
 
@@ -131,7 +131,7 @@ public class EventPageResourceTest {
 
         resource.headers = requestHeaders;
 
-        resource.events(streamId, "3", FORWARD.toString(), 1, new ResteasyUriInfo("", "", ""));
+        resource.events(streamId, "3", FORWARD.toString(), 1, new ResteasyUriInfo("", ""));
 
         verify(accessControlChecker).checkAccessControl(requestHeaders);
     }

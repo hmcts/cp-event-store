@@ -14,8 +14,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 
-import javax.enterprise.concurrent.ManagedExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+
+import jakarta.enterprise.concurrent.ManagedExecutorService;
 
 @ExtendWith(MockitoExtension.class)
 class EventPublishingNotifierTest {

@@ -8,7 +8,7 @@ import uk.gov.justice.services.event.sourcing.subscription.manager.EventBufferPr
 import uk.gov.justice.services.event.sourcing.subscription.manager.cdi.InterceptorContextProvider;
 import uk.gov.justice.services.subscription.SubscriptionManager;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class DefaultSubscriptionManagerFactory {
 

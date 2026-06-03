@@ -16,7 +16,7 @@ import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.sql.DataSource;
 
 import org.junit.jupiter.api.Test;

@@ -13,7 +13,7 @@ import uk.gov.justice.services.metrics.micrometer.config.MetricsConfiguration;
 import java.sql.Timestamp;
 import java.time.Instant;
 
-import javax.ejb.TimerService;
+import jakarta.ejb.TimerService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

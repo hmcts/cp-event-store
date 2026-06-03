@@ -4,7 +4,7 @@ import static java.lang.String.format;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.UUID.fromString;
-import static javax.transaction.Transactional.TxType.MANDATORY;
+import static jakarta.transaction.Transactional.TxType.MANDATORY;
 import static uk.gov.justice.services.common.converter.ZonedDateTimes.toSqlTimestamp;
 
 import uk.gov.justice.services.eventsourcing.repository.jdbc.PublishQueue.PublishQueueTableName;
@@ -19,8 +19,8 @@ import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.inject.Inject;
-import javax.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 /**
  * The EventDeQueuer class provides a method that returns an event from the event_log.

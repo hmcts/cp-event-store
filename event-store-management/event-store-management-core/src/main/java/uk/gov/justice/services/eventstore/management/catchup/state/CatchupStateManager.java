@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.inject.Singleton;
+import jakarta.enterprise.context.ApplicationScoped;
 
-@Singleton
+@ApplicationScoped
 public class CatchupStateManager {
 
     private final Map<SubscriptionCatchupDetails, CatchupInProgress> catchupsInProgress = new ConcurrentHashMap<>();

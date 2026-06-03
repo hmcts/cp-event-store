@@ -8,7 +8,7 @@ import uk.gov.justice.subscription.registry.SubscriptionsDescriptorsRegistry;
 
 import java.util.List;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class SubscriptionCatchupProvider {
 

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>event-buffer</artifactId>
         <groupId>uk.gov.justice.event-store</groupId>
-        <version>21.0.0-M1-SNAPSHOT</version>
+        <version>25.104.0-M1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -89,7 +89,6 @@
             <plugin>
                 <groupId>org.liquibase</groupId>
                 <artifactId>liquibase-maven-plugin</artifactId>
-                <version>${liquibase.version}</version>
                 <configuration>
                     <changeLogFile>liquibase/event-buffer-changelog.xml</changeLogFile>
                     <driver>org.postgresql.Driver</driver>

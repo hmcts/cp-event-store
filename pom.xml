@@ -7,12 +7,12 @@
     <parent>
         <groupId>uk.gov.justice</groupId>
         <artifactId>maven-framework-parent-pom</artifactId>
-        <version>21.0.0-M3</version>
+        <version>25.104.0-M3</version>
     </parent>
 
     <groupId>uk.gov.justice.event-store</groupId>
     <artifactId>event-store</artifactId>
-    <version>21.0.0-M1-SNAPSHOT</version>
+    <version>25.104.0-M1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Event Store</name>
@@ -42,7 +42,15 @@
 
     <properties>
         <cpp.repo.name>event-store</cpp.repo.name>
-        <framework.version>21.0.0-M1-SNAPSHOT</framework.version>
+        <framework.version>25.104.0-M1</framework.version>
+        <!--
+            coveralls-maven-plugin:4.3.0 ships with jakarta.xml.bind-api:2.3.1 which is
+            unavailable in the CI repo. Pin to 2.3.2 via plugin <dependencies> override.
+            Same version used by the RAML parser — see cp-framework-libraries root pom.
+        -->
+        <jakarta.xml.bind-api.raml.version>2.3.2</jakarta.xml.bind-api.raml.version>
+        <!-- liquibase-maven-plugin: 4.24–4.29 have mojo loading failures (LOG_FORMAT removed, AbstractLogger API break); pin to 4.10.0 which pre-dates the refactoring -->
+        <liquibase.maven.plugin.version>4.10.0</liquibase.maven.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -94,6 +102,11 @@
                         <argLine>${argLine} -Xmx64m -javaagent:${net.bytebuddy:byte-buddy-agent:jar}</argLine>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.liquibase</groupId>
+                    <artifactId>liquibase-maven-plugin</artifactId>
+                    <version>${liquibase.maven.plugin.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -103,6 +116,14 @@
                 <configuration>
                     <skip>true</skip>
                 </configuration>
+                <dependencies>
+                    <!-- coveralls-maven-plugin 4.3.0 ships with jakarta.xml.bind-api:2.3.1 which is unavailable in the CI repo. Pin to 2.3.2. -->
+                    <dependency>
+                        <groupId>jakarta.xml.bind</groupId>
+                        <artifactId>jakarta.xml.bind-api</artifactId>
+                        <version>${jakarta.xml.bind-api.raml.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>

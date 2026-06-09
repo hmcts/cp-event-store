@@ -5,6 +5,17 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [25.104.0-M1] - 2026-06-09
+### Changed
+- Upgraded to Java 25 and Jakarta EE 11 (25.104.x release line)
+- Upgraded parent POM to `maven-framework-parent-pom:25.104.0-M3`
+- Updated `framework.version` to `cp-microservice-framework:25.104.0-M1`
+- Added `jakarta.xml.bind-api.raml.version=2.3.2` property and coveralls plugin dependency override (fixes `jakarta.xml.bind-api:2.3.1` unavailable in CI repo)
+
+### Fixed
+- Fixed Liquibase Maven plugin mojo loading failure (`LOG_FORMAT` field removed in 4.24+): pinned `liquibase-maven-plugin` to `4.10.0` via `liquibase.maven.plugin.version` root pom property and `pluginManagement` override; removed explicit `${liquibase.version}` plugin version from 9 submodule poms so pluginManagement takes effect
+- Fixed `FrameworkTestDataSourceFactoryTest`: replaced `getCatalogs()` (returns a `ResultSet` of all catalog names) with `getCatalog()` (returns the current catalog name as a `String`) — `getCatalogs()` return type is incompatible with `assertThat(..., is("frameworkeventstore"))` under Java 25 / H2 2.x
+
 ## [21.0.0-M1] - 2026-06-02
 ### Changed
 - Upgraded to Java 21 and Jakarta EE 10 (17.104.x release line)

@@ -4,7 +4,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -22,11 +21,8 @@ public class FrameworkTestDataSourceFactoryTest {
 
         final DataSource eventStoreDataSource = frameworkTestDataSourceFactory.createEventStoreDataSource();
 
-        try (final Connection connection = eventStoreDataSource.getConnection();
-             final ResultSet catalogs = connection.getMetaData().getCatalogs()) {
-            while (catalogs.next()) {
-                assertThat(catalogs.getString(1), is("frameworkeventstore"));
-            }
+        try (final Connection connection = eventStoreDataSource.getConnection()) {
+            assertThat(connection.getCatalog(), is("frameworkeventstore"));
         }
     }
 
@@ -35,11 +31,8 @@ public class FrameworkTestDataSourceFactoryTest {
 
         final DataSource viewStoreDataSource = frameworkTestDataSourceFactory.createViewStoreDataSource();
 
-        try (final Connection connection = viewStoreDataSource.getConnection();
-             final ResultSet catalogs = connection.getMetaData().getCatalogs()) {
-            while (catalogs.next()) {
-                assertThat(catalogs.getString(1), is("frameworkviewstore"));
-            }
+        try (final Connection connection = viewStoreDataSource.getConnection()) {
+            assertThat(connection.getCatalog(), is("frameworkviewstore"));
         }
     }
 
@@ -48,11 +41,8 @@ public class FrameworkTestDataSourceFactoryTest {
 
         final DataSource fileStoreDataSource = frameworkTestDataSourceFactory.createFileStoreDataSource();
 
-        try (final Connection connection = fileStoreDataSource.getConnection();
-             final ResultSet catalogs = connection.getMetaData().getCatalogs()) {
-            while (catalogs.next()) {
-                assertThat(catalogs.getString(1), is("frameworkfilestore"));
-            }
+        try (final Connection connection = fileStoreDataSource.getConnection()) {
+            assertThat(connection.getCatalog(), is("frameworkfilestore"));
         }
     }
 

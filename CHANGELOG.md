@@ -5,6 +5,13 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [25.104.0-M2] - 2026-06-18
+### Changed
+- Bumped parent `maven-framework-parent-pom` to `25.104.0-M6` — picks up `liquibase.version=5.0.3`
+- Updated `framework.version` to `25.104.0-M2`
+- Removed `liquibase.maven.plugin.version` property and `pluginManagement` override — now obsolete; plugin version is managed at `${liquibase.version}` via parent
+- Removed `liquibase.hub.mode` property — removed in Liquibase 4.12.0
+
 ## [25.104.0-M1] - 2026-06-09
 ### Changed
 - Upgraded to Java 25 and Jakarta EE 11 (25.104.x release line)

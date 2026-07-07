@@ -5,6 +5,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [25.104.0-M4] - 2026-07-07
+### Changed
+- Updated `framework.version` to `25.104.0-M3` — picks up the new `persistence-jpa` module (the relocated event-stream self-healing `EntityManagerFlushInterceptor` + `EntityManagerProducer`) and the removal of the orphaned `persistence-deltaspike`
+
 ## [25.104.0-M3] - 2026-06-18
 ### Fixed
 - Removed `liquibase.searchPath: CLI` from `event-buffer-liquibase/liquibase.properties` — Liquibase 5.x treats `CLI` as a literal directory path (which doesn't exist), causing `FileNotFoundException` at startup; the embedded classpath changelog does not require an explicit search path

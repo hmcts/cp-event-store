@@ -12,7 +12,7 @@
 
     <groupId>uk.gov.justice.event-store</groupId>
     <artifactId>event-store</artifactId>
-    <version>25.104.0-M4-SNAPSHOT</version>
+    <version>25.104.0-M4</version>
     <packaging>pom</packaging>
 
     <name>Event Store</name>
@@ -42,7 +42,7 @@
 
     <properties>
         <cpp.repo.name>event-store</cpp.repo.name>
-        <framework.version>25.104.0-M2</framework.version>
+        <framework.version>25.104.0-M3</framework.version>
         <!--
             coveralls-maven-plugin:4.3.0 ships with jakarta.xml.bind-api:2.3.1 which is
             unavailable in the CI repo. Pin to 2.3.2 via plugin <dependencies> override.

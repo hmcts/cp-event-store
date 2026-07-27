@@ -5,6 +5,25 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [25.104.0-M5] - 2026-07-27
+### Added
+- **Fail-fast guard for the event-stream self-healing `EntityManagerFlushInterceptor`** (`subscription-manager`,
+  `EntityManagerFlushInterceptorPresenceVerifier`, a CDI `Extension` running at `AfterDeploymentValidation`).
+  When event-stream self-healing is enabled, it verifies the `EntityManagerFlushInterceptor` is present on every
+  event-listener interceptor chain (the standard `EVENT_LISTENER` and any custom `*_EVENT_LISTENER` component) and
+  **fails the deployment** (`addDeploymentProblem`) with a plain-English message if it is missing.
+  **Why:** the flush interceptor forces each event-listener's DB changes to flush *within* the handler, so a DB
+  error is caught by self-healing, recorded in the error tables, and retried; without it the error only fires at
+  container commit — invisible to self-healing — and failing events are silently dropped. It had been accidentally
+  dropped more than once (a persistence dependency reworked off the classpath; a custom event-listener component
+  building its own chain), with no visible symptom until error capture was needed. The interceptor is matched by
+  fully-qualified **class name**, so the check still runs (and fails) even when the module providing it has been
+  dropped from the deployment. The check is gated on `isEventStreamSelfHealingEnabled()`: with self-healing off,
+  the interceptor is intentionally absent and no verification runs.
+
+### Changed
+- Bumped parent `maven-framework-parent-pom` to `25.104.0-M8` and `framework.version` (microservice-framework) to `25.104.0-M4` — picks up Jackson `2.21.5` (**CVE-2026-54515**) and the `org.junit:junit-bom` import via `maven-common-bom` M6.
+
 ## [25.104.0-M4] - 2026-07-07
 ### Changed
 - Updated `framework.version` to `25.104.0-M3` — picks up the new `persistence-jpa` module (the relocated event-stream self-healing `EntityManagerFlushInterceptor` + `EntityManagerProducer`) and the removal of the orphaned `persistence-deltaspike`

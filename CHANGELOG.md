@@ -5,6 +5,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [25.104.0-M6] - 2026-08-05
+### Changed
+- Bumped parent `maven-framework-parent-pom` to `25.104.0-M9` and `framework.version` to `25.104.0-M5` — picks up the Apache Artemis client bump `2.53.0` → `2.54.0` (via common-bom M7).
+
 ## [25.104.0-M5] - 2026-07-27
 ### Added
 - **Fail-fast guard for the event-stream self-healing `EntityManagerFlushInterceptor`** (`subscription-manager`,

@@ -5,11 +5,22 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
-## [25.104.0-M6] - 2026-08-05
-### Changed
-- Bumped parent `maven-framework-parent-pom` to `25.104.0-M9` and `framework.version` to `25.104.0-M5` — picks up the Apache Artemis client bump `2.53.0` → `2.54.0` (via common-bom M7).
+## [25.104.0] - 2026-09-07
+First official (non-milestone) release of the Java 25 / WildFly 40 / Jakarta EE 11 line,
+consolidating milestones `25.104.0-M1` to `25.104.0-M6`.
 
-## [25.104.0-M5] - 2026-07-27
+### Changed
+- Upgraded to Java 25 / WildFly 40 / Jakarta EE 11 (25.104.x release line)
+- Bumped parent `maven-framework-parent-pom` and `framework.version` (microservice-framework) to the released `25.104.0` — Java 25 / Jakarta EE 11 targeting (`java.major.version=25`, `enforcer.java.version.range=[25,)`), Jakarta EE 11 API set, WildFly `40.0.0.Final`, Weld 6, RESTEasy 7, Hibernate ORM 6, Apache Artemis `2.54.0` under the new `org.apache.artemis` groupId, `liquibase.version=5.0.3`, Jackson `2.21.5` (**CVE-2026-54515**), the `org.junit:junit-bom` import, and the relocated `persistence-jpa` module carrying the event-stream self-healing `EntityManagerFlushInterceptor`
+- Attached the ByteBuddy agent explicitly for tests: a `maven-dependency-plugin` `properties` execution at `initialize` resolves the agent path, and surefire's `argLine` gains `-javaagent:${net.bytebuddy:byte-buddy-agent:jar}`. Mockito's inline mock maker can no longer self-attach on modern JDKs, so without this the agent is loaded dynamically and warns (and will eventually fail)
+- Added root-level `byte-buddy-agent` and `mockito-junit-jupiter` test dependencies
+- Set `<skip>true</skip>` on `coveralls-maven-plugin`, and overrode its classpath to `jakarta.xml.bind-api` `2.3.2` — `coveralls-maven-plugin:4.3.0` ships with `2.3.1`, which is unavailable in the CI repository
+
+### Removed
+- `liquibase.hub.mode` property — removed in Liquibase 4.12.0, and any JAR bundling 4.12.0 or later rejects it under strict checking, causing the Kubernetes pre-install Liquibase job to time out
+- `junit4.version` (`4.13.2`) property, which carried a "needed for deltaspike tests, should be moved to common bom" note — the DeltaSpike JUnit 4 tests are gone, so the property has no remaining users
+- Local `jakarta.xml.bind-api.raml.version` property — the value (`2.3.2`) now comes from `maven-framework-parent-pom`, which centralised it so child projects could drop their copies
+
 ### Added
 - **Fail-fast guard for the event-stream self-healing `EntityManagerFlushInterceptor`** (`subscription-manager`,
   `EntityManagerFlushInterceptorPresenceVerifier`, a CDI `Extension` running at `AfterDeploymentValidation`).
@@ -25,34 +36,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
   dropped from the deployment. The check is gated on `isEventStreamSelfHealingEnabled()`: with self-healing off,
   the interceptor is intentionally absent and no verification runs.
 
-### Changed
-- Bumped parent `maven-framework-parent-pom` to `25.104.0-M8` and `framework.version` (microservice-framework) to `25.104.0-M4` — picks up Jackson `2.21.5` (**CVE-2026-54515**) and the `org.junit:junit-bom` import via `maven-common-bom` M6.
-
-## [25.104.0-M4] - 2026-07-07
-### Changed
-- Updated `framework.version` to `25.104.0-M3` — picks up the new `persistence-jpa` module (the relocated event-stream self-healing `EntityManagerFlushInterceptor` + `EntityManagerProducer`) and the removal of the orphaned `persistence-deltaspike`
-
-## [25.104.0-M3] - 2026-06-18
 ### Fixed
 - Removed `liquibase.searchPath: CLI` from `event-buffer-liquibase/liquibase.properties` — Liquibase 5.x treats `CLI` as a literal directory path (which doesn't exist), causing `FileNotFoundException` at startup; the embedded classpath changelog does not require an explicit search path
-
-## [25.104.0-M2] - 2026-06-18
-### Changed
-- Bumped parent `maven-framework-parent-pom` to `25.104.0-M6` — picks up `liquibase.version=5.0.3`
-- Updated `framework.version` to `25.104.0-M2`
-- Removed `liquibase.maven.plugin.version` property and `pluginManagement` override — now obsolete; plugin version is managed at `${liquibase.version}` via parent
-- Removed `liquibase.hub.mode` property — removed in Liquibase 4.12.0
-
-## [25.104.0-M1] - 2026-06-09
-### Changed
-- Upgraded to Java 25 and Jakarta EE 11 (25.104.x release line)
-- Upgraded parent POM to `maven-framework-parent-pom:25.104.0-M3`
-- Updated `framework.version` to `cp-microservice-framework:25.104.0-M1`
-- Added `jakarta.xml.bind-api.raml.version=2.3.2` property and coveralls plugin dependency override (fixes `jakarta.xml.bind-api:2.3.1` unavailable in CI repo)
-
-### Fixed
-- Fixed Liquibase Maven plugin mojo loading failure (`LOG_FORMAT` field removed in 4.24+): pinned `liquibase-maven-plugin` to `4.10.0` via `liquibase.maven.plugin.version` root pom property and `pluginManagement` override; removed explicit `${liquibase.version}` plugin version from 9 submodule poms so pluginManagement takes effect
-- Fixed `FrameworkTestDataSourceFactoryTest`: replaced `getCatalogs()` (returns a `ResultSet` of all catalog names) with `getCatalog()` (returns the current catalog name as a `String`) — `getCatalogs()` return type is incompatible with `assertThat(..., is("frameworkeventstore"))` under Java 25 / H2 2.x
+- `FrameworkTestDataSourceFactoryTest`: replaced `getCatalogs()` (returns a `ResultSet` of all catalog names) with `getCatalog()` (returns the current catalog name as a `String`) — the `getCatalogs()` return type is incompatible with `assertThat(..., is("frameworkeventstore"))` under Java 25 / H2 2.x
+- Removed the explicit `${liquibase.version}` plugin version from 9 submodule poms, so the parent's `pluginManagement` takes effect
 
 ## [21.0.0-M1] - 2026-06-02
 ### Changed

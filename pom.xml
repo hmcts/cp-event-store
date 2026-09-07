@@ -7,7 +7,7 @@
     <parent>
         <groupId>uk.gov.justice</groupId>
         <artifactId>maven-framework-parent-pom</artifactId>
-        <version>25.104.0-M9</version>
+        <version>25.104.0</version>
     </parent>
 
     <groupId>uk.gov.justice.event-store</groupId>
@@ -42,13 +42,14 @@
 
     <properties>
         <cpp.repo.name>event-store</cpp.repo.name>
-        <framework.version>25.104.0-M5</framework.version>
+        <framework.version>25.104.0</framework.version>
         <!--
-            coveralls-maven-plugin:4.3.0 ships with jakarta.xml.bind-api:2.3.1 which is
-            unavailable in the CI repo. Pin to 2.3.2 via plugin <dependencies> override.
-            Same version used by the RAML parser — see cp-framework-libraries root pom.
+            jakarta.xml.bind-api.raml.version (2.3.2) now comes from
+            maven-framework-parent-pom and must NOT be re-pinned here — a local copy
+            silently overrides the centralised value. It is used below to override the
+            coveralls-maven-plugin classpath: coveralls-maven-plugin:4.3.0 ships with
+            jakarta.xml.bind-api:2.3.1, which is unavailable in the CI repo.
         -->
-        <jakarta.xml.bind-api.raml.version>2.3.2</jakarta.xml.bind-api.raml.version>
     </properties>
 
     <dependencyManagement>

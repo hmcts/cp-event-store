@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file, which follo
 on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+## [25.104.4] - 2026-09-25
+### Changed
+- Updated the parent `maven-framework-parent-pom` to 25.104.2 and `framework` to 25.104.4, which carry the
+  September 2026 security updates: postgresql 42.7.13, micrometer 1.16.7, log4j 2.25.5, plexus-utils 3.6.2
+
 ## [25.104.3] - 2026-09-15
 ### Changed
 - Updated `microservice-framework` to 25.104.3, carrying `framework-libraries` 25.104.3 and its `framework-libraries-bom` entry for `liquibase-postgres-compatibility`. Nothing here consumes it directly; the bump passes the BOM entry on to the platform poms.

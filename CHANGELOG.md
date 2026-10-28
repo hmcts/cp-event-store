@@ -5,6 +5,18 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [25.104.5] - 2026-10-27
+### Security
+- Updated the parent `maven-framework-parent-pom` to 25.104.3 and `framework` to 25.104.5, which carry
+  jackson 2.21.5 → 2.21.8
+  ([CVE-2026-89425](https://www.cve.org/CVERecord?id=CVE-2026-89425),
+  [CVE-2026-89407](https://www.cve.org/CVERecord?id=CVE-2026-89407),
+  [CVE-2026-91777](https://www.cve.org/CVERecord?id=CVE-2026-91777),
+  [CVE-2026-91776](https://www.cve.org/CVERecord?id=CVE-2026-91776),
+  [CVE-2026-68497](https://www.cve.org/CVERecord?id=CVE-2026-68497),
+  [CVE-2026-83557](https://www.cve.org/CVERecord?id=CVE-2026-83557),
+  [CVE-2026-19032](https://www.cve.org/CVERecord?id=CVE-2026-19032))
+
 ## [25.104.4] - 2026-09-25
 ### Changed
 - Updated the parent `maven-framework-parent-pom` to 25.104.2 and `framework` to 25.104.4, which carry the

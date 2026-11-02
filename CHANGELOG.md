@@ -4,6 +4,12 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ### [Unreleased]
+
+### [17.104.2] - 2026-11-02
+### Changed
+- Update framework to 17.104.1: a failed refresh of the remote Features keeps the previously cached
+  Features and logs an error ([PEG-3655](https://hmcts.atlassian.net/browse/PEG-3655))
+
 ### [17.104.1]  - 2026-03-23
 ## Added
 - Notification-based event linking and publishing via CDI events, enabled via JNDI:

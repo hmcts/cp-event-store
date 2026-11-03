@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [25.104.6] - 2026-11-03
+### Changed
+- Update framework to 25.104.6: a failed refresh of the remote Features keeps the previously cached Features and
+  logs an error ([PEG-3655](https://hmcts.atlassian.net/browse/PEG-3655))
+
 ## [25.104.5] - 2026-10-27
 ### Security
 - Updated the parent `maven-framework-parent-pom` to 25.104.3 and `framework` to 25.104.5, which carry

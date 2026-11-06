@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [25.104.7] - 2026-11-06
+### Changed
+- Updated the parent `maven-framework-parent-pom` to 25.104.4 and framework to 25.104.7, which move Hibernate ORM
+  from 6.6.1.Final to 7.3.2.Final, the version WildFly 40.0.1 ships
+
 ## [25.104.6] - 2026-11-03
 ### Changed
 - Update framework to 25.104.6: a failed refresh of the remote Features keeps the previously cached Features and
